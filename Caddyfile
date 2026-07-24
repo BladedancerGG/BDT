@@ -1,0 +1,11 @@
+# Reverse proxy pour le développement.
+# Caddy termine le TLS avec un certificat auto-signé (CA interne) et relaie
+# vers le conteneur "app" en HTTP interne. Le HMR (websocket) est géré
+# automatiquement.
+#
+# → l'app est servie sur https://localhost
+# → http://localhost est redirigé vers https automatiquement
+
+localhost {
+	reverse_proxy app:3000
+}

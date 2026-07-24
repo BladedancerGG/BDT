@@ -1,0 +1,75 @@
+# Configuration de développement.
+# Lancement : docker compose up
+#
+# - "caddy" : reverse proxy TLS → sert l'app en HTTPS sur https://localhost
+# - "app"   : le serveur Next.js (Node) avec hot-reload (HTTP interne)
+# - "db"    : PostgreSQL, données persistées dans un volume nommé
+
+services:
+  caddy:
+    container_name: caddy
+    image: caddy:2-alpine
+    ports:
+      - "80:80" # redirige vers https
+      - "443:443" # https://localhost
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # Persiste le certificat/CA auto-signé entre les redémarrages
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app
+
+  app:
+    container_name: next.js
+    build:
+      context: .
+      target: dev # utilise l'étape "dev" du Dockerfile
+    ports:
+      # Exposé pour debug direct (HTTP). En usage normal, passer par https://localhost
+      - "3000:3000"
+      - "5555:5555" # Prisma Studio
+    environment:
+      # L'app parle à la DB via le nom du service "db" (réseau interne Compose)
+      DATABASE_URL: postgresql://${POSTGRES_USER:-dlm}:${POSTGRES_PASSWORD:-dlm}@db:5432/${POSTGRES_DB:-dlm}?schema=public
+      # Variables Bungie (à remplir dans .env)
+      BUNGIE_API_KEY: ${BUNGIE_API_KEY}
+      BUNGIE_CLIENT_ID: ${BUNGIE_CLIENT_ID}
+      BUNGIE_CLIENT_SECRET: ${BUNGIE_CLIENT_SECRET}
+      NEXT_PUBLIC_BUNGIE_CLIENT_ID: ${BUNGIE_CLIENT_ID}
+      SESSION_SECRET: ${SESSION_SECRET}
+      # URL publique de l'app (via le proxy Caddy) — utilisée pour les redirections
+      APP_URL: ${APP_URL:-https://localhost}
+    volumes:
+      # Monte le code source pour le hot-reload...
+      - .:/app
+      # ...mais garde node_modules du conteneur (évite les conflits d'archi hôte/conteneur)
+      - /app/node_modules
+      - /app/.next
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    container_name: postgres
+    image: postgres:16-alpine
+    ports:
+      # Exposé sur l'hôte pour pouvoir inspecter la DB (ex: TablePlus, DBeaver)
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-dlm}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dlm}
+      POSTGRES_DB: ${POSTGRES_DB:-dlm}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      # Compose attend que Postgres soit réellement prêt avant de démarrer "app"
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-dlm}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+  caddy_data:
+  caddy_config:

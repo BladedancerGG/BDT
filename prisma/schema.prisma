@@ -1,0 +1,44 @@
+// Schéma de base — à faire évoluer selon les besoins.
+// Régénérer le client : npm run db:generate
+// Créer/appliquer une migration : npm run db:migrate
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Un utilisateur = un compte Bungie authentifié
+model User {
+  id             String     @id @default(cuid())
+  bungieMembershipId String @unique
+  displayName    String
+  // Tokens OAuth (à chiffrer en production)
+  accessToken    String
+  refreshToken   String
+  tokenExpiresAt DateTime
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  loadouts       Loadout[]
+}
+
+// Un snapshot d'équipement sauvegardé côté serveur
+model Loadout {
+  id          String   @id @default(cuid())
+  name        String
+  colorHash   Int? // identifiant de couleur (loadout identifier Destiny)
+  iconHash    Int? // identifiant d'icône
+  characterId String // personnage d'origine
+  // Contenu du loadout (items équipés) stocké en JSON — flexible face aux
+  // évolutions de l'API Bungie
+  items       Json
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+}

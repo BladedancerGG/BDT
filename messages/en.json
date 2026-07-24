@@ -1,0 +1,10 @@
+{
+  "app": {
+    "title": "Destiny Loadouts Manager",
+    "subtitle": "Manage your Destiny 2 loadouts"
+  },
+  "auth": {
+    "login": "Sign in with Bungie",
+    "logout": "Sign out"
+  }
+}

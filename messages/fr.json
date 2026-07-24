@@ -1,0 +1,10 @@
+{
+  "app": {
+    "title": "Gestionnaire de loadouts Destiny",
+    "subtitle": "Gérez vos équipements Destiny 2"
+  },
+  "auth": {
+    "login": "Se connecter avec Bungie",
+    "logout": "Se déconnecter"
+  }
+}
