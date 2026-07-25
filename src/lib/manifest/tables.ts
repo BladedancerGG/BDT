@@ -1,0 +1,19 @@
+// Version du "schéma" de tables téléchargées. À incrémenter dès qu'on ajoute
+// ou retire une table ci-dessous : force le re-téléchargement chez les clients
+// qui ont déjà un cache (sinon la nouvelle table manquerait).
+export const MANIFEST_SCHEMA_VERSION = "2";
+
+// Tables du manifeste à télécharger.
+// On ne prend QUE ce dont l'app a besoin : DestinyInventoryItemDefinition est
+// la plus grosse (~plusieurs Mo), les autres sont petites.
+export const MANIFEST_TABLES = [
+  "DestinyInventoryItemDefinition", // armes, armures, mods, perks, artéfacts…
+  "DestinyStatDefinition", // statistiques (impact, portée, mobilité…)
+  "DestinyDamageTypeDefinition", // types de dégâts (solaire, arc…)
+  "DestinyInventoryBucketDefinition", // emplacements (cinétique, casque…)
+  "DestinyClassDefinition", // classes (Titan, Chasseur, Arcaniste)
+  "DestinySandboxPerkDefinition", // perks / descriptions
+  "DestinySocketCategoryDefinition", // regroupement des sockets (perks, mods…)
+] as const;
+
+export type ManifestTable = (typeof MANIFEST_TABLES)[number];

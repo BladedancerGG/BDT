@@ -84,6 +84,25 @@ npm run db:migrate
 npm run dev
 ```
 
+## Manifeste Destiny
+
+Le manifeste contient toutes les définitions du jeu (objets, stats, classes…).
+Il est volumineux et rarement modifié → mis en cache côté client dans **IndexedDB**
+(via Dexie), pas en base serveur.
+
+- `GET /api/manifest` (serveur) : proxy vers `/Destiny2/Manifest/` (ajoute la clé
+  API) → renvoie la `version` + les chemins des tables JSON par langue.
+- `ensureManifest(lang)` (client) : compare la version/langue stockée ; si besoin,
+  télécharge les tables listées dans `src/lib/manifest/tables.ts` **directement
+  depuis bungie.net** et les stocke en IndexedDB.
+- `getDefinition(table, hash)` / `getDefinitions(table, hashes)` : lecture d'une
+  ou plusieurs définitions.
+- Le hook `useManifest()` déclenche le chargement et expose la progression
+  (composant `ManifestStatus`).
+
+Pour utiliser plus de données du jeu, ajoute la table voulue dans
+`src/lib/manifest/tables.ts`.
+
 ## Structure
 
 ```

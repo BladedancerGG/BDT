@@ -24,3 +24,6 @@ npm-debug.log*
 
 # claude stuff
 .claude
+
+# IDE stuff
+.idea

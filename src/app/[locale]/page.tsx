@@ -1,30 +1,36 @@
 import { useTranslations } from "next-intl";
 import { getCurrentUser } from "@/lib/auth/current-user";
+import { Dashboard } from "@/components/Dashboard";
 
 export default async function Home() {
   const user = await getCurrentUser();
 
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center gap-6 p-8">
+    <main className="min-h-screen flex flex-col items-center gap-6 p-8">
       <HomeHeader />
       {user ? (
-        <div className="flex flex-col items-center gap-3">
-          <p className="text-lg">
-            Connecté en tant que <strong>{user.displayName}</strong>
-          </p>
-          <form action="/api/auth/logout" method="post">
-            <button className="rounded bg-neutral-700 px-4 py-2 hover:bg-neutral-600">
-              <LogoutLabel />
-            </button>
-          </form>
-        </div>
+        <>
+          <div className="flex items-center gap-4">
+            <p>
+              Connecté en tant que <strong>{user.displayName}</strong>
+            </p>
+            <form action="/api/auth/logout" method="post">
+              <button className="rounded bg-neutral-700 px-3 py-1.5 text-sm hover:bg-neutral-600">
+                <LogoutLabel />
+              </button>
+            </form>
+          </div>
+          <Dashboard />
+        </>
       ) : (
-        <a
-          href="/api/auth/login"
-          className="rounded bg-amber-600 px-4 py-2 font-medium hover:bg-amber-500"
-        >
-          <LoginLabel />
-        </a>
+        <div className="flex flex-1 items-center">
+          <a
+            href="/api/auth/login"
+            className="rounded bg-amber-600 px-4 py-2 font-medium hover:bg-amber-500"
+          >
+            <LoginLabel />
+          </a>
+        </div>
       )}
     </main>
   );
