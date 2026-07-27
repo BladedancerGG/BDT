@@ -16,8 +16,9 @@ import {
   ITEM_TYPE,
   SOCKET_CATEGORY,
   WEAPON_STAT,
-  BUNGIE_ROOT,
 } from "@/lib/destiny/display";
+import { isCrafted, isEnhanced } from "@/lib/destiny/overlays";
+import { ItemThumb } from "../ItemThumb";
 import { PlugIcon } from "./PlugIcon";
 import { StatBar } from "./StatBar";
 
@@ -112,10 +113,16 @@ function ArchetypeName({ hash }: { hash: number }) {
 export function ItemTooltip({
   itemHash,
   itemInstanceId,
+  state,
+  versionNumber,
+  gearTier,
   pinned,
 }: {
   itemHash: number;
   itemInstanceId?: string;
+  state?: number;
+  versionNumber?: number;
+  gearTier?: number;
   pinned: boolean;
 }) {
   const t = useTranslations("item");
@@ -123,6 +130,7 @@ export function ItemTooltip({
     "DestinyInventoryItemDefinition",
     itemHash,
   );
+  console.log(def)
   const { data: detail } = useItemDetail(itemInstanceId);
   const intrinsic = useSocketColumns(def, detail, SOCKET_CATEGORY.INTRINSIC);
 
@@ -153,6 +161,10 @@ export function ItemTooltip({
   const impact = detail?.stats?.[WEAPON_STAT.IMPACT]?.value;
   const energy = detail?.instance?.energy;
 
+  // Marquages doublés en texte sous le type (le calque est discret)
+  const crafted = isCrafted(state);
+  const enhanced = isEnhanced(state);
+
   return (
     <div
       className="item-tooltip"
@@ -166,19 +178,29 @@ export function ItemTooltip({
       <div className="item-tooltip__tier" />
 
       <div className="item-tooltip__header">
+        {/* Vignette reprenant icône + filigrane + palier + façonné / amélioré */}
+        <ItemThumb
+          itemHash={itemHash}
+          state={state}
+          versionNumber={versionNumber}
+          gearTier={gearTier}
+          className="item-thumb--sm"
+        />
         <div className="item-tooltip__identity">
           <h3 className="item-tooltip__name">{def.displayProperties.name}</h3>
           <p className="item-tooltip__type">{def.itemTypeDisplayName}</p>
+          {/* Le calque de palier étant très discret, on le double en texte */}
+          {(gearTier || crafted || enhanced) && (
+            <p className="item-tooltip__tags">
+              {gearTier ? `${t("gearTier")} ${gearTier}` : null}
+              {gearTier && (crafted || enhanced) ? " · " : null}
+              {crafted ? t("crafted") : null}
+              {crafted && enhanced ? " · " : null}
+              {enhanced ? t("enhanced") : null}
+            </p>
+          )}
         </div>
         <div className="item-tooltip__meta">
-          {def.iconWatermark && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={`${BUNGIE_ROOT}${def.iconWatermark}`}
-              alt=""
-              className="item-tooltip__watermark"
-            />
-          )}
           {power != null && (
             <span className="item-tooltip__power">{power}</span>
           )}

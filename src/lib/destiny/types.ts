@@ -15,7 +15,15 @@ export interface InventoryItemDefinition {
   displayProperties: DisplayProperties;
   itemType: number;
   itemTypeDisplayName?: string;
+  /** Filigrane de saison par défaut */
   iconWatermark?: string;
+  /** Filigrane des objets « mis en avant » */
+  iconWatermarkFeatured?: string;
+  isFeaturedItem?: boolean;
+  quality?: {
+    /** Filigranes par version : indexés par le versionNumber de l'instance */
+    displayVersionWatermarkIcons?: string[];
+  };
   inventory?: { tierType: number; tierTypeName?: string };
   defaultDamageType?: number;
   sockets?: {

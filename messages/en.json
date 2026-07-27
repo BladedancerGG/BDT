@@ -17,6 +17,9 @@
   "item": {
     "loading": "Loading…",
     "energy": "energy",
+    "gearTier": "Tier",
+    "crafted": "Crafted",
+    "enhanced": "Enhanced",
     "pinHint": "Click to pin and reveal stats"
   }
 }

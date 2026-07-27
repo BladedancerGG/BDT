@@ -1,7 +1,10 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import type { DestinyItemComponent } from "./profile";
+import type {
+  DestinyItemComponent,
+  ItemInstanceSummary,
+} from "./profile";
 
 export interface Character {
   characterId: string;
@@ -16,6 +19,8 @@ export interface ProfileData {
   characters: Character[];
   equipment: Record<string, DestinyItemComponent[]>;
   inventory: Record<string, DestinyItemComponent[]>;
+  /** Données d'instance indexées par itemInstanceId */
+  instances: Record<string, ItemInstanceSummary>;
 }
 
 /** Charge le profil (personnages + inventaires) via /api/profile. */

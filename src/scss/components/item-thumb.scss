@@ -1,0 +1,36 @@
+// Vignette d'objet : icône + habillages superposés.
+//
+// Filigrane de saison, palier d'équipement et marquages « façonné » /
+// « amélioré » sont tous des PNG 96×96 transparents fournis par le manifeste.
+// Chaque image porte déjà son positionnement interne (pips de palier sur le
+// bord gauche, marteau de façonnage en bas à gauche…), il suffit donc de les
+// empiler en pleine vignette dans l'ordre où le jeu les dessine.
+
+.item-thumb {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+
+  &__img,
+  &__overlay {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  &__overlay {
+    pointer-events: none;
+  }
+
+  // Variante compacte, utilisée dans l'en-tête du tooltip
+  &--sm {
+    flex-shrink: 0;
+    width: 2.5rem;
+    height: 2.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: var(--radius-sm);
+  }
+}

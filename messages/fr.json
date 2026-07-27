@@ -17,6 +17,9 @@
   "item": {
     "loading": "Chargement…",
     "energy": "énergie",
+    "gearTier": "Palier",
+    "crafted": "Façonnée",
+    "enhanced": "Améliorée",
     "pinHint": "Clic pour épingler et voir les statistiques"
   }
 }

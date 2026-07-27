@@ -2,16 +2,29 @@ import { bungieFetch } from "./client";
 
 // Composants GetProfile demandés :
 //  200 = Characters, 201 = CharacterInventories, 205 = CharacterEquipment
-// Doc composants : https://bungie-net.github.io/multi/schema_Destiny-DestinyComponentType.html
-const COMPONENTS = "200,201,205";
+//  300 = ItemInstances (puissance, élément, palier d'équipement…) pour tous
+//        les objets d'un coup, ce qui évite un appel par objet
+// Doc : https://bungie-net.github.io/multi/schema_Destiny-DestinyComponentType.html
+const COMPONENTS = "200,201,205,300";
 
-// Types partiels (voir bungie-api-ts pour les types complets).
 export interface DestinyItemComponent {
   itemHash: number;
   itemInstanceId?: string;
   quantity: number;
   bucketHash: number;
   location: number;
+  /** Masque de bits ItemState : façonné, amélioré, chef-d'œuvre, verrouillé… */
+  state: number;
+  /** Version de l'objet — sert à choisir le bon filigrane de saison */
+  versionNumber?: number;
+}
+
+/** Données d'instance utiles à l'affichage d'une vignette. */
+export interface ItemInstanceSummary {
+  primaryStat?: { statHash: number; value: number };
+  damageType?: number;
+  /** Palier d'équipement (1 à 5), absent si l'objet n'en a pas */
+  gearTier?: number;
 }
 
 interface DestinyCharacterComponent {
@@ -28,6 +41,9 @@ interface ProfileResponse {
   characterEquipment: { data: Record<string, { items: DestinyItemComponent[] }> };
   characterInventories: {
     data: Record<string, { items: DestinyItemComponent[] }>;
+  };
+  itemComponents?: {
+    instances?: { data?: Record<string, ItemInstanceSummary> };
   };
 }
 
@@ -64,5 +80,8 @@ export async function getProfileInventory(
     inventory[characterId] = bucket.items;
   }
 
-  return { characters, equipment, inventory };
+  // Instances indexées par itemInstanceId
+  const instances = data.itemComponents?.instances?.data ?? {};
+
+  return { characters, equipment, inventory, instances };
 }

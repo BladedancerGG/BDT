@@ -14,30 +14,18 @@ import {
   FloatingPortal,
   safePolygon,
 } from "@floating-ui/react";
-import {
-  useDefinition,
-  type DisplayProperties,
-} from "@/lib/manifest/use-definition";
+import { ItemThumb, type ItemThumbProps } from "./ItemThumb";
 import { ItemTooltip } from "./tooltip/ItemTooltip";
-import { BUNGIE_ROOT } from "@/lib/destiny/display";
 
-interface InventoryItemDefinition {
-  displayProperties: DisplayProperties;
-}
-
-// Icône d'objet avec tooltip riche : survol pour afficher, clic pour épingler.
+// Objet cliquable dans une grille d'inventaire : vignette (icône + habillages)
+// et tooltip riche — survol pour afficher, clic pour épingler.
 export function ItemIcon({
   itemHash,
   itemInstanceId,
-}: {
-  itemHash: number;
-  itemInstanceId?: string;
-}) {
-  const def = useDefinition<InventoryItemDefinition>(
-    "DestinyInventoryItemDefinition",
-    itemHash,
-  );
-
+  state,
+  versionNumber,
+  gearTier,
+}: ItemThumbProps & { itemInstanceId?: string }) {
   const [open, setOpen] = useState(false);
   const [pinned, setPinned] = useState(false);
   const shown = open || pinned;
@@ -67,9 +55,6 @@ export function ItemIcon({
     role,
   ]);
 
-  const icon = def?.displayProperties?.icon;
-  const name = def?.displayProperties?.name ?? "";
-
   return (
     <>
       <div
@@ -84,15 +69,12 @@ export function ItemIcon({
         })}
         className={`item${pinned ? " item--pinned" : ""}`}
       >
-        {icon && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={`${BUNGIE_ROOT}${icon}`}
-            alt={name}
-            className="item__img"
-            loading="lazy"
-          />
-        )}
+        <ItemThumb
+          itemHash={itemHash}
+          state={state}
+          versionNumber={versionNumber}
+          gearTier={gearTier}
+        />
       </div>
 
       {shown && (
@@ -109,6 +91,9 @@ export function ItemIcon({
             <ItemTooltip
               itemHash={itemHash}
               itemInstanceId={itemInstanceId}
+              state={state}
+              versionNumber={versionNumber}
+              gearTier={gearTier}
               pinned={pinned}
             />
           </div>

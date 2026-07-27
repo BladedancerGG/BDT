@@ -1,7 +1,7 @@
 // Version du "schéma" de tables téléchargées. À incrémenter dès qu'on ajoute
 // ou retire une table ci-dessous : force le re-téléchargement chez les clients
 // qui ont déjà un cache (sinon la nouvelle table manquerait).
-export const MANIFEST_SCHEMA_VERSION = "3";
+export const MANIFEST_SCHEMA_VERSION = "4";
 
 // Tables du manifeste à télécharger.
 // On ne prend QUE ce dont l'app a besoin : DestinyInventoryItemDefinition est
@@ -15,6 +15,7 @@ export const MANIFEST_TABLES = [
   "DestinySandboxPerkDefinition", // perks / descriptions
   "DestinySocketCategoryDefinition", // regroupement des sockets (perks, mods…)
   "DestinyPlugSetDefinition", // pools de perks possibles (rolls aléatoires)
+  "DestinyInventoryItemConstantsDefinition", // overlays : palier, façonné, amélioré
 ] as const;
 
 export type ManifestTable = (typeof MANIFEST_TABLES)[number];
