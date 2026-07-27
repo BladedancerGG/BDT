@@ -1,0 +1,40 @@
+@use "../abstracts/variables" as v;
+
+// Icône d'un plug : perk (rond) ou mod / cosmétique (carré).
+
+.plug-icon {
+  flex-shrink: 0;
+  width: v.$plug-size;
+  height: v.$plug-size;
+  overflow: hidden;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-full);
+  background-color: var(--color-panel-alt);
+
+  &__img {
+    width: 100%;
+    height: 100%;
+  }
+
+  // Mods / cosmétiques : forme carrée
+  &--square {
+    width: v.$plug-size-sm;
+    height: v.$plug-size-sm;
+    border-radius: var(--radius-sm);
+  }
+
+  // Perk actuellement équipé : mis en avant
+  &--equipped {
+    border-color: var(--color-accent);
+    background-color: rgba(245, 184, 32, 0.18);
+  }
+
+  // Option disponible mais non équipée : atténuée
+  &--available {
+    opacity: 0.55;
+
+    &:hover {
+      opacity: 1;
+    }
+  }
+}

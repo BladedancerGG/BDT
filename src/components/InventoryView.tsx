@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { useProfile } from "@/lib/bungie/use-profile";
 import type { DestinyItemComponent } from "@/lib/bungie/profile";
 import { CharacterTab } from "./CharacterTab";
@@ -14,11 +15,11 @@ function ItemGrid({
   items: DestinyItemComponent[];
 }) {
   return (
-    <section className="flex flex-col gap-2">
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-400">
+    <section className="item-grid">
+      <h2 className="item-grid__title">
         {title} ({items.length})
       </h2>
-      <div className="flex flex-wrap gap-2">
+      <div className="item-grid__items">
         {items.map((item, i) => (
           <ItemIcon
             key={item.itemInstanceId ?? `${item.itemHash}-${i}`}
@@ -33,19 +34,27 @@ function ItemGrid({
 
 // Vue principale : sélecteur de personnage + objets équipés / en inventaire.
 export function InventoryView() {
+  const t = useTranslations("inventory");
   const { data, isLoading, isError } = useProfile();
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  if (isLoading) return <p className="text-neutral-400">Chargement du profil…</p>;
-  if (isError || !data)
-    return <p className="text-red-400">Impossible de charger le profil.</p>;
+  if (isLoading) {
+    return <p className="inventory-view__message">{t("loading")}</p>;
+  }
+  if (isError || !data) {
+    return (
+      <p className="inventory-view__message inventory-view__message--error">
+        {t("error")}
+      </p>
+    );
+  }
 
   const current = selectedId ?? data.characters[0]?.characterId ?? null;
 
   return (
-    <div className="flex w-full max-w-4xl flex-col gap-6">
+    <div className="inventory-view">
       {/* Sélecteur de personnage */}
-      <div className="flex flex-wrap gap-3">
+      <div className="inventory-view__characters">
         {data.characters.map((c) => (
           <CharacterTab
             key={c.characterId}
@@ -58,9 +67,12 @@ export function InventoryView() {
 
       {/* Objets du personnage sélectionné */}
       {current && (
-        <div className="flex flex-col gap-6">
-          <ItemGrid title="Équipé" items={data.equipment[current] ?? []} />
-          <ItemGrid title="Inventaire" items={data.inventory[current] ?? []} />
+        <div className="inventory-view__sections">
+          <ItemGrid
+            title={t("equipped")}
+            items={data.equipment[current] ?? []}
+          />
+          <ItemGrid title={t("stored")} items={data.inventory[current] ?? []} />
         </div>
       )}
     </div>

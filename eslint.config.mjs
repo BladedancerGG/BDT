@@ -1,0 +1,12 @@
+// Configuration ESLint « flat » (Next 16 n'embarque plus `next lint`).
+// eslint-config-next v16 expose directement des configs flat.
+import coreWebVitals from "eslint-config-next/core-web-vitals";
+import typescript from "eslint-config-next/typescript";
+
+const config = [
+  { ignores: [".next/**", "node_modules/**"] },
+  ...coreWebVitals,
+  ...typescript,
+];
+
+export default config;

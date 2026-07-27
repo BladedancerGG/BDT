@@ -1,0 +1,185 @@
+@use "../abstracts/variables" as v;
+@use "../abstracts/mixins" as m;
+
+// Tooltip d'objet — s'inspire de l'infobulle du jeu :
+// bandeau de rareté, en-tête, archétype, stats, sockets.
+// Les couleurs variables (rareté, élément) arrivent en inline sous forme
+// de variables CSS : --tier-color et --damage-color.
+
+// Calque des éléments flottants (tooltips portalisés)
+.floating-layer {
+  z-index: 50;
+}
+
+.item-tooltip {
+  width: v.$tooltip-width;
+  overflow: hidden;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius);
+  background-color: var(--color-panel);
+  color: var(--color-text);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
+
+  // Bandeau de rareté en haut
+  &__tier {
+    height: 4px;
+    background-color: var(--tier-color, var(--color-border-strong));
+  }
+
+  &__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    // Teinte translucide dérivée de la rareté
+    background-color: color-mix(
+      in srgb,
+      var(--tier-color, #444) 45%,
+      var(--color-panel)
+    );
+  }
+
+  &__identity {
+    min-width: 0;
+  }
+
+  &__name {
+    font-size: 1rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    @include m.truncate;
+  }
+
+  &__type {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.75);
+  }
+
+  &__meta {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+  }
+
+  &__watermark {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+
+  &__power {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: var(--damage-color, var(--color-text));
+  }
+
+  &__body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 0.75rem;
+  }
+
+  // Ligne archétype (intrinsèque + cadence/impact)
+  &__archetype {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+  }
+
+  &__archetype-name {
+    font-weight: 600;
+  }
+
+  &__archetype-detail {
+    color: var(--color-text-muted);
+  }
+
+  &__stats {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  &__total {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+  }
+
+  // Capacité d'énergie (armures)
+  &__energy {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  &__energy-title {
+    @include m.section-title;
+  }
+
+  &__energy-pips {
+    display: flex;
+    gap: 2px;
+  }
+
+  &__energy-pip {
+    flex: 1;
+    height: 8px;
+    border-radius: var(--radius-sm);
+    background-color: var(--color-panel-alt);
+
+    &--used {
+      background-color: var(--color-energy);
+    }
+  }
+
+  &__hint {
+    font-size: 0.625rem;
+    font-style: italic;
+    color: var(--color-text-muted);
+  }
+
+  &__loading {
+    padding: 0.75rem;
+    font-size: 0.875rem;
+    color: var(--color-text-muted);
+  }
+}
+
+// Groupe de sockets (perks d'arme, mods d'armure, cosmétiques…)
+.socket-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+
+  &__title {
+    @include m.section-title;
+  }
+
+  // Une colonne par socket, les options empilées verticalement
+  &__columns {
+    display: flex;
+    gap: 0.375rem;
+  }
+
+  // Mods : simple ligne d'icônes carrées
+  &__row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.375rem;
+  }
+}
+
+.socket-column {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  border-radius: var(--radius-sm);
+  background-color: rgba(255, 255, 255, 0.04);
+}

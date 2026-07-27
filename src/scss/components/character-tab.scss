@@ -1,0 +1,50 @@
+// Onglet de sélection d'un personnage (emblème en fond, classe, puissance).
+
+.character-tab {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 12rem;
+  padding: 0.5rem 0.75rem;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background-color: var(--color-panel);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 120ms ease;
+
+  &:hover {
+    border-color: var(--color-border-strong);
+  }
+
+  // Emblème affiché en fond via une variable CSS posée en inline
+  &__emblem {
+    position: absolute;
+    inset: 0;
+    background-image: var(--emblem-url);
+    background-size: cover;
+    background-position: center;
+  }
+
+  &__info {
+    position: relative; // au-dessus de l'emblème
+    display: flex;
+    flex-direction: column;
+  }
+
+  &__class {
+    font-weight: 600;
+  }
+
+  &__power {
+    font-size: 0.875rem;
+    color: var(--color-accent);
+  }
+
+  &--selected {
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 1px var(--color-accent);
+  }
+}

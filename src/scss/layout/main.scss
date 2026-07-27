@@ -1,0 +1,74 @@
+// Styles globaux : reset minimal, palette et conteneur principal.
+
+:root {
+  // Palette inspirée des menus du jeu (fonds sombres, accent doré)
+  --color-bg: #16181d;
+  --color-panel: #1c1f26;
+  --color-panel-alt: #22262e;
+  --color-border: #33373f;
+  --color-border-strong: #4a4f59;
+  --color-text: #f2f2f2;
+  --color-text-muted: #9aa0a8;
+  --color-accent: #f5b820;
+  --color-danger: #e06c6c;
+  --color-success: #6ddc8b;
+  --color-energy: #5ea9e8;
+
+  --radius-sm: 2px;
+  --radius: 4px;
+  --radius-full: 999px;
+
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+  line-height: 1.4;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+// Conteneur principal de la page
+.app-main {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  min-height: 100vh;
+  padding: 1.5rem;
+  margin-inline: auto;
+  max-width: 72rem;
+}

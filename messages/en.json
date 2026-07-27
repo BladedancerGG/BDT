@@ -1,10 +1,22 @@
 {
-  "app": {
-    "title": "Destiny Loadouts Manager",
-    "subtitle": "Manage your Destiny 2 loadouts"
-  },
   "auth": {
     "login": "Sign in with Bungie",
-    "logout": "Sign out"
+    "logout": "Sign out",
+    "signedInAs": "Signed in as"
+  },
+  "manifest": {
+    "loading": "Loading manifest…",
+    "error": "Failed to load the manifest (see console)."
+  },
+  "inventory": {
+    "loading": "Loading profile…",
+    "error": "Unable to load the profile.",
+    "equipped": "Equipped",
+    "stored": "Inventory"
+  },
+  "item": {
+    "loading": "Loading…",
+    "energy": "energy",
+    "pinHint": "Click to pin and reveal stats"
   }
 }

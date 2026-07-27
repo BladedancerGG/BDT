@@ -82,16 +82,14 @@ export function ItemIcon({
             setOpen(false);
           },
         })}
-        className={`h-12 w-12 cursor-pointer overflow-hidden rounded border bg-neutral-800 transition ${
-          pinned ? "border-amber-500" : "border-neutral-700 hover:border-neutral-500"
-        }`}
+        className={`item${pinned ? " item--pinned" : ""}`}
       >
         {icon && (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={`${BUNGIE_ROOT}${icon}`}
             alt={name}
-            className="h-full w-full object-cover"
+            className="item__img"
             loading="lazy"
           />
         )}
@@ -100,10 +98,13 @@ export function ItemIcon({
       {shown && (
         <FloatingPortal>
           <div
+            // setFloating est un callback ref stable fourni par Floating UI
+            // (API documentée), pas une lecture de ref pendant le rendu.
+            // eslint-disable-next-line react-hooks/refs
             ref={refs.setFloating}
             style={floatingStyles}
             {...getFloatingProps()}
-            className="z-50"
+            className="floating-layer"
           >
             <ItemTooltip
               itemHash={itemHash}

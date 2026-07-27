@@ -1,57 +1,43 @@
-import { useTranslations } from "next-intl";
+import { getTranslations } from "next-intl/server";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { Dashboard } from "@/components/Dashboard";
 
 export default async function Home() {
   const user = await getCurrentUser();
+  const t = await getTranslations("auth");
 
   return (
-    <main className="min-h-screen flex flex-col items-center gap-6 p-8">
-      <HomeHeader />
-      {user ? (
-        <>
-          <div className="flex items-center gap-4">
+    <main className="app-main">
+      <header className="app-header">
+        <h1 className="app-header__title">Destiny Loadouts Manager</h1>
+
+        {user && (
+          <div className="auth-bar">
             <p>
-              Connecté en tant que <strong>{user.displayName}</strong>
+              {t("signedInAs")}{" "}
+              <span className="auth-bar__name">{user.displayName}</span>
             </p>
             <form action="/api/auth/logout" method="post">
-              <button className="rounded bg-neutral-700 px-3 py-1.5 text-sm hover:bg-neutral-600">
-                <LogoutLabel />
+              <button type="submit" className="btn btn--small">
+                {t("logout")}
               </button>
             </form>
           </div>
-          <Dashboard />
-        </>
+        )}
+      </header>
+
+      {user ? (
+        <Dashboard />
       ) : (
-        <div className="flex flex-1 items-center">
-          <a
-            href="/api/auth/login"
-            className="rounded bg-amber-600 px-4 py-2 font-medium hover:bg-amber-500"
-          >
-            <LoginLabel />
+        <div className="login-screen">
+          {/* Navigation complète volontaire : la route OAuth répond par une
+              redirection vers bungie.net, qu'un <Link> client ne suivrait pas. */}
+          {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+          <a href="/api/auth/login" className="btn btn--primary">
+            {t("login")}
           </a>
         </div>
       )}
     </main>
   );
-}
-
-// Petits composants clients pour les traductions (useTranslations est client-safe
-// mais on isole les libellés pour la lisibilité)
-function HomeHeader() {
-  const t = useTranslations("app");
-  return (
-    <div className="text-center">
-      <h1 className="text-3xl font-bold">{t("title")}</h1>
-      <p className="text-neutral-400">{t("subtitle")}</p>
-    </div>
-  );
-}
-
-function LoginLabel() {
-  return useTranslations("auth")("login");
-}
-
-function LogoutLabel() {
-  return useTranslations("auth")("logout");
 }

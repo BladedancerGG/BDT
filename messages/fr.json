@@ -1,10 +1,22 @@
 {
-  "app": {
-    "title": "Gestionnaire de loadouts Destiny",
-    "subtitle": "Gérez vos équipements Destiny 2"
-  },
   "auth": {
     "login": "Se connecter avec Bungie",
-    "logout": "Se déconnecter"
+    "logout": "Se déconnecter",
+    "signedInAs": "Connecté en tant que"
+  },
+  "manifest": {
+    "loading": "Chargement du manifeste…",
+    "error": "Échec du chargement du manifeste (voir la console)."
+  },
+  "inventory": {
+    "loading": "Chargement du profil…",
+    "error": "Impossible de charger le profil.",
+    "equipped": "Équipé",
+    "stored": "Inventaire"
+  },
+  "item": {
+    "loading": "Chargement…",
+    "energy": "énergie",
+    "pinHint": "Clic pour épingler et voir les statistiques"
   }
 }

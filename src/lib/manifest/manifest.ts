@@ -35,6 +35,9 @@ export async function ensureManifest(
     manifestDb.meta.get("language"),
     manifestDb.meta.get("schema"),
   ]);
+
+  // Forcer le rechargement du manifeste si l'environnement n'est pas en production
+
   if (
     storedVersion?.value === meta.version &&
     storedLanguage?.value === language &&

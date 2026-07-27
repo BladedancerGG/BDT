@@ -1,0 +1,14 @@
+// Variables Sass — valeurs utilisées à la compilation (breakpoints, tailles).
+// La palette de couleurs, elle, est exposée en variables CSS dans
+// layout/main.scss afin d'être lisible/surchargeable à l'exécution.
+
+// Points de rupture
+$bp-sm: 640px;
+$bp-md: 768px;
+$bp-lg: 1024px;
+
+// Tailles récurrentes
+$item-size: 3rem; // icône d'objet dans les grilles
+$plug-size: 2.125rem; // icône de perk (rond)
+$plug-size-sm: 1.875rem; // icône de mod (carré)
+$tooltip-width: 20rem;

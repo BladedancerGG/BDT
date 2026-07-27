@@ -1,0 +1,46 @@
+@use "../abstracts/mixins" as m;
+
+// Vue inventaire : onglets de personnages + grilles d'objets.
+
+.inventory-view {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+
+  &__characters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  &__sections {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+
+  &__message {
+    color: var(--color-text-muted);
+    font-size: 0.875rem;
+
+    &--error {
+      color: var(--color-danger);
+    }
+  }
+}
+
+.item-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+
+  &__title {
+    @include m.section-title;
+  }
+
+  &__items {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+}

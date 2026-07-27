@@ -1,0 +1,24 @@
+@use "variables" as v;
+
+// Media query "à partir de" (mobile-first)
+@mixin from($breakpoint) {
+  @media (min-width: $breakpoint) {
+    @content;
+  }
+}
+
+// Titre de section : petit, majuscules, espacé — style des menus du jeu
+@mixin section-title {
+  font-size: 0.625rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-text-muted);
+}
+
+// Texte tronqué sur une ligne
+@mixin truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

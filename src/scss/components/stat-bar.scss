@@ -1,0 +1,39 @@
+// Ligne de statistique : nom, valeur, barre proportionnelle.
+
+.stat-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+
+  &__name {
+    width: 7rem;
+    text-align: right;
+    color: var(--color-text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__value {
+    width: 2rem;
+    text-align: right;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__track {
+    flex: 1;
+    height: 8px;
+    overflow: hidden;
+    border-radius: var(--radius-sm);
+    background-color: var(--color-panel-alt);
+  }
+
+  // Largeur et couleur fournies en inline via des variables CSS
+  &__fill {
+    width: var(--stat-pct, 0%);
+    height: 100%;
+    background-color: var(--stat-color, var(--color-text-muted));
+  }
+}

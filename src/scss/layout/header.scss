@@ -1,0 +1,39 @@
+// En-tête de l'application (titre + barre de compte).
+
+.app-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--color-border);
+
+  &__title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+}
+
+// Bloc "connecté en tant que … + déconnexion"
+.auth-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+
+  &__name {
+    color: var(--color-text);
+    font-weight: 600;
+  }
+}
+
+// Zone centrée pour l'écran de connexion
+.login-screen {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+}

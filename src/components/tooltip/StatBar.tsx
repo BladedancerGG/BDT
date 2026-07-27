@@ -1,5 +1,6 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import { useDefinition } from "@/lib/manifest/use-definition";
 import type { StatDefinition } from "@/lib/destiny/types";
 
@@ -8,12 +9,12 @@ export function StatBar({
   statHash,
   value,
   max,
-  accent = "#c8c8c8",
+  color,
 }: {
   statHash: number;
   value: number;
   max: number;
-  accent?: string;
+  color?: string;
 }) {
   const def = useDefinition<StatDefinition>("DestinyStatDefinition", statHash);
   const name = def?.displayProperties?.name;
@@ -22,13 +23,19 @@ export function StatBar({
   const pct = max > 0 ? Math.min(100, (value / max) * 100) : 0;
 
   return (
-    <div className="flex items-center gap-2 text-xs">
-      <span className="w-24 truncate text-right text-neutral-300">{name}</span>
-      <span className="w-8 text-right font-medium tabular-nums">{value}</span>
-      <div className="h-2 flex-1 overflow-hidden rounded-sm bg-neutral-700">
+    <div className="stat-bar">
+      <span className="stat-bar__name">{name}</span>
+      <span className="stat-bar__value">{value}</span>
+      <div className="stat-bar__track">
+        {/* Largeur et couleur transmises au CSS par variables */}
         <div
-          className="h-full"
-          style={{ width: `${pct}%`, backgroundColor: accent }}
+          className="stat-bar__fill"
+          style={
+            {
+              "--stat-pct": `${pct}%`,
+              ...(color ? { "--stat-color": color } : {}),
+            } as CSSProperties
+          }
         />
       </div>
     </div>

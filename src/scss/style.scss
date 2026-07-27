@@ -1,0 +1,20 @@
+// Point d'entrée des styles — importé une seule fois dans le layout racine.
+//
+// Organisation :
+//   abstracts/  variables Sass et mixins (aucun CSS produit)
+//   layout/     mise en page générale (reset, palette, en-tête)
+//   components/ un fichier par composant React
+
+// —— Mise en page générale ————————————————————————————————
+@use "layout/main";
+@use "layout/header";
+
+// —— Composants ————————————————————————————————————————————
+@use "components/button";
+@use "components/dashboard";
+@use "components/inventory-view";
+@use "components/character-tab";
+@use "components/item";
+@use "components/item-tooltip";
+@use "components/plug-icon";
+@use "components/stat-bar";

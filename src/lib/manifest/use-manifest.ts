@@ -6,28 +6,45 @@ import { ensureManifest, type ManifestProgress } from "./manifest";
 
 export type ManifestStatus = "loading" | "ready" | "error";
 
+interface State {
+  locale: string;
+  status: ManifestStatus;
+  progress: ManifestProgress | null;
+}
+
 /**
  * Charge le manifeste pour la langue courante au montage.
  * Renvoie l'état et la progression du téléchargement.
  */
 export function useManifest() {
   const locale = useLocale();
-  const [status, setStatus] = useState<ManifestStatus>("loading");
-  const [progress, setProgress] = useState<ManifestProgress | null>(null);
+  const [state, setState] = useState<State>({
+    locale,
+    status: "loading",
+    progress: null,
+  });
+
+  // Réinitialise l'état quand la langue change. On ajuste pendant le rendu
+  // (pattern React recommandé) plutôt que dans l'effet, pour éviter un rendu
+  // en cascade avec l'ancien statut.
+  if (state.locale !== locale) {
+    setState({ locale, status: "loading", progress: null });
+  }
 
   useEffect(() => {
     let cancelled = false;
-    setStatus("loading");
 
-    ensureManifest(locale, (p) => {
-      if (!cancelled) setProgress(p);
-    })
-      .then(() => {
-        if (!cancelled) setStatus("ready");
-      })
+    // N'applique une mise à jour que si la langue n'a pas changé entre-temps
+    const update = (patch: Partial<Omit<State, "locale">>) => {
+      if (cancelled) return;
+      setState((s) => (s.locale === locale ? { ...s, ...patch } : s));
+    };
+
+    ensureManifest(locale, (progress) => update({ progress }))
+      .then(() => update({ status: "ready" }))
       .catch((err) => {
         console.error("Manifeste:", err);
-        if (!cancelled) setStatus("error");
+        update({ status: "error" });
       });
 
     return () => {
@@ -35,5 +52,5 @@ export function useManifest() {
     };
   }, [locale]);
 
-  return { status, progress };
+  return { status: state.status, progress: state.progress };
 }

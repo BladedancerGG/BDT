@@ -1,7 +1,10 @@
 "use client";
 
+import type { CSSProperties } from "react";
+import { useTranslations } from "next-intl";
 import { useDefinition } from "@/lib/manifest/use-definition";
 import { useItemDetail } from "@/lib/bungie/use-item";
+import { useSocketColumns } from "@/lib/destiny/use-sockets";
 import type {
   InventoryItemDefinition,
   SocketCategoryDefinition,
@@ -18,234 +21,81 @@ import {
 import { PlugIcon } from "./PlugIcon";
 import { StatBar } from "./StatBar";
 
-// Récupère les hashes de plugs équipés pour une liste d'index de sockets.
-function plugsForIndexes(
-  detail: ItemDetail | undefined,
-  def: InventoryItemDefinition,
-  indexes: number[],
-): number[] {
-  return indexes
-    .map((i) => {
-      const socket = detail?.sockets?.[i];
-      if (socket) {
-        if (!socket.isVisible || !socket.plugHash) return 0;
-        return socket.plugHash;
-      }
-      // Fallback (objet non instancié) : plug initial de la définition
-      return def.sockets?.socketEntries?.[i]?.singleInitialItemHash ?? 0;
-    })
-    .filter((h) => h > 0);
-}
-
-// Section "WEAPON PERKS", "ARMOR MODS"… : titre + icônes de plugs.
-function SocketSection({
-  categoryHash,
-  plugHashes,
-  round = true,
-}: {
-  categoryHash: number;
-  plugHashes: number[];
-  round?: boolean;
-}) {
-  const catDef = useDefinition<SocketCategoryDefinition>(
+/** Nom d'une catégorie de sockets ("Perks d'arme", "Mods d'armure"…). */
+function useCategoryName(categoryHash: number): string {
+  const def = useDefinition<SocketCategoryDefinition>(
     "DestinySocketCategoryDefinition",
     categoryHash,
   );
-  if (!plugHashes.length) return null;
+  return def?.displayProperties?.name ?? "";
+}
+
+/**
+ * Perks affichés en colonnes : une colonne par socket, avec TOUTES les options
+ * équipables ; celle en place est mise en avant.
+ */
+function PerkColumns({
+  def,
+  detail,
+  categoryHash,
+}: {
+  def: InventoryItemDefinition;
+  detail: ItemDetail | undefined;
+  categoryHash: number;
+}) {
+  const columns = useSocketColumns(def, detail, categoryHash);
+  const title = useCategoryName(categoryHash);
+
+  if (columns.length === 0) return null;
 
   return (
-    <div className="flex flex-col gap-1">
-      <span className="text-[10px] font-semibold uppercase tracking-wider text-neutral-400">
-        {catDef?.displayProperties?.name}
-      </span>
-      <div className="flex flex-wrap gap-1.5">
-        {plugHashes.map((h, i) => (
-          <PlugIcon
-            key={`${h}-${i}`}
-            hash={h}
-            size={round ? 34 : 30}
-          />
+    <div className="socket-section">
+      <span className="socket-section__title">{title}</span>
+      <div className="socket-section__columns">
+        {columns.map((column) => (
+          <div key={column.socketIndex} className="socket-column">
+            {column.options.map((hash) => (
+              <PlugIcon
+                key={hash}
+                hash={hash}
+                state={hash === column.equippedHash ? "equipped" : "available"}
+              />
+            ))}
+          </div>
         ))}
       </div>
     </div>
   );
 }
 
-export function ItemTooltip({
-  itemHash,
-  itemInstanceId,
-  pinned,
+/** Sockets affichés en simple ligne (mods, cosmétiques) : plugs équipés. */
+function PlugRow({
+  def,
+  detail,
+  categoryHash,
+  square = true,
 }: {
-  itemHash: number;
-  itemInstanceId?: string;
-  pinned: boolean;
+  def: InventoryItemDefinition;
+  detail: ItemDetail | undefined;
+  categoryHash: number;
+  square?: boolean;
 }) {
-  const def = useDefinition<InventoryItemDefinition>(
-    "DestinyInventoryItemDefinition",
-    itemHash,
-  );
-  const { data: detail } = useItemDetail(itemInstanceId);
+  const columns = useSocketColumns(def, detail, categoryHash);
+  const title = useCategoryName(categoryHash);
 
-  if (!def) {
-    return (
-      <div className="w-72 rounded bg-neutral-900 p-3 text-sm text-neutral-400">
-        Chargement…
-      </div>
-    );
-  }
+  const equipped = columns
+    .map((c) => c.equippedHash)
+    .filter((h): h is number => Boolean(h));
 
-  const tier = def.inventory?.tierType;
-  const accent = tierColor(tier);
-  const isWeapon = def.itemType === ITEM_TYPE.Weapon;
-  const isArmor = def.itemType === ITEM_TYPE.Armor;
-
-  const power = detail?.instance?.primaryStat?.value;
-  const damage = detail?.instance?.damageType ?? def.defaultDamageType;
-  const powerColor = damageColor(damage);
-
-  // Regroupement des sockets par catégorie
-  const categories = def.sockets?.socketCategories ?? [];
-  const groupPlugs = (catHash: number) => {
-    const cat = categories.find((c) => c.socketCategoryHash === catHash);
-    return cat ? plugsForIndexes(detail, def, cat.socketIndexes) : [];
-  };
-
-  const intrinsicPlugs = groupPlugs(SOCKET_CATEGORY.INTRINSIC);
-  const archetypeHash = intrinsicPlugs[0];
-
-  // Stats : armure = toujours affichées ; arme = uniquement une fois épinglé
-  const statEntries = Object.values(detail?.stats ?? {});
-  const showStats = isArmor || (isWeapon && pinned);
-  const maxStat = statEntries.reduce((m, s) => Math.max(m, s.value), 1);
-  const statMax = isWeapon ? 100 : maxStat;
-
-  const rpm = detail?.stats?.[WEAPON_STAT.RPM]?.value;
-  const impact = detail?.stats?.[WEAPON_STAT.IMPACT]?.value;
-  const energy = detail?.instance?.energy;
+  if (equipped.length === 0) return null;
 
   return (
-    <div className="w-80 overflow-hidden rounded-md border border-neutral-700 bg-neutral-900 text-neutral-100 shadow-xl">
-      {/* Barre de rareté */}
-      <div className="h-1" style={{ backgroundColor: accent }} />
-
-      {/* En-tête */}
-      <div
-        className="flex items-start justify-between gap-2 px-3 py-2"
-        style={{ backgroundColor: `${accent}33` }}
-      >
-        <div className="min-w-0">
-          <h3 className="truncate text-base font-bold uppercase tracking-wide">
-            {def.displayProperties.name}
-          </h3>
-          <p className="text-xs text-neutral-300">
-            {def.itemTypeDisplayName}
-          </p>
-        </div>
-        <div className="flex items-center gap-1">
-          {def.iconWatermark && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={`${BUNGIE_ROOT}${def.iconWatermark}`}
-              alt=""
-              className="h-5 w-5"
-            />
-          )}
-          {power != null && (
-            <span
-              className="text-lg font-bold"
-              style={{ color: powerColor }}
-            >
-              {power}
-            </span>
-          )}
-        </div>
-      </div>
-
-      <div className="flex flex-col gap-3 p-3">
-        {/* Archétype (arme) */}
-        {isWeapon && archetypeHash && (
-          <div className="flex items-center gap-2">
-            <PlugIcon hash={archetypeHash} size={32} />
-            <div className="text-xs">
-              <div className="font-medium">
-                <ArchetypeName hash={archetypeHash} />
-              </div>
-              {(rpm != null || impact != null) && (
-                <div className="text-neutral-400">
-                  {rpm != null && `${rpm} rpm`}
-                  {rpm != null && impact != null && " / "}
-                  {impact != null && `${impact} impact`}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Stats */}
-        {showStats && statEntries.length > 0 && (
-          <div className="flex flex-col gap-1">
-            {statEntries.map((s) => (
-              <StatBar
-                key={s.statHash}
-                statHash={s.statHash}
-                value={s.value}
-                max={statMax}
-                accent={isWeapon ? powerColor : "#5ea9e8"}
-              />
-            ))}
-          </div>
-        )}
-
-        {/* Énergie (armure) */}
-        {isArmor && energy && energy.energyCapacity > 0 && (
-          <div className="flex flex-col gap-1">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-neutral-400">
-              {energy.energyCapacity} énergie
-            </span>
-            <div className="flex gap-0.5">
-              {Array.from({ length: energy.energyCapacity }).map((_, i) => (
-                <div
-                  key={i}
-                  className={`h-2 flex-1 rounded-sm ${
-                    i < energy.energyUsed ? "bg-sky-400" : "bg-neutral-700"
-                  }`}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Perks / mods */}
-        <SocketSection
-          categoryHash={SOCKET_CATEGORY.ARMOR_PERKS}
-          plugHashes={groupPlugs(SOCKET_CATEGORY.ARMOR_PERKS)}
-        />
-        <SocketSection
-          categoryHash={SOCKET_CATEGORY.WEAPON_PERKS}
-          plugHashes={groupPlugs(SOCKET_CATEGORY.WEAPON_PERKS)}
-        />
-        <SocketSection
-          categoryHash={SOCKET_CATEGORY.WEAPON_MODS}
-          plugHashes={groupPlugs(SOCKET_CATEGORY.WEAPON_MODS)}
-          round={false}
-        />
-        <SocketSection
-          categoryHash={SOCKET_CATEGORY.ARMOR_MODS}
-          plugHashes={groupPlugs(SOCKET_CATEGORY.ARMOR_MODS)}
-          round={false}
-        />
-        <SocketSection
-          categoryHash={SOCKET_CATEGORY.ARMOR_COSMETICS}
-          plugHashes={groupPlugs(SOCKET_CATEGORY.ARMOR_COSMETICS)}
-          round={false}
-        />
-
-        {/* Indice d'épinglage */}
-        {isWeapon && !pinned && (
-          <p className="text-[10px] italic text-neutral-500">
-            Clic pour épingler et voir les statistiques
-          </p>
-        )}
+    <div className="socket-section">
+      <span className="socket-section__title">{title}</span>
+      <div className="socket-section__row">
+        {equipped.map((hash, i) => (
+          <PlugIcon key={`${hash}-${i}`} hash={hash} square={square} />
+        ))}
       </div>
     </div>
   );
@@ -257,4 +107,178 @@ function ArchetypeName({ hash }: { hash: number }) {
     hash,
   );
   return <>{def?.displayProperties?.name ?? ""}</>;
+}
+
+export function ItemTooltip({
+  itemHash,
+  itemInstanceId,
+  pinned,
+}: {
+  itemHash: number;
+  itemInstanceId?: string;
+  pinned: boolean;
+}) {
+  const t = useTranslations("item");
+  const def = useDefinition<InventoryItemDefinition>(
+    "DestinyInventoryItemDefinition",
+    itemHash,
+  );
+  const { data: detail } = useItemDetail(itemInstanceId);
+  const intrinsic = useSocketColumns(def, detail, SOCKET_CATEGORY.INTRINSIC);
+
+  if (!def) {
+    return (
+      <div className="item-tooltip">
+        <p className="item-tooltip__loading">{t("loading")}</p>
+      </div>
+    );
+  }
+
+  const isWeapon = def.itemType === ITEM_TYPE.Weapon;
+  const isArmor = def.itemType === ITEM_TYPE.Armor;
+
+  const power = detail?.instance?.primaryStat?.value;
+  const damage = detail?.instance?.damageType ?? def.defaultDamageType;
+  const archetypeHash = intrinsic[0]?.equippedHash;
+
+  // Stats : armure = toujours affichées ; arme = uniquement une fois épinglé
+  const statEntries = Object.values(detail?.stats ?? {});
+  const showStats = isArmor || (isWeapon && pinned);
+  // Les stats d'arme sont sur 100 ; celles d'armure varient → échelle relative
+  const statMax = isWeapon
+    ? 100
+    : statEntries.reduce((m, s) => Math.max(m, s.value), 1);
+
+  const rpm = detail?.stats?.[WEAPON_STAT.RPM]?.value;
+  const impact = detail?.stats?.[WEAPON_STAT.IMPACT]?.value;
+  const energy = detail?.instance?.energy;
+
+  return (
+    <div
+      className="item-tooltip"
+      style={
+        {
+          "--tier-color": tierColor(def.inventory?.tierType),
+          "--damage-color": damageColor(damage),
+        } as CSSProperties
+      }
+    >
+      <div className="item-tooltip__tier" />
+
+      <div className="item-tooltip__header">
+        <div className="item-tooltip__identity">
+          <h3 className="item-tooltip__name">{def.displayProperties.name}</h3>
+          <p className="item-tooltip__type">{def.itemTypeDisplayName}</p>
+        </div>
+        <div className="item-tooltip__meta">
+          {def.iconWatermark && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={`${BUNGIE_ROOT}${def.iconWatermark}`}
+              alt=""
+              className="item-tooltip__watermark"
+            />
+          )}
+          {power != null && (
+            <span className="item-tooltip__power">{power}</span>
+          )}
+        </div>
+      </div>
+
+      <div className="item-tooltip__body">
+        {/* Archétype (arme) : intrinsèque + cadence / impact */}
+        {isWeapon && archetypeHash && (
+          <div className="item-tooltip__archetype">
+            <PlugIcon hash={archetypeHash} />
+            <div>
+              <div className="item-tooltip__archetype-name">
+                <ArchetypeName hash={archetypeHash} />
+              </div>
+              {(rpm != null || impact != null) && (
+                <div className="item-tooltip__archetype-detail">
+                  {rpm != null && `${rpm} rpm`}
+                  {rpm != null && impact != null && " / "}
+                  {impact != null && `${impact} impact`}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Statistiques */}
+        {showStats && statEntries.length > 0 && (
+          <div className="item-tooltip__stats">
+            {statEntries.map((s) => (
+              <StatBar
+                key={s.statHash}
+                statHash={s.statHash}
+                value={s.value}
+                max={statMax}
+                color={isWeapon ? damageColor(damage) : "var(--color-energy)"}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* Capacité d'énergie (armure) */}
+        {isArmor && energy && energy.energyCapacity > 0 && (
+          <div className="item-tooltip__energy">
+            <span className="item-tooltip__energy-title">
+              {energy.energyCapacity} {t("energy")}
+            </span>
+            <div className="item-tooltip__energy-pips">
+              {Array.from({ length: energy.energyCapacity }).map((_, i) => (
+                <span
+                  key={i}
+                  className={`item-tooltip__energy-pip${
+                    i < energy.energyUsed
+                      ? " item-tooltip__energy-pip--used"
+                      : ""
+                  }`}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Perks : toutes les options équipables, en colonnes */}
+        {isWeapon && (
+          <PerkColumns
+            def={def}
+            detail={detail}
+            categoryHash={SOCKET_CATEGORY.WEAPON_PERKS}
+          />
+        )}
+        {isArmor && (
+          <PlugRow
+            def={def}
+            detail={detail}
+            categoryHash={SOCKET_CATEGORY.ARMOR_PERKS}
+            square={false}
+          />
+        )}
+
+        {/* Mods et cosmétiques : plugs équipés */}
+        <PlugRow
+          def={def}
+          detail={detail}
+          categoryHash={SOCKET_CATEGORY.WEAPON_MODS}
+        />
+        <PlugRow
+          def={def}
+          detail={detail}
+          categoryHash={SOCKET_CATEGORY.ARMOR_MODS}
+        />
+        <PlugRow
+          def={def}
+          detail={detail}
+          categoryHash={SOCKET_CATEGORY.ARMOR_COSMETICS}
+        />
+
+        {isWeapon && !pinned && (
+          <p className="item-tooltip__hint">{t("pinHint")}</p>
+        )}
+      </div>
+    </div>
+  );
 }

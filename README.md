@@ -4,12 +4,12 @@ Application web de gestion des loadouts Destiny 2. Voir [`DLM.md`](./DLM.md) pou
 
 ## Stack
 
-- **Next.js 15** (App Router) + **TypeScript** + **React 19**
+- **Next.js 16** (App Router, Turbopack) + **TypeScript** + **React 19**
 - **bungie-api-ts** — types de l'API Bungie
 - **TanStack Query** (cache API) + **Zustand** (état client)
 - **Prisma** + **PostgreSQL** (stockage serveur des loadouts)
 - **Dexie** / IndexedDB (manifeste Destiny + stockage local)
-- **Tailwind CSS**, **Floating UI** (tooltips), **dnd-kit** (drag & drop)
+- **Sass / SCSS** (styles), **Floating UI** (tooltips), **dnd-kit** (drag & drop)
 - **next-intl** (FR / EN)
 
 ## Démarrage avec Docker (recommandé)
@@ -103,16 +103,47 @@ Il est volumineux et rarement modifié → mis en cache côté client dans **Ind
 Pour utiliser plus de données du jeu, ajoute la table voulue dans
 `src/lib/manifest/tables.ts`.
 
+## Styles (SCSS)
+
+Aucun style n'est écrit dans les composants : le JSX ne porte que des classes
+sémantiques (`item-tooltip__header`, `character-tab--selected`…), et toutes les
+règles vivent dans `src/scss/`.
+
+```
+src/scss/
+  style.scss          point d'entrée (importé une fois dans le layout racine)
+  abstracts/          variables Sass + mixins (ne produisent aucun CSS)
+  layout/             mise en page générale : reset, palette, en-tête
+  components/         un fichier par composant React
+```
+
+Conventions :
+
+- Nommage **BEM** : `.bloc`, `.bloc__element`, `.bloc--modificateur`.
+- La palette est exposée en **variables CSS** dans `layout/main.scss` (`--color-accent`…),
+  ce qui permet de la surcharger à l'exécution.
+- Les valeurs **dynamiques** (couleur de rareté, d'élément, largeur d'une barre de
+  stat) sont transmises depuis React via des variables CSS inline
+  (`style={{ "--tier-color": … }}`) plutôt que par des classes générées.
+- Ajouter un composant = créer `components/mon-composant.scss` puis l'ajouter
+  au `@use` de `style.scss`.
+
 ## Structure
 
 ```
 src/
-  app/[locale]/      Pages (routing i18n par préfixe /fr, /en)
+  app/[locale]/      Pages (routing i18n : "/" = FR, "/en" = EN)
+  app/api/           Routes serveur (auth, manifest, profile, item)
+  proxy.ts           Middleware de routing i18n (nommé "proxy" depuis Next 16)
+  i18n/              Configuration next-intl (routing + request)
   lib/
-    bungie/          Wrapper API Bungie (OAuth, requêtes)
+    auth/            Session (cookie signé) + token Bungie valide
+    bungie/          Wrapper API Bungie (OAuth, profil, objets)
     db/              Client Prisma
+    destiny/         Constantes de jeu, types, logique des sockets
     manifest/        Téléchargement & cache du manifeste (IndexedDB)
   components/        Composants UI
+  scss/              Styles (voir section « Styles »)
   store/             Stores Zustand
 prisma/schema.prisma Modèle de données serveur
 messages/            Traductions FR / EN

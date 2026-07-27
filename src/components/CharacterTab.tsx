@@ -1,12 +1,12 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import {
   useDefinition,
   type DisplayProperties,
 } from "@/lib/manifest/use-definition";
 import type { Character } from "@/lib/bungie/use-profile";
-
-const BUNGIE_ROOT = "https://www.bungie.net";
+import { BUNGIE_ROOT } from "@/lib/destiny/display";
 
 interface ClassDefinition {
   displayProperties: DisplayProperties;
@@ -30,33 +30,23 @@ export function CharacterTab({
 
   return (
     <button
+      type="button"
       onClick={onSelect}
-      className={`relative flex min-w-48 items-center gap-3 overflow-hidden rounded border px-3 py-2 text-left transition ${
-        selected
-          ? "border-amber-500 ring-1 ring-amber-500"
-          : "border-neutral-700 hover:border-neutral-500"
-      }`}
+      className={`character-tab${selected ? " character-tab--selected" : ""}`}
     >
-      {/* Emblème en fond */}
-      <div
-        className="absolute inset-0 opacity-30"
-        style={{
-          backgroundImage: `url(${BUNGIE_ROOT}${character.emblemBackgroundPath})`,
-          backgroundSize: "cover",
-        }}
+      {/* L'URL de l'emblème est passée au CSS via une variable */}
+      <span
+        className="character-tab__emblem"
+        style={
+          {
+            "--emblem-url": `url(${BUNGIE_ROOT}${character.emblemBackgroundPath})`,
+          } as CSSProperties
+        }
       />
-      <div className="relative flex items-center gap-3">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={`${BUNGIE_ROOT}${character.emblemPath}`}
-          alt=""
-          className="h-9 w-9"
-        />
-        <div>
-          <div className="font-medium">{className}</div>
-          <div className="text-sm text-amber-400">✦ {character.light}</div>
-        </div>
-      </div>
+      <span className="character-tab__info">
+        <span className="character-tab__class">{className}</span>
+        <span className="character-tab__power">✦ {character.light}</span>
+      </span>
     </button>
   );
 }

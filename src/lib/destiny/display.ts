@@ -29,17 +29,17 @@ export function tierColor(tierType: number | undefined): string {
 export function damageColor(damageType: number | undefined): string {
   switch (damageType) {
     case 2:
-      return "#85c5ec"; // Arc
+      return "#85c5ec"; // Cryo-électrique
     case 3:
       return "#f2721b"; // Solaire
     case 4:
-      return "#b184c5"; // Vide
+      return "#b184c5"; // Abyssal
     case 6:
       return "#4d88ff"; // Stase
     case 7:
-      return "#35e366"; // Filament
+      return "#35e366"; // Filobscur
     default:
-      return "#e6e6e6"; // Cinétique / neutre
+      return "#e6e6e6"; // Cinétique
   }
 }
 
