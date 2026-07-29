@@ -65,16 +65,15 @@ export function useSocketColumns(
           const entry = def.sockets.socketEntries[socketIndex];
           if (!entry) continue;
 
+          // number = plug équipé, 0 = socket vide, null = socket masqué en jeu
           const socket = detail?.sockets?.[socketIndex];
-          // Sockets masqués en jeu (ex: emplacements internes)
-          if (socket && !socket.isVisible) continue;
+          if (socket === null) continue;
 
-          const equippedHash = socket?.plugHash ?? entry.singleInitialItemHash;
+          const equippedHash =
+            socket && socket > 0 ? socket : entry.singleInitialItemHash;
 
           // 1. Options renvoyées par l'API pour cette instance
-          let options = (detail?.reusablePlugs?.[String(socketIndex)] ?? []).map(
-            (p) => p.plugItemHash,
-          );
+          let options = [...(detail?.reusablePlugs?.[String(socketIndex)] ?? [])];
 
           // 2. Fallback : pool du manifeste
           if (options.length === 0) {

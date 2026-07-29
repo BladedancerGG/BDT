@@ -4,19 +4,18 @@
   position: relative;
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  min-width: 12rem;
-  padding: 0.5rem 0.75rem;
-  overflow: hidden;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  background-color: var(--color-panel);
-  text-align: left;
+
+  min-width: 15rem;
+  aspect-ratio: 474/96; // Garder les dimensions originales de l'emblème
+
   cursor: pointer;
-  transition: border-color 120ms ease;
+
+  border: none;
+
+  transition: 120ms ease-in-out box-shadow;
 
   &:hover {
-    border-color: var(--color-border-strong);
+    box-shadow: 0 0 2px 1px var(--color-accent);
   }
 
   // Emblème affiché en fond via une variable CSS posée en inline
@@ -28,10 +27,27 @@
     background-position: center;
   }
 
+  &__icon-space {
+    aspect-ratio: 1/1;
+    height: 100%;
+  }
+
+  &__text {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    align-items: center;
+    justify-content: space-between;
+  }
+
   &__info {
     position: relative; // au-dessus de l'emblème
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    height: 100%;
   }
 
   &__class {
@@ -39,12 +55,11 @@
   }
 
   &__power {
-    font-size: 0.875rem;
+    font-size: 1.2rem;
     color: var(--color-accent);
   }
 
   &--selected {
-    border-color: var(--color-accent);
-    box-shadow: 0 0 0 1px var(--color-accent);
+    box-shadow: 0 0 2px 1px var(--color-accent);
   }
 }

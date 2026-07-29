@@ -1,11 +1,21 @@
 import { bungieFetch } from "./client";
+import {
+  buildItemDetails,
+  type ItemDetail,
+  type RawItemComponentSet,
+} from "./item-components";
 
 // Composants GetProfile demandés :
+//  102 = ProfileInventory (le coffre, partagé entre tous les personnages)
 //  200 = Characters, 201 = CharacterInventories, 205 = CharacterEquipment
-//  300 = ItemInstances (puissance, élément, palier d'équipement…) pour tous
-//        les objets d'un coup, ce qui évite un appel par objet
-// Doc : https://bungie-net.github.io/multi/schema_Destiny-DestinyComponentType.html
-const COMPONENTS = "200,201,205,300";
+//  300 = ItemInstances, 304 = ItemStats, 305 = ItemSockets,
+//  310 = ItemReusablePlugs
+//
+// Les composants 300–310 sont demandés au niveau du PROFIL : Bungie renvoie
+// alors stats / sockets / plugs pour TOUS les objets du compte en une seule
+// requête. Cela remplace un appel par objet au survol : la navigation est
+// instantanée, au prix d'un chargement initial un peu plus long.
+const COMPONENTS = "102,200,201,205,300,304,305,310";
 
 export interface DestinyItemComponent {
   itemHash: number;
@@ -17,14 +27,6 @@ export interface DestinyItemComponent {
   state: number;
   /** Version de l'objet — sert à choisir le bon filigrane de saison */
   versionNumber?: number;
-}
-
-/** Données d'instance utiles à l'affichage d'une vignette. */
-export interface ItemInstanceSummary {
-  primaryStat?: { statHash: number; value: number };
-  damageType?: number;
-  /** Palier d'équipement (1 à 5), absent si l'objet n'en a pas */
-  gearTier?: number;
 }
 
 interface DestinyCharacterComponent {
@@ -42,12 +44,12 @@ interface ProfileResponse {
   characterInventories: {
     data: Record<string, { items: DestinyItemComponent[] }>;
   };
-  itemComponents?: {
-    instances?: { data?: Record<string, ItemInstanceSummary> };
-  };
+  /** Le coffre — non rattaché à un personnage */
+  profileInventory?: { data?: { items: DestinyItemComponent[] } };
+  itemComponents?: RawItemComponentSet;
 }
 
-/** Récupère personnages + équipements + inventaires d'un compte Destiny. */
+/** Récupère personnages, inventaires et détail de tous les objets instanciés. */
 export async function getProfileInventory(
   accessToken: string,
   membershipType: number,
@@ -80,8 +82,14 @@ export async function getProfileInventory(
     inventory[characterId] = bucket.items;
   }
 
-  // Instances indexées par itemInstanceId
-  const instances = data.itemComponents?.instances?.data ?? {};
+  // Le coffre est commun à tous les personnages
+  const vault = data.profileInventory?.data?.items ?? [];
 
-  return { characters, equipment, inventory, instances };
+  // Stats / sockets / plugs de chaque objet, indexés par itemInstanceId,
+  // élagués pour ne transmettre au navigateur que le nécessaire.
+  const items: Record<string, ItemDetail> = buildItemDetails(
+    data.itemComponents,
+  );
+
+  return { characters, equipment, inventory, vault, items };
 }

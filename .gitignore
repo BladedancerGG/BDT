@@ -27,3 +27,6 @@ npm-debug.log*
 
 # IDE stuff
 .idea
+
+# useless stuff
+tsconfig.tsbuildinfo

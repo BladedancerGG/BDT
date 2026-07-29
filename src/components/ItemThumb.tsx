@@ -1,8 +1,9 @@
 "use client";
 
-import { useDefinition } from "@/lib/manifest/use-definition";
-import type { InventoryItemDefinition } from "@/lib/destiny/types";
-import { useItemConstants } from "@/lib/destiny/use-item-constants";
+import {
+  useSharedDefinition,
+  useSharedItemConstants,
+} from "@/lib/destiny/item-defs";
 import { itemOverlays } from "@/lib/destiny/overlays";
 import { BUNGIE_ROOT } from "@/lib/destiny/display";
 
@@ -30,11 +31,10 @@ export function ItemThumb({
   gearTier,
   className,
 }: ItemThumbProps & { className?: string }) {
-  const def = useDefinition<InventoryItemDefinition>(
-    "DestinyInventoryItemDefinition",
-    itemHash,
-  );
-  const constants = useItemConstants();
+  // Servies par ItemDefsProvider : une seule requête groupée pour tout
+  // l'inventaire, au lieu de deux par vignette.
+  const def = useSharedDefinition(itemHash);
+  const constants = useSharedItemConstants();
 
   const icon = def?.displayProperties?.icon;
   const name = def?.displayProperties?.name ?? "";

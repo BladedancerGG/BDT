@@ -1,6 +1,13 @@
 // Styles globaux : reset minimal, palette et conteneur principal.
+@use "../abstracts/variables" as v;
 
 :root {
+  // Dimensions de la grille d'objets, exposées en CSS pour que la
+  // virtualisation puisse les lire (source unique : abstracts/variables.scss).
+  // À garder en px : elles sont lues via parseFloat côté JS.
+  --item-size: #{v.$item-size};
+  --item-gap: 8px;
+
   // Palette inspirée des menus du jeu (fonds sombres, accent doré)
   --color-bg: #16181d;
   --color-panel: #1c1f26;
@@ -60,6 +67,19 @@ img {
 button {
   font: inherit;
   color: inherit;
+}
+
+// Texte réservé aux lecteurs d'écran
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
 }
 
 // Conteneur principal de la page

@@ -53,11 +53,47 @@ export const SOCKET_CATEGORY = {
   ARMOR_COSMETICS: 1926152773,
 } as const;
 
-// Type d'objet (DestinyItemType enum) — utile pour distinguer arme/armure
+// Type d'objet (DestinyItemType enum)
 export const ITEM_TYPE = {
   Armor: 2,
   Weapon: 3,
+  Emblem: 14,
+  Subclass: 16,
+  Ship: 21,
+  Vehicle: 22,
+  Ghost: 24,
+  SeasonalArtifact: 28,
 } as const;
+
+// Emplacements d'inventaire (DestinyInventoryBucketDefinition)
+export const BUCKET = {
+  /** Artéfacts équipables — leur seul identifiant fiable, voir plus bas */
+  Artifact: 1506418338,
+} as const;
+
+/**
+ * Seuls ces types d'objets sont affichés dans les inventaires : ce sont ceux
+ * qui composent un équipement. Tout le reste (coques de spectre, emblèmes,
+ * vaisseaux, véhicules, consommables, matériaux…) est masqué.
+ *
+ * Note : l'emblème affiché sur l'onglet d'un personnage ne vient pas de
+ * l'inventaire mais de `emblemBackgroundPath`, il n'est donc pas concerné.
+ */
+export const DISPLAYED_ITEM_TYPES: ReadonlySet<number> = new Set([
+  ITEM_TYPE.Weapon,
+  ITEM_TYPE.Armor,
+  ITEM_TYPE.Subclass,
+  ITEM_TYPE.SeasonalArtifact,
+]);
+
+/**
+ * Emplacements dont le contenu est affiché quel que soit son `itemType`.
+ *
+ * Les artéfacts équipables sont un cas particulier : leur définition porte
+ * `itemType: 0` (None), aucune `itemCategoryHashes` et aucun `traitId`. Le seul
+ * critère stable et indépendant de la langue est donc leur emplacement.
+ */
+export const DISPLAYED_BUCKETS: ReadonlySet<number> = new Set([BUCKET.Artifact]);
 
 // Hashes de stats d'arme mis en avant dans la ligne "archétype"
 export const WEAPON_STAT = {

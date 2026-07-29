@@ -38,6 +38,13 @@ services:
       BUNGIE_CLIENT_SECRET: ${BUNGIE_CLIENT_SECRET}
       NEXT_PUBLIC_BUNGIE_CLIENT_ID: ${BUNGIE_CLIENT_ID}
       SESSION_SECRET: ${SESSION_SECRET}
+      # Proxy sortant (optionnel) — voir .env.example.
+      # Node n'honore ces variables que lancé avec --use-env-proxy, d'où
+      # NODE_OPTIONS ci-dessous : laisser vide désactive proprement le proxy.
+      HTTP_PROXY: ${HTTP_PROXY:-}
+      HTTPS_PROXY: ${HTTPS_PROXY:-}
+      NO_PROXY: ${NO_PROXY:-}
+      NODE_OPTIONS: ${NODE_OPTIONS:-}
       # URL publique de l'app (via le proxy Caddy) — utilisée pour les redirections
       APP_URL: ${APP_URL:-https://localhost}
     volumes:

@@ -24,7 +24,12 @@ export interface InventoryItemDefinition {
     /** Filigranes par version : indexés par le versionNumber de l'instance */
     displayVersionWatermarkIcons?: string[];
   };
-  inventory?: { tierType: number; tierTypeName?: string };
+  inventory?: {
+    tierType: number;
+    tierTypeName?: string;
+    /** Emplacement d'origine de l'objet */
+    bucketTypeHash?: number;
+  };
   defaultDamageType?: number;
   sockets?: {
     socketEntries: SocketEntryDefinition[];

@@ -12,10 +12,12 @@
     "loading": "Loading profile…",
     "error": "Unable to load the profile.",
     "equipped": "Equipped",
-    "stored": "Inventory"
+    "stored": "Inventory",
+    "vault": "Vault"
   },
   "item": {
     "loading": "Loading…",
+    "loadingDetail": "Loading perks and mods…",
     "energy": "energy",
     "gearTier": "Tier",
     "crafted": "Crafted",

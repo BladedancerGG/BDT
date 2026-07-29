@@ -12,10 +12,12 @@
     "loading": "Chargement du profil…",
     "error": "Impossible de charger le profil.",
     "equipped": "Équipé",
-    "stored": "Inventaire"
+    "stored": "Inventaire",
+    "vault": "Coffre"
   },
   "item": {
     "loading": "Chargement…",
+    "loadingDetail": "Chargement des perks et mods…",
     "energy": "énergie",
     "gearTier": "Palier",
     "crafted": "Façonnée",

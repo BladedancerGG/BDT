@@ -44,8 +44,11 @@ export function CharacterTab({
         }
       />
       <span className="character-tab__info">
-        <span className="character-tab__class">{className}</span>
-        <span className="character-tab__power">✦ {character.light}</span>
+        <span className="character-tab__icon-space"></span>
+        <div className="character-tab__text">
+          <span className="character-tab__class">{className}</span>
+          <span className="character-tab__power">✦ {character.light}</span>
+        </div>
       </span>
     </button>
   );
