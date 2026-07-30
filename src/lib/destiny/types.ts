@@ -15,11 +15,15 @@ export interface InventoryItemDefinition {
   displayProperties: DisplayProperties;
   itemType: number;
   itemTypeDisplayName?: string;
+  /** Présent sur les plugs (perks, mods, ornements, shaders…) */
+  plug?: { plugCategoryIdentifier?: string };
   /** Filigrane de saison par défaut */
   iconWatermark?: string;
   /** Filigrane des objets « mis en avant » */
   iconWatermarkFeatured?: string;
   isFeaturedItem?: boolean;
+  /** Objet « holofoil » : fond animé au lieu de la couleur de rareté */
+  isHolofoil?: boolean;
   quality?: {
     /** Filigranes par version : indexés par le versionNumber de l'instance */
     displayVersionWatermarkIcons?: string[];

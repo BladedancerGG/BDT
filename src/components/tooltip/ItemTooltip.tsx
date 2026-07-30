@@ -186,6 +186,7 @@ export function ItemTooltip({
         {/* Vignette reprenant icône + filigrane + palier + façonné / amélioré */}
         <ItemThumb
           itemHash={itemHash}
+          itemInstanceId={itemInstanceId}
           state={state}
           versionNumber={versionNumber}
           gearTier={gearTier}

@@ -5,6 +5,7 @@
 // DestinyInventoryItemConstantsDefinition du manifeste (entrée unique, hash 1).
 
 import type { InventoryItemDefinition } from "./types";
+import { TIER } from "./display";
 
 /** Masque de bits ItemState renvoyé par l'API pour chaque objet. */
 export const ITEM_STATE = {
@@ -29,6 +30,32 @@ export interface ItemConstantsDefinition {
   /** Marquage des objets améliorés (losange) */
   enhancedItemOverlayPath: string;
   featuredItemFlagPath: string;
+  /** Fonds posés DERRIÈRE l'image quand un ornement est appliqué */
+  universalOrnamentBackgroundOverlayPath: string;
+  universalOrnamentLegendaryBackgroundOverlayPath: string;
+  universalOrnamentExoticBackgroundOverlayPath: string;
+  /** Fonds des objets « holofoil », en remplacement de la couleur de rareté */
+  holofoilBackgroundOverlayPath: string;
+  holofoil900BackgroundOverlayPath: string;
+  holofoil900AnimatedBackgroundOverlayPath: string;
+}
+
+/**
+ * Fond à placer derrière l'image d'un objet portant un ornement.
+ * Le jeu en utilise trois variantes selon la rareté.
+ */
+export function ornamentBackgroundPath(
+  constants: ItemConstantsDefinition | undefined,
+  tierType: number | undefined,
+): string | undefined {
+  if (!constants) return undefined;
+  if (tierType === TIER.Exotic) {
+    return constants.universalOrnamentExoticBackgroundOverlayPath;
+  }
+  if (tierType === TIER.Legendary) {
+    return constants.universalOrnamentLegendaryBackgroundOverlayPath;
+  }
+  return constants.universalOrnamentBackgroundOverlayPath;
 }
 
 /**

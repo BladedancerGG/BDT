@@ -20,6 +20,11 @@ const FALLBACK: GridMetrics = { columns: 1, rowHeight: 83 };
  */
 export function useGridMetrics(
   ref: RefObject<HTMLElement | null>,
+  /**
+   * Valeur à surveiller pour forcer une re-mesure : le ResizeObserver ne se
+   * déclenche pas quand seule la taille des icônes change (largeur inchangée).
+   */
+  sizeKey?: number,
 ): GridMetrics {
   const [metrics, setMetrics] = useState<GridMetrics>(FALLBACK);
 
@@ -51,7 +56,7 @@ export function useGridMetrics(
     const observer = new ResizeObserver(measure);
     observer.observe(element);
     return () => observer.disconnect();
-  }, [ref]);
+  }, [ref, sizeKey]);
 
   return metrics;
 }

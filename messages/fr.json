@@ -4,6 +4,50 @@
     "logout": "Se déconnecter",
     "signedInAs": "Connecté en tant que"
   },
+  "header": {
+    "refresh": "Rafraîchir",
+    "refreshing": "Rafraîchissement…",
+    "refreshHint": "Recharger l'état des objets depuis l'API Bungie",
+    "settings": "Paramètres"
+  },
+  "settings": {
+    "title": "Paramètres",
+    "close": "Fermer",
+    "categories": {
+      "account": "Compte",
+      "appearance": "Apparence",
+      "inventory": "Inventaire",
+      "about": "À propos"
+    },
+    "account": {
+      "logout": "Déconnexion",
+      "profile": "Profil Bungie",
+      "openProfile": "Ouvrir"
+    },
+    "appearance": {
+      "theme": "Thème",
+      "themes": {
+        "light": "Clair",
+        "dark": "Sombre",
+        "system": "Système"
+      },
+      "language": "Langue"
+    },
+    "inventory": {
+      "sort": "Tri des objets",
+      "sortHint": "Bientôt disponible",
+      "sortPlaceholder": "Par défaut",
+      "ornaments": "Afficher les ornements",
+      "ornamentsHint": "Utilise l'ornement équipé au lieu de l'icône de base",
+      "iconSize": "Taille des icônes"
+    },
+    "about": {
+      "version": "Version du site",
+      "support": "Contact",
+      "bungieApi": "API Bungie",
+      "openLink": "Ouvrir"
+    }
+  },
   "manifest": {
     "loading": "Chargement du manifeste…",
     "error": "Échec du chargement du manifeste (voir la console)."
@@ -17,7 +61,7 @@
   },
   "item": {
     "loading": "Chargement…",
-    "loadingDetail": "Chargement des perks et mods…",
+    "loadingDetail": "Chargement des attributs et mods…",
     "energy": "énergie",
     "gearTier": "Palier",
     "crafted": "Façonnée",

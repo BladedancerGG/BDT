@@ -7,14 +7,16 @@
   width: var(--item-size);
   height: var(--item-size);
   overflow: hidden;
-  border: 1px solid var(--color-border);
+  // Support sombre dans les deux thèmes : les icônes d'objets sont pensées
+  // pour un fond sombre.
+  border: 1px solid var(--color-icon-border);
   padding: -1px;
-  background-color: var(--color-panel-alt);
+  background-color: var(--color-icon-surface);
   cursor: pointer;
   transition: border-color 120ms ease;
 
   &:hover {
-    border-color: var(--color-border-strong);
+    border-color: var(--color-text-muted);
   }
 
   // Le contenu (icône + habillages) est fourni par .item-thumb

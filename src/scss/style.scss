@@ -6,6 +6,7 @@
 //   components/ un fichier par composant React
 
 // —— Mise en page générale ————————————————————————————————
+@use "layout/theme"; // palettes clair / sombre (avant le reste)
 @use "layout/main";
 @use "layout/header";
 
@@ -17,6 +18,8 @@
 @use "components/item";
 @use "components/item-thumb";
 @use "components/item-tooltip";
+@use "components/modal";
 @use "components/plug-icon";
+@use "components/settings";
 @use "components/skeleton";
 @use "components/stat-bar";

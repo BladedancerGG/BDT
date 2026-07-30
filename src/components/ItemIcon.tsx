@@ -71,6 +71,7 @@ export function ItemIcon({
       >
         <ItemThumb
           itemHash={itemHash}
+          itemInstanceId={itemInstanceId}
           state={state}
           versionNumber={versionNumber}
           gearTier={gearTier}

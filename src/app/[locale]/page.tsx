@@ -1,6 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { Dashboard } from "@/components/Dashboard";
+import { HeaderActions } from "@/components/HeaderActions";
 
 export default async function Home() {
   const user = await getCurrentUser();
@@ -9,7 +10,7 @@ export default async function Home() {
   return (
     <main className="app-main">
       <header className="app-header">
-        <h1 className="app-header__title">Destiny Loadouts Manager</h1>
+        <h1 className="app-header__title">Funny d2 API app (not revealing its name and purpose yet and it does nothing as of now apart from showing stuff)</h1>
 
         {user && (
           <div className="auth-bar">
@@ -17,11 +18,8 @@ export default async function Home() {
               {t("signedInAs")}{" "}
               <span className="auth-bar__name">{user.displayName}</span>
             </p>
-            <form action="/api/auth/logout" method="post">
-              <button type="submit" className="btn btn--small">
-                {t("logout")}
-              </button>
-            </form>
+            {/* Déconnexion déplacée dans les paramètres (onglet Compte) */}
+            <HeaderActions bungieMembershipId={user.bungieMembershipId} />
           </div>
         )}
       </header>
@@ -30,8 +28,6 @@ export default async function Home() {
         <Dashboard />
       ) : (
         <div className="login-screen">
-          {/* Navigation complète volontaire : la route OAuth répond par une
-              redirection vers bungie.net, qu'un <Link> client ne suivrait pas. */}
           {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
           <a href="/api/auth/login" className="btn btn--primary">
             {t("login")}

@@ -1,0 +1,87 @@
+// Palettes clair / sombre.
+//
+// Le thème est piloté par l'attribut `data-theme` posé sur <html> :
+//   data-theme="dark"  → palette sombre
+//   data-theme="light" → palette claire
+// En mode « système », un petit script inline (voir le layout racine) résout
+// prefers-color-scheme AVANT la peinture, ce qui évite tout flash de thème.
+// Le sélecteur `:root:not([data-theme])` sert de repli si le script n'a pas
+// tourné (JavaScript désactivé).
+
+@mixin dark-palette {
+  // Palette inspirée des menus du jeu (fonds sombres, accent doré)
+  --color-bg: #16181d;
+  --color-panel: #1c1f26;
+  --color-panel-alt: #22262e;
+  --color-border: #33373f;
+  --color-border-strong: #4a4f59;
+  --color-text: #f2f2f2;
+  --color-text-muted: #9aa0a8;
+  --color-accent: #f5b820;
+  --color-accent-contrast: #1a1a1a;
+  --color-danger: #e06c6c;
+  --color-success: #6ddc8b;
+  --color-energy: #5ea9e8;
+  --color-overlay: rgba(0, 0, 0, 0.65);
+  --shadow-panel: 0 12px 32px rgba(0, 0, 0, 0.6);
+
+  color-scheme: dark;
+}
+
+// Palette des raretés Destiny — source unique.
+// Sert à la fois de fond aux icônes détourées (les PNG n'ont plus le fond
+// incrusté, contrairement aux JPEG) et d'accent aux infobulles.
+// `tierColor()` côté TypeScript renvoie ces variables, pas des hex.
+:root {
+  --tier-basic: #c3bcb4;
+  --tier-common: #366f42;
+  --tier-rare: #5076a3;
+  --tier-legendary: #522f65;
+  --tier-exotic: #ceae33;
+}
+
+// Surfaces qui restent sombres dans les DEUX thèmes.
+// Les icônes fournies par Bungie (perks, mods, objets) sont des dessins clairs
+// sur fond transparent : sur un fond blanc elles disparaissent. On leur garde
+// donc un support sombre quel que soit le thème.
+:root {
+  --color-icon-surface: #22262e;
+  --color-icon-border: #4a4f59;
+}
+
+@mixin light-palette {
+  --color-bg: #f4f5f7;
+  --color-panel: #ffffff;
+  --color-panel-alt: #e9ebef;
+  --color-border: #d3d7de;
+  --color-border-strong: #a8aeb8;
+  --color-text: #1b1d22;
+  --color-text-muted: #5e646e;
+  // Accent assombri pour rester lisible sur fond clair
+  --color-accent: #a9761a;
+  --color-accent-contrast: #ffffff;
+  --color-danger: #b3312f;
+  --color-success: #2c7a45;
+  --color-energy: #1f6fb0;
+  --color-overlay: rgba(20, 22, 26, 0.45);
+  --shadow-panel: 0 12px 32px rgba(20, 22, 26, 0.22);
+
+  color-scheme: light;
+}
+
+// Sombre par défaut
+:root,
+:root[data-theme="dark"] {
+  @include dark-palette;
+}
+
+:root[data-theme="light"] {
+  @include light-palette;
+}
+
+// Repli sans JavaScript : on suit la préférence système
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) {
+    @include light-palette;
+  }
+}

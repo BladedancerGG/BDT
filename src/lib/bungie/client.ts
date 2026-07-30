@@ -24,7 +24,7 @@ const RETRYABLE_STATUS = new Set([
 ]);
 
 const DEFAULT_RETRIES = 2; // soit 3 tentatives au total
-const DEFAULT_TIMEOUT_MS = 20_000;
+const DEFAULT_TIMEOUT_MS = 10_000;
 
 /** Erreur d'API Bungie, porteuse du statut HTTP pour décider d'un retry. */
 export class BungieApiError extends Error {

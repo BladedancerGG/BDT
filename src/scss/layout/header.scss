@@ -30,6 +30,29 @@
   }
 }
 
+// Boutons d'action du header (rafraîchir, paramètres)
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+
+  // Icône de rafraîchissement, animée pendant le chargement
+  &__spin {
+    display: inline-block;
+    line-height: 1;
+
+    &--active {
+      animation: header-spin 800ms linear infinite;
+    }
+  }
+}
+
+@keyframes header-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 // Zone centrée pour l'écran de connexion
 .login-screen {
   display: flex;

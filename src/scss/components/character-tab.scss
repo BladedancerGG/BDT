@@ -1,6 +1,15 @@
 // Onglet de sélection d'un personnage (emblème en fond, classe, puissance).
+//
+// L'emblème est une image toujours sombre : le texte reste donc clair dans les
+// deux thèmes, indépendamment de --color-text.
 
 .character-tab {
+  // Palette locale figée, l'emblème servant de fond
+  --tab-text: #f2f2f2;
+  --tab-accent: #f5b820;
+
+  color: var(--tab-text);
+
   position: relative;
   display: flex;
   align-items: center;
@@ -52,11 +61,12 @@
 
   &__class {
     font-weight: 600;
+    color: var(--tab-text);
   }
 
   &__power {
     font-size: 1.2rem;
-    color: var(--color-accent);
+    color: var(--tab-accent);
   }
 
   &--selected {

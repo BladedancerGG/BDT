@@ -5,28 +5,16 @@
   // Dimensions de la grille d'objets, exposées en CSS pour que la
   // virtualisation puisse les lire (source unique : abstracts/variables.scss).
   // À garder en px : elles sont lues via parseFloat côté JS.
+  // --item-size est surchargée à l'exécution par le réglage utilisateur.
   --item-size: #{v.$item-size};
   --item-gap: 8px;
-
-  // Palette inspirée des menus du jeu (fonds sombres, accent doré)
-  --color-bg: #16181d;
-  --color-panel: #1c1f26;
-  --color-panel-alt: #22262e;
-  --color-border: #33373f;
-  --color-border-strong: #4a4f59;
-  --color-text: #f2f2f2;
-  --color-text-muted: #9aa0a8;
-  --color-accent: #f5b820;
-  --color-danger: #e06c6c;
-  --color-success: #6ddc8b;
-  --color-energy: #5ea9e8;
 
   --radius-sm: 2px;
   --radius: 4px;
   --radius-full: 999px;
-
-  color-scheme: dark;
 }
+
+// Les palettes de couleurs vivent dans layout/theme.scss
 
 *,
 *::before,

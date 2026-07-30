@@ -12,6 +12,36 @@
   width: 100%;
   height: 100%;
 
+  // —— Fond de rareté ————————————————————————————————————————
+  // Les icônes détourées (PNG) n'embarquent plus le fond de rareté, contrairement
+  // aux JPEG : on le rétablit ici. Sur les ~18 % d'objets sans PNG, le JPEG
+  // recouvre entièrement la vignette, donc ce fond reste simplement invisible.
+  // La palette vit dans layout/theme.scss (partagée avec tierColor()).
+  &--tier-basic {
+    background-color: var(--tier-basic);
+  }
+  &--tier-common {
+    background-color: var(--tier-common);
+  }
+  &--tier-rare {
+    background-color: var(--tier-rare);
+  }
+  &--tier-legendary {
+    background-color: var(--tier-legendary);
+  }
+  &--tier-exotic {
+    background-color: var(--tier-exotic);
+  }
+
+  // Objets « holofoil » : image de fond au lieu de la couleur unie.
+  // L'URL arrive du manifeste via --holofoil-bg (posée en inline).
+  &--holofoil {
+    background-image: var(--holofoil-bg);
+    background-size: cover;
+    background-position: center;
+  }
+
+  &__background,
   &__img,
   &__overlay {
     position: absolute;
@@ -21,6 +51,9 @@
     object-fit: cover;
   }
 
+  // Fond des objets ornementés : dessiné avant l'icône, donc en dessous
+  // (l'ordre du DOM détermine l'empilement de ces calques absolus).
+  &__background,
   &__overlay {
     pointer-events: none;
   }

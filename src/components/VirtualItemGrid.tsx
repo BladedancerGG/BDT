@@ -6,6 +6,7 @@ import type { DestinyItemComponent } from "@/lib/bungie/profile";
 import type { ItemDetail } from "@/lib/bungie/item-components";
 import { useDisplayableItems } from "@/lib/destiny/use-displayable-items";
 import { useGridMetrics } from "@/lib/destiny/use-grid-metrics";
+import { useSettings } from "@/lib/settings/store";
 import { ItemIcon } from "./ItemIcon";
 
 /**
@@ -31,7 +32,10 @@ export function VirtualItemGrid({
 }) {
   const displayed = useDisplayableItems(items);
   const viewportRef = useRef<HTMLDivElement>(null);
-  const { columns, rowHeight } = useGridMetrics(viewportRef);
+  // La taille réglée dans les paramètres change la grille sans changer sa
+  // largeur : on la passe pour forcer une re-mesure.
+  const iconSize = useSettings((s) => s.iconSize);
+  const { columns, rowHeight } = useGridMetrics(viewportRef, iconSize);
 
   const rowCount = Math.ceil(displayed.length / columns);
 

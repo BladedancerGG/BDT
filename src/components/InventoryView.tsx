@@ -6,6 +6,7 @@ import { useProfile, type ProfileData } from "@/lib/bungie/use-profile";
 import type { DestinyItemComponent } from "@/lib/bungie/profile";
 import type { ItemDetail } from "@/lib/bungie/item-components";
 import { ItemDefsProvider } from "@/lib/destiny/item-defs";
+import { useSettings } from "@/lib/settings/store";
 import { useDisplayableItems } from "@/lib/destiny/use-displayable-items";
 import { CharacterTab } from "./CharacterTab";
 import { ItemIcon } from "./ItemIcon";
@@ -105,15 +106,16 @@ export function InventoryView() {
   const t = useTranslations("inventory");
   const { data, isLoading, isError } = useProfile();
 
-  // Tous les hashes affichables de l'arbre, pour une unique requête groupée
-  const hashes = useMemo(() => {
+  const showOrnaments = useSettings((s) => s.showOrnaments);
+
+  // Tous les objets de l'arbre, pour une unique requête groupée de définitions
+  const allItems = useMemo(() => {
     if (!data) return [];
-    const lists = [
+    return [
       ...Object.values(data.equipment),
       ...Object.values(data.inventory),
       data.vault,
-    ];
-    return lists.flatMap((list) => list.map((item) => item.itemHash));
+    ].flat();
   }, [data]);
 
   if (isLoading) {
@@ -128,7 +130,11 @@ export function InventoryView() {
   }
 
   return (
-    <ItemDefsProvider hashes={hashes}>
+    <ItemDefsProvider
+      items={allItems}
+      details={data.items}
+      withOrnaments={showOrnaments}
+    >
       <Inventory data={data} />
     </ItemDefsProvider>
   );

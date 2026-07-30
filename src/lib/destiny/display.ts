@@ -9,19 +9,21 @@ export const TIER = {
   Exotic: 6,
 } as const;
 
-// Couleur d'accent par rareté (barre supérieure / gauche du tooltip)
+// Couleur d'accent par rareté (barre supérieure / gauche du tooltip).
+// Renvoie une variable CSS : la palette est définie une seule fois dans
+// scss/layout/theme.scss et sert aussi de fond aux icônes détourées.
 export function tierColor(tierType: number | undefined): string {
   switch (tierType) {
     case TIER.Exotic:
-      return "#ceae33"; // or
+      return "var(--tier-exotic)";
     case TIER.Legendary:
-      return "#522f65"; // violet
+      return "var(--tier-legendary)";
     case TIER.Rare:
-      return "#5076a3"; // bleu
+      return "var(--tier-rare)";
     case TIER.Common:
-      return "#366f42"; // vert
+      return "var(--tier-common)";
     default:
-      return "#c3bcb4"; // blanc/gris
+      return "var(--tier-basic)";
   }
 }
 

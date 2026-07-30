@@ -7,9 +7,11 @@
   width: v.$plug-size;
   height: v.$plug-size;
   overflow: hidden;
-  border: 1px solid var(--color-border-strong);
+  // Support sombre dans les deux thèmes : les icônes de perks sont des
+  // dessins clairs, invisibles sur un fond blanc.
+  border: 1px solid var(--color-icon-border);
   border-radius: var(--radius-full);
-  background-color: var(--color-panel-alt);
+  background-color: var(--color-icon-surface);
 
   &__img {
     width: 100%;

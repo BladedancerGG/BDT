@@ -4,6 +4,50 @@
     "logout": "Sign out",
     "signedInAs": "Signed in as"
   },
+  "header": {
+    "refresh": "Refresh",
+    "refreshing": "Refreshing…",
+    "refreshHint": "Reload item state from the Bungie API",
+    "settings": "Settings"
+  },
+  "settings": {
+    "title": "Settings",
+    "close": "Close",
+    "categories": {
+      "account": "Account",
+      "appearance": "Appearance",
+      "inventory": "Inventory",
+      "about": "About"
+    },
+    "account": {
+      "logout": "Sign out",
+      "profile": "Bungie profile",
+      "openProfile": "Open"
+    },
+    "appearance": {
+      "theme": "Theme",
+      "themes": {
+        "light": "Light",
+        "dark": "Dark",
+        "system": "System"
+      },
+      "language": "Language"
+    },
+    "inventory": {
+      "sort": "Item sorting",
+      "sortHint": "Coming soon",
+      "sortPlaceholder": "Default",
+      "ornaments": "Show ornaments",
+      "ornamentsHint": "Use the equipped ornament instead of the base icon",
+      "iconSize": "Icon size"
+    },
+    "about": {
+      "version": "Site version",
+      "support": "Contact",
+      "bungieApi": "Bungie API",
+      "openLink": "Open"
+    }
+  },
   "manifest": {
     "loading": "Loading manifest…",
     "error": "Failed to load the manifest (see console)."
