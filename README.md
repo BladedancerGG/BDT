@@ -108,8 +108,8 @@ git clone <your-repo> dlm && cd dlm
 
 cp .env.production.example .env
 # Fill in APP_DOMAIN, ACME_EMAIL, the Bungie credentials, and generate:
-#   openssl rand -base64 32   → POSTGRES_PASSWORD
-#   openssl rand -hex 32      → SESSION_SECRET
+#   openssl rand -hex 32   → POSTGRES_PASSWORD
+#   openssl rand -hex 32   → SESSION_SECRET
 
 make prod-up      # build, migrate, then start
 make prod-ps      # app/db/caddy should report "healthy"
@@ -118,6 +118,12 @@ make prod-logs
 
 Caddy obtains the Let's Encrypt certificate on first start. No variable may be
 left empty: Compose refuses to start if one is missing.
+
+> ⚠️ **Use a database password with no special characters.** It is inserted
+> as-is into `DATABASE_URL`, and a `/`, `+`, `@` or `:` breaks URL parsing —
+> Prisma then fails with `P1013: invalid port number in database URL`. Prefer
+> `openssl rand -hex 32`; avoid `-base64`, which almost always yields one of
+> those characters.
 
 ### What production changes
 
@@ -252,8 +258,8 @@ git clone <ton-dépôt> dlm && cd dlm
 
 cp .env.production.example .env
 # Remplir APP_DOMAIN, ACME_EMAIL, les identifiants Bungie, et générer :
-#   openssl rand -base64 32   → POSTGRES_PASSWORD
-#   openssl rand -hex 32      → SESSION_SECRET
+#   openssl rand -hex 32   → POSTGRES_PASSWORD
+#   openssl rand -hex 32   → SESSION_SECRET
 
 make prod-up      # build, migrations, puis démarrage
 make prod-ps      # app/db/caddy doivent être « healthy »
@@ -262,6 +268,12 @@ make prod-logs
 
 Caddy obtient le certificat Let's Encrypt au premier démarrage. Aucune variable
 ne doit rester vide : Compose refuse de démarrer si l'une manque.
+
+> ⚠️ **Utiliser un mot de passe de base sans caractère spécial.** Il est inséré
+> tel quel dans `DATABASE_URL`, et un `/`, `+`, `@` ou `:` casse l'analyse de
+> l'URL — Prisma échoue alors sur `P1013: invalid port number in database URL`.
+> Préférer `openssl rand -hex 32` ; éviter `-base64`, qui produit presque
+> toujours l'un de ces caractères.
 
 ### Ce que la production change
 
