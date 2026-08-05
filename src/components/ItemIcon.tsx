@@ -14,8 +14,16 @@ import {
   FloatingPortal,
   safePolygon,
 } from "@floating-ui/react";
+import { useSharedDefinition } from "@/lib/destiny/item-defs";
+import { subclassKind } from "@/lib/destiny/subclass";
 import { ItemThumb, type ItemThumbProps } from "./ItemThumb";
 import { ItemTooltip } from "./tooltip/ItemTooltip";
+
+/** Forme de la vignette : les doctrines ne sont pas carrées. */
+const SHAPE_CLASS = {
+  elemental: "item--shape-diamond",
+  prismatic: "item--shape-circle",
+} as const;
 
 // Objet cliquable dans une grille d'inventaire : vignette (icône + habillages)
 // et tooltip riche — survol pour afficher, clic pour épingler.
@@ -26,6 +34,8 @@ export function ItemIcon({
   versionNumber,
   gearTier,
 }: ItemThumbProps & { itemInstanceId?: string }) {
+  const def = useSharedDefinition(itemHash);
+  const shape = subclassKind(def);
   const [open, setOpen] = useState(false);
   const [pinned, setPinned] = useState(false);
   const shown = open || pinned;
@@ -67,7 +77,13 @@ export function ItemIcon({
             setOpen(false);
           },
         })}
-        className={`item${pinned ? " item--pinned" : ""}`}
+        className={[
+          "item",
+          shape ? SHAPE_CLASS[shape] : null,
+          pinned ? "item--pinned" : null,
+        ]
+          .filter(Boolean)
+          .join(" ")}
       >
         <ItemThumb
           itemHash={itemHash}

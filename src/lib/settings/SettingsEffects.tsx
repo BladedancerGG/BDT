@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
-import { useSettings } from "./store";
+import {useEffect} from "react";
+import {useSettings} from "./store";
 
 /**
  * Applique au document les changements de préférences faits en cours de session.
@@ -12,23 +12,23 @@ import { useSettings } from "./store";
  * sans rechargement.
  */
 export function SettingsEffects() {
-  const theme = useSettings((s) => s.theme);
-  const iconSize = useSettings((s) => s.iconSize);
+    const theme = useSettings((s) => s.theme);
+    const iconSize = useSettings((s) => s.iconSize);
 
-  useEffect(() => {
-    const root = document.documentElement;
-    if (theme === "system") {
-      // Aucun attribut : la règle CSS prefers-color-scheme reprend la main,
-      // et suit donc l'OS en direct sans écouteur JavaScript.
-      delete root.dataset.theme;
-    } else {
-      root.dataset.theme = theme;
-    }
-  }, [theme]);
+    useEffect(() => {
+        const root = document.documentElement;
+        if (theme === "system") {
+            // Aucun attribut : la règle CSS prefers-color-scheme reprend la main,
+            // et suit donc l'OS en direct sans écouteur JavaScript.
+            delete root.dataset.theme;
+        } else {
+            root.dataset.theme = theme;
+        }
+    }, [theme]);
 
-  useEffect(() => {
-    document.documentElement.style.setProperty("--item-size", `${iconSize}px`);
-  }, [iconSize]);
+    useEffect(() => {
+        document.documentElement.style.setProperty("--item-size", `${iconSize}px`);
+    }, [iconSize]);
 
-  return null;
+    return null;
 }

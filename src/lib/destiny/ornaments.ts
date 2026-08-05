@@ -49,18 +49,5 @@ export function cosmeticSocketIndexes(
     .flatMap((category) => category.socketIndexes);
 }
 
-/**
- * Un ornement a-t-il réellement été appliqué sur ce socket ?
- *
- * Faux quand le plug équipé est encore le plug initial du socket : c'est le
- * placeholder « Ornement d'origine », à l'icône générique.
- */
-export function hasAppliedOrnament(
-  def: InventoryItemDefinition | undefined,
-  socketIndex: number,
-  equippedPlugHash: number,
-): boolean {
-  const initial = def?.sockets?.socketEntries?.[socketIndex]
-    ?.singleInitialItemHash;
-  return equippedPlugHash !== initial;
-}
+// Le test « un ornement a-t-il été appliqué ? » est le cas général d'un plug
+// inséré : voir isPlugApplied dans sockets.ts.

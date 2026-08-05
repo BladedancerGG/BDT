@@ -9,6 +9,7 @@
   // Une seule colonne sur petit écran, la navigation passe au-dessus
   grid-template-columns: 1fr;
   min-height: 0; // permet au panneau de défiler dans la modale
+  height: 100%;
 
   @include m.from(v.$bp-sm) {
     grid-template-columns: 12rem 1fr;

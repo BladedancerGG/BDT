@@ -50,6 +50,7 @@ make shell      # shell dans le conteneur de l'app
 make db-shell   # console psql
 make migrate    # applique les migrations Prisma
 make studio     # Prisma Studio (http://localhost:5555)
+make adminer    # rappelle l'URL et les identifiants d'Adminer
 make clean      # arrête tout + SUPPRIME les données de la DB
 make reset      # remise à zéro complète
 make help       # liste toutes les cibles
@@ -102,6 +103,25 @@ Il est volumineux et rarement modifié → mis en cache côté client dans **Ind
 
 Pour utiliser plus de données du jeu, ajoute la table voulue dans
 `src/lib/manifest/tables.ts`.
+
+## Consulter la base
+
+Deux outils, complémentaires :
+
+| Outil | URL | Portée |
+|---|---|---|
+| **Adminer** | http://localhost:8080 | toute la base : SQL libre, schéma, index, table des migrations |
+| **Prisma Studio** | `make studio` → http://localhost:5555 | uniquement les modèles Prisma, édition confortable |
+
+Adminer est l'équivalent de PhpMyAdmin côté Postgres, dans un conteneur dédié.
+Le champ « serveur » est pré-rempli à `db` ; il reste à choisir **PostgreSQL**
+comme système et à saisir les identifiants du `.env` (`make adminer` les
+rappelle). Adminer 5 suit `prefers-color-scheme`, donc son thème sombre
+s'applique tout seul.
+
+> ⚠️ **Outil de développement.** Ce conteneur expose un formulaire de connexion
+> à la base sur le port 8080 : ne pas le publier. Pour un déploiement, retirer
+> le service ou au moins ne pas exposer son port.
 
 ## Préchargement des données d'objets
 

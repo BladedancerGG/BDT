@@ -25,4 +25,35 @@
   &--pinned {
     border-color: var(--color-accent);
   }
+
+  // —— Doctrines ————————————————————————————————————————————
+  // Leurs icônes portent déjà leur propre cadre (losange ou disque) : un cadre
+  // carré par-dessus jurerait. On épouse donc la forme de l'icône et on
+  // supprime bordure et fond.
+  //
+  // Un clip-path rogne la bordure CSS : la mise en avant (survol, épinglage)
+  // passe donc par un drop-shadow, qui suit la découpe.
+  &--shape-diamond,
+  &--shape-circle {
+    border: none;
+    background: transparent;
+
+    &:hover {
+      filter: drop-shadow(0 0 2px var(--color-text-muted));
+    }
+  }
+
+  &--shape-diamond {
+    clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+  }
+
+  &--shape-circle {
+    clip-path: circle(50%);
+  }
+
+  // L'épinglage prime sur le survol
+  &--shape-diamond#{&}--pinned,
+  &--shape-circle#{&}--pinned {
+    filter: drop-shadow(0 0 3px var(--color-accent));
+  }
 }

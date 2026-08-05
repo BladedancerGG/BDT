@@ -24,9 +24,8 @@
 
   &__track {
     flex: 1;
-    height: 8px;
+    height: 12px;
     overflow: hidden;
-    border-radius: var(--radius-sm);
     background-color: var(--color-panel-alt);
   }
 
@@ -34,6 +33,17 @@
   &__fill {
     width: var(--stat-pct, 0%);
     height: 100%;
-    background-color: var(--stat-color, var(--color-text-muted));
+    background-color: var(--color-text-muted);
+  }
+
+  // Sans barre : la valeur prend la place laissée libre, alignée à gauche pour
+  // rester distincte des notes barrées.
+  &--plain {
+    .stat-bar__value {
+      flex: 1;
+      text-align: left;
+      padding-left: 0.25rem;
+      color: var(--color-text-muted);
+    }
   }
 }

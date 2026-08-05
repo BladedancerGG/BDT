@@ -14,6 +14,8 @@ export interface SocketEntryDefinition {
 export interface InventoryItemDefinition {
   displayProperties: DisplayProperties;
   itemType: number;
+  /** DestinyItemSubType — distingue notamment les épées (18) */
+  itemSubType?: number;
   itemTypeDisplayName?: string;
   /** Présent sur les plugs (perks, mods, ornements, shaders…) */
   plug?: { plugCategoryIdentifier?: string };
@@ -35,6 +37,11 @@ export interface InventoryItemDefinition {
     bucketTypeHash?: number;
   };
   defaultDamageType?: number;
+  /**
+   * Présent sur les doctrines : `hudDamageType` porte leur élément
+   * (`defaultDamageType` vaut toujours 0), `buildName` le couple élément/classe.
+   */
+  talentGrid?: { hudDamageType?: number; buildName?: string };
   sockets?: {
     socketEntries: SocketEntryDefinition[];
     socketCategories: {

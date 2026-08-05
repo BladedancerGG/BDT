@@ -9,6 +9,7 @@ import {
 } from "@/lib/destiny/item-defs";
 import { itemOverlays, ornamentBackgroundPath } from "@/lib/destiny/overlays";
 import { bestIconPath, tierClassName } from "@/lib/destiny/icons";
+import { isSubclass } from "@/lib/destiny/subclass";
 import { BUNGIE_ROOT } from "@/lib/destiny/display";
 
 export interface ItemThumbProps {
@@ -77,7 +78,8 @@ export function ItemThumb({
 
   const classes = [
     "item-thumb",
-    `item-thumb--tier-${tierClassName(tierType)}`,
+    // Les doctrines ont leur propre cadre : pas de fond de rareté
+    isSubclass(def) ? null : `item-thumb--tier-${tierClassName(tierType)}`,
     holofoil ? "item-thumb--holofoil" : null,
     className,
   ]

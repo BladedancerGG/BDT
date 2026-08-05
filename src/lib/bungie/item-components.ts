@@ -30,6 +30,15 @@ export interface ItemDetail {
   instance?: ItemInstanceSummary;
   stats: StatSnapshot;
   sockets: SocketSnapshot;
+  /**
+   * Index des sockets désactivés (`isEnabled: false`). Sert à distinguer un
+   * emplacement **verrouillé** d'un emplacement libre — les doctrines
+   * déverrouillent leurs emplacements de fragments au fil des aspects équipés.
+   *
+   * Absent quand il n'y en a aucun : sur ~1500 objets, sérialiser un tableau
+   * vide partout coûtait une trentaine de kilooctets pour rien.
+   */
+  disabledSockets?: number[];
   reusablePlugs: PlugSnapshot;
 }
 
@@ -77,6 +86,15 @@ export function trimSockets(raw: RawSockets | undefined): SocketSnapshot {
   );
 }
 
+/** Index des sockets verrouillés — voir ItemDetail.disabledSockets. */
+export function trimDisabledSockets(raw: RawSockets | undefined): number[] {
+  const disabled: number[] = [];
+  (raw?.sockets ?? []).forEach((socket, index) => {
+    if (!socket.isEnabled) disabled.push(index);
+  });
+  return disabled;
+}
+
 export function trimReusablePlugs(
   raw: RawReusablePlugs | undefined,
 ): PlugSnapshot {
@@ -117,10 +135,13 @@ export function buildItemDetails(
 
   const out: Record<string, ItemDetail> = {};
   for (const id of ids) {
+    const disabledSockets = trimDisabledSockets(sockets[id]);
     out[id] = {
       instance: trimInstance(instances[id]),
       stats: trimStats(stats[id]),
       sockets: trimSockets(sockets[id]),
+      // Omis quand vide, pour ne pas alourdir la réponse
+      ...(disabledSockets.length > 0 ? { disabledSockets } : {}),
       reusablePlugs: trimReusablePlugs(plugs[id]),
     };
   }

@@ -7,18 +7,18 @@ export const MANIFEST_SCHEMA_VERSION = "5";
 // On ne prend QUE ce dont l'app a besoin : DestinyInventoryItemDefinition est
 // la plus grosse (~plusieurs Mo), les autres sont petites.
 export const MANIFEST_TABLES = [
-  "DestinyInventoryItemDefinition", // armes, armures, mods, perks, artéfacts…
-  "DestinyStatDefinition", // statistiques (impact, portée, mobilité…)
-  "DestinyDamageTypeDefinition", // types de dégâts (solaire, arc…)
-  "DestinyInventoryBucketDefinition", // emplacements (cinétique, casque…)
-  "DestinyClassDefinition", // classes (Titan, Chasseur, Arcaniste)
-  "DestinySandboxPerkDefinition", // perks / descriptions
-  "DestinySocketCategoryDefinition", // regroupement des sockets (perks, mods…)
-  "DestinyPlugSetDefinition", // pools de perks possibles (rolls aléatoires)
-  "DestinyInventoryItemConstantsDefinition", // overlays : palier, façonné, amélioré
-  // Icônes détourées (PNG transparent) + fonds, indexées par hash d'objet.
-  // ~8,5 Mo, mais c'est la seule source des icônes sans fond de rareté incrusté.
-  "DestinyIconDefinition",
+    "DestinyInventoryItemDefinition", // armes, armures, mods, perks, artéfacts…
+    "DestinyStatDefinition", // statistiques (impact, portée, mobilité…)
+    "DestinyDamageTypeDefinition", // types de dégâts (solaire, arc…)
+    "DestinyInventoryBucketDefinition", // emplacements (cinétique, casque…)
+    "DestinyClassDefinition", // classes (Titan, Chasseur, Arcaniste)
+    "DestinySandboxPerkDefinition", // perks / descriptions
+    "DestinySocketCategoryDefinition", // regroupement des sockets (perks, mods…)
+    "DestinyPlugSetDefinition", // pools de perks possibles (rolls aléatoires)
+    "DestinyInventoryItemConstantsDefinition", // overlays : palier, façonné, amélioré
+    // Icônes détourées (PNG transparent) + fonds, indexées par hash d'objet.
+    // ~8,5 Mo, mais c'est la seule source des icônes sans fond de rareté incrusté.
+    "DestinyIconDefinition",
 ] as const;
 
 export type ManifestTable = (typeof MANIFEST_TABLES)[number];

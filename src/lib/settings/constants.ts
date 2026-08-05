@@ -11,10 +11,10 @@ export type ThemePreference = "light" | "dark" | "system";
 export const PREFS_COOKIE = "dlm-prefs";
 
 /** Bornes de la taille des icônes d'objets, en pixels. */
-export const ICON_SIZE = { min: 40, max: 96, default: 75 } as const;
+export const ICON_SIZE = {min: 40, max: 96, default: 75} as const;
 
 /** Ramène une valeur dans les bornes autorisées (entier). */
 export function clampIconSize(size: number): number {
-  if (!Number.isFinite(size)) return ICON_SIZE.default;
-  return Math.min(ICON_SIZE.max, Math.max(ICON_SIZE.min, Math.round(size)));
+    if (!Number.isFinite(size)) return ICON_SIZE.default;
+    return Math.min(ICON_SIZE.max, Math.max(ICON_SIZE.min, Math.round(size)));
 }

@@ -59,11 +59,18 @@
     "stored": "Inventaire",
     "vault": "Coffre"
   },
+  "subclass": {
+    "abilities": "Compétences",
+    "transcendence": "Transcendance",
+    "aspects": "Aspects",
+    "fragments": "Fragments"
+  },
   "item": {
     "loading": "Chargement…",
     "loadingDetail": "Chargement des attributs et mods…",
     "energy": "énergie",
     "gearTier": "Palier",
+    "artifactPerks": "Attributs",
     "crafted": "Façonnée",
     "enhanced": "Améliorée",
     "pinHint": "Clic pour épingler et voir les statistiques"

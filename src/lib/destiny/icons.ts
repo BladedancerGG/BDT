@@ -13,6 +13,7 @@
 // donc indispensable.
 
 import type { InventoryItemDefinition } from "./types";
+import { ITEM_TYPE } from "./display";
 
 export interface IconDefinition {
   foreground?: string;
@@ -25,11 +26,19 @@ export interface IconDefinition {
 /**
  * Meilleure icône disponible : le PNG détouré si l'objet en a un, sinon le
  * JPEG de la définition.
+ *
+ * Exception pour les doctrines : leur `displayProperties.icon` est déjà un PNG
+ * complet (losange ou disque avec dégradé et cadre), alors que le `foreground`
+ * de DestinyIconDefinition n'est parfois que le glyphe nu — c'est le cas des
+ * doctrines prismatiques, qui apparaissaient donc incomplètes.
  */
 export function bestIconPath(
   def: InventoryItemDefinition | undefined,
   iconDef: IconDefinition | undefined,
 ): string | undefined {
+  if (def?.itemType === ITEM_TYPE.Subclass) {
+    return def.displayProperties?.icon || iconDef?.foreground || undefined;
+  }
   return iconDef?.foreground || def?.displayProperties?.icon || undefined;
 }
 

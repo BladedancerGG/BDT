@@ -3,6 +3,7 @@ import {
   trimInstance,
   trimStats,
   trimSockets,
+  trimDisabledSockets,
   trimReusablePlugs,
   type ItemDetail,
 } from "./item-components";
@@ -43,6 +44,7 @@ export async function getItemDetail(
     instance: trimInstance(data.instance?.data),
     stats: trimStats(data.stats?.data),
     sockets: trimSockets(data.sockets?.data),
+    disabledSockets: trimDisabledSockets(data.sockets?.data),
     reusablePlugs: trimReusablePlugs(data.reusablePlugs?.data),
   };
 }

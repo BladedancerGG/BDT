@@ -1,13 +1,13 @@
 "use client";
 
-import { useRef } from "react";
-import { useVirtualizer } from "@tanstack/react-virtual";
-import type { DestinyItemComponent } from "@/lib/bungie/profile";
-import type { ItemDetail } from "@/lib/bungie/item-components";
-import { useDisplayableItems } from "@/lib/destiny/use-displayable-items";
-import { useGridMetrics } from "@/lib/destiny/use-grid-metrics";
-import { useSettings } from "@/lib/settings/store";
-import { ItemIcon } from "./ItemIcon";
+import {useRef} from "react";
+import {useVirtualizer} from "@tanstack/react-virtual";
+import type {DestinyItemComponent} from "@/lib/bungie/profile";
+import type {ItemDetail} from "@/lib/bungie/item-components";
+import {useDisplayableItems} from "@/lib/destiny/use-displayable-items";
+import {useGridMetrics} from "@/lib/destiny/use-grid-metrics";
+import {useSettings} from "@/lib/settings/store";
+import {ItemIcon} from "./ItemIcon";
 
 /**
  * Grille d'objets virtualisée, pour les listes longues (le coffre en compte
@@ -22,75 +22,75 @@ import { ItemIcon } from "./ItemIcon";
  * sont rendues dans un portail, en dehors de cet arbre DOM.
  */
 export function VirtualItemGrid({
-  title,
-  items,
-  details,
-}: {
-  title: string;
-  items: DestinyItemComponent[];
-  details: Record<string, ItemDetail>;
+                                    title,
+                                    items,
+                                    details,
+                                }: {
+    title: string;
+    items: DestinyItemComponent[];
+    details: Record<string, ItemDetail>;
 }) {
-  const displayed = useDisplayableItems(items);
-  const viewportRef = useRef<HTMLDivElement>(null);
-  // La taille réglée dans les paramètres change la grille sans changer sa
-  // largeur : on la passe pour forcer une re-mesure.
-  const iconSize = useSettings((s) => s.iconSize);
-  const { columns, rowHeight } = useGridMetrics(viewportRef, iconSize);
+    const displayed = useDisplayableItems(items);
+    const viewportRef = useRef<HTMLDivElement>(null);
+    // La taille réglée dans les paramètres change la grille sans changer sa
+    // largeur : on la passe pour forcer une re-mesure.
+    const iconSize = useSettings((s) => s.iconSize);
+    const {columns, rowHeight} = useGridMetrics(viewportRef, iconSize);
 
-  const rowCount = Math.ceil(displayed.length / columns);
+    const rowCount = Math.ceil(displayed.length / columns);
 
-  const virtualizer = useVirtualizer({
-    count: rowCount,
-    getScrollElement: () => viewportRef.current,
-    estimateSize: () => rowHeight,
-    // Quelques lignes de marge pour que le défilement reste fluide
-    overscan: 3,
-  });
+    const virtualizer = useVirtualizer({
+        count: rowCount,
+        getScrollElement: () => viewportRef.current,
+        estimateSize: () => rowHeight,
+        // Quelques lignes de marge pour que le défilement reste fluide
+        overscan: 3,
+    });
 
-  return (
-    <section className="item-grid">
-      <h2 className="item-grid__title">
-        {title} ({displayed.length})
-      </h2>
+    return (
+        <section className="item-grid">
+            <h2 className="item-grid__title">
+                {title} ({displayed.length})
+            </h2>
 
-      <div ref={viewportRef} className="item-grid__viewport">
-        <div
-          className="item-grid__canvas"
-          style={{ height: virtualizer.getTotalSize() }}
-        >
-          {virtualizer.getVirtualItems().map((row) => {
-            const start = row.index * columns;
-            const rowItems = displayed.slice(start, start + columns);
+            <div ref={viewportRef} className="item-grid__viewport">
+                <div
+                    className="item-grid__canvas"
+                    style={{height: virtualizer.getTotalSize()}}
+                >
+                    {virtualizer.getVirtualItems().map((row) => {
+                        const start = row.index * columns;
+                        const rowItems = displayed.slice(start, start + columns);
 
-            return (
-              <div
-                key={row.key}
-                className="item-grid__row"
-                style={{
-                  height: rowHeight,
-                  transform: `translateY(${row.start}px)`,
-                }}
-              >
-                {rowItems.map((item, i) => {
-                  const detail = item.itemInstanceId
-                    ? details[item.itemInstanceId]
-                    : undefined;
-                  return (
-                    <ItemIcon
-                      key={item.itemInstanceId ?? `${item.itemHash}-${start + i}`}
-                      itemHash={item.itemHash}
-                      itemInstanceId={item.itemInstanceId}
-                      state={item.state}
-                      versionNumber={item.versionNumber}
-                      gearTier={detail?.instance?.gearTier}
-                    />
-                  );
-                })}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </section>
-  );
+                        return (
+                            <div
+                                key={row.key}
+                                className="item-grid__row"
+                                style={{
+                                    height: rowHeight,
+                                    transform: `translateY(${row.start}px)`,
+                                }}
+                            >
+                                {rowItems.map((item, i) => {
+                                    const detail = item.itemInstanceId
+                                        ? details[item.itemInstanceId]
+                                        : undefined;
+                                    return (
+                                        <ItemIcon
+                                            key={item.itemInstanceId ?? `${item.itemHash}-${start + i}`}
+                                            itemHash={item.itemHash}
+                                            itemInstanceId={item.itemInstanceId}
+                                            state={item.state}
+                                            versionNumber={item.versionNumber}
+                                            gearTier={detail?.instance?.gearTier}
+                                        />
+                                    );
+                                })}
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+        </section>
+    );
 }

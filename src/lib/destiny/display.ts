@@ -97,6 +97,12 @@ export const DISPLAYED_ITEM_TYPES: ReadonlySet<number> = new Set([
  */
 export const DISPLAYED_BUCKETS: ReadonlySet<number> = new Set([BUCKET.Artifact]);
 
+// Sous-types d'objets (DestinyItemSubType) utiles à l'affichage
+export const ITEM_SUBTYPE = {
+  /** Les épées ont leur propre jeu de statistiques */
+  Sword: 18,
+} as const;
+
 // Hashes de stats d'arme mis en avant dans la ligne "archétype"
 export const WEAPON_STAT = {
   RPM: 4284893193, // cadence de tir

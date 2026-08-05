@@ -6,6 +6,9 @@
   flex-shrink: 0;
   width: v.$plug-size;
   height: v.$plug-size;
+
+  padding: 5px;
+
   overflow: hidden;
   // Support sombre dans les deux thèmes : les icônes de perks sont des
   // dessins clairs, invisibles sur un fond blanc.
@@ -20,23 +23,28 @@
 
   // Mods / cosmétiques : forme carrée
   &--square {
-    width: v.$plug-size-sm;
-    height: v.$plug-size-sm;
-    border-radius: var(--radius-sm);
+    width: v.$plug-size;
+    height: v.$plug-size;
+    border-radius: 0;
+    padding: 0;
+    border: none;
   }
 
   // Perk actuellement équipé : mis en avant
   &--equipped {
     border-color: var(--color-accent);
-    background-color: rgba(245, 184, 32, 0.18);
+    background-color: #74a8cc;
   }
 
   // Option disponible mais non équipée : atténuée
   &--available {
-    opacity: 0.55;
+    opacity: 0.85;
 
     &:hover {
       opacity: 1;
     }
   }
+}
+.plug-icon.plug-icon--equipped.plug-icon--square {
+  background-color: unset;
 }

@@ -59,11 +59,18 @@
     "stored": "Inventory",
     "vault": "Vault"
   },
+  "subclass": {
+    "abilities": "Abilities",
+    "transcendence": "Transcendence",
+    "aspects": "Aspects",
+    "fragments": "Fragments"
+  },
   "item": {
     "loading": "Loading…",
     "loadingDetail": "Loading perks and mods…",
     "energy": "energy",
     "gearTier": "Tier",
+    "artifactPerks": "Perks",
     "crafted": "Crafted",
     "enhanced": "Enhanced",
     "pinHint": "Click to pin and reveal stats"

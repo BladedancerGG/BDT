@@ -3,7 +3,7 @@
 
 # ".PHONY" : ces cibles ne sont pas des fichiers, make les exécute toujours.
 .PHONY: help start stop restart build up down logs logs-db shell db-shell \
-        ps migrate generate studio install lint clean reset
+        ps migrate generate studio adminer install lint clean reset
 
 # Cible par défaut (exécutée quand on tape juste "make")
 .DEFAULT_GOAL := start
@@ -51,6 +51,14 @@ generate: ## Régénère le client Prisma
 
 studio: ## Ouvre Prisma Studio (http://localhost:5555)
 	docker compose exec app npm run db:studio
+
+adminer: ## Rappelle l'URL et les identifiants d'Adminer
+	@echo "Adminer : http://localhost:8080"
+	@echo "  système      : PostgreSQL"
+	@echo "  serveur      : db (déjà pré-rempli)"
+	@echo "  utilisateur  : $${POSTGRES_USER:-dlm}"
+	@echo "  mot de passe : $${POSTGRES_PASSWORD:-dlm}"
+	@echo "  base         : $${POSTGRES_DB:-dlm}"
 
 ## —— Projet ————————————————————————————————————————————————
 

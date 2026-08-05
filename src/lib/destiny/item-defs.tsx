@@ -9,11 +9,8 @@ import {
   ITEM_CONSTANTS_HASH,
   type ItemConstantsDefinition,
 } from "./overlays";
-import {
-  cosmeticSocketIndexes,
-  isOrnamentPlug,
-  hasAppliedOrnament,
-} from "./ornaments";
+import { cosmeticSocketIndexes, isOrnamentPlug } from "./ornaments";
+import { isPlugApplied } from "./sockets";
 import { bestIconPath, type IconDefinition } from "./icons";
 
 /**
@@ -130,7 +127,7 @@ export function ItemDefsProvider({
           const plugHash = sockets[index];
           if (!plugHash || plugHash <= 0) continue;
           // Écarte le placeholder « Ornement d'origine »
-          if (!hasAppliedOrnament(itemDef, index, plugHash)) continue;
+          if (!isPlugApplied(itemDef, index, plugHash)) continue;
 
           const list = candidates.get(item.itemInstanceId);
           if (list) list.push(plugHash);
