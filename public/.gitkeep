@@ -1,0 +1,4 @@
+# Ce dossier accueille les fichiers servis tels quels par Next (favicon,
+# robots.txt, images statiques…).
+# Présent même vide : Git ne versionne pas les dossiers vides, et le Dockerfile
+# de production copie ce chemin.

@@ -28,7 +28,10 @@ FROM base AS builder
 ENV NODE_ENV=production
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN npx prisma generate && npm run build
+# `public/` peut être absent du contexte : Git ne versionne pas les dossiers
+# vides. On le crée donc pour que la copie de l'étape production aboutisse
+# toujours, même sans fichier statique.
+RUN mkdir -p public && npx prisma generate && npm run build
 
 # ---- Étape migrations ----
 # Conserve node_modules complet : le CLI Prisma est absent de la sortie
