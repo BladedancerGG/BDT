@@ -71,6 +71,8 @@
     "energy": "energy",
     "gearTier": "Tier",
     "artifactPerks": "Perks",
+    "setBonus": "Set bonus",
+    "setPieces": "{count} pieces",
     "crafted": "Crafted",
     "enhanced": "Enhanced",
     "pinHint": "Click to pin and reveal stats"

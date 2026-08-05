@@ -9,6 +9,12 @@
 // Calque des éléments flottants (tooltips portalisés)
 .floating-layer {
   z-index: 50;
+
+  // Infobulle imbriquée (attribut survolé dans une infobulle d'objet) :
+  // elle doit passer au-dessus de celle qui la contient.
+  &--nested {
+    z-index: 60;
+  }
 }
 
 .item-tooltip {

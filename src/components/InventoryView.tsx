@@ -5,7 +5,11 @@ import {useTranslations} from "next-intl";
 import {useProfile, type ProfileData} from "@/lib/bungie/use-profile";
 import type {DestinyItemComponent} from "@/lib/bungie/profile";
 import type {ItemDetail} from "@/lib/bungie/item-components";
-import {ItemDefsProvider} from "@/lib/destiny/item-defs";
+import {ItemDefsProvider, useItemDefs} from "@/lib/destiny/item-defs";
+import {
+    countEquippedSets,
+    EquippedSetsProvider,
+} from "@/lib/destiny/set-bonus";
 import {useSettings} from "@/lib/settings/store";
 import {useDisplayableItems} from "@/lib/destiny/use-displayable-items";
 import {CharacterTab} from "./CharacterTab";
@@ -59,7 +63,16 @@ function Inventory({data}: { data: ProfileData }) {
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const current = selectedId ?? data.characters[0]?.characterId ?? null;
 
+    // Pièces équipées par ensemble d'armures : sert à savoir quels bonus
+    // d'ensemble sont actifs. Dépend du personnage affiché, d'où le calcul ici.
+    const {defs} = useItemDefs();
+    const setCounts = useMemo(
+        () => countEquippedSets(current ? (data.equipment[current] ?? NO_ITEMS) : NO_ITEMS, defs),
+        [current, data.equipment, defs],
+    );
+
     return (
+        <EquippedSetsProvider counts={setCounts}>
         <div className="inventory-view">
             {/* Sélecteur de personnage */}
             <div className="inventory-view__characters">
@@ -98,6 +111,7 @@ function Inventory({data}: { data: ProfileData }) {
                 />
             </div>
         </div>
+        </EquippedSetsProvider>
     );
 }
 

@@ -10,7 +10,7 @@ export const APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION ?? "dev";
  * Adresse de contact affichée dans « À propos ».
  * À remplacer par l'adresse que tu veux exposer publiquement.
  */
-export const SUPPORT_EMAIL = "support@example.com";
+export const SUPPORT_EMAIL = "contact@bladedancer.net";
 
 /** Profil bungie.net d'un compte (254 = membership BungieNext). */
 export function BUNGIE_PROFILE_URL(bungieMembershipId: string): string {

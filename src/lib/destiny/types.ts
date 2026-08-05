@@ -19,6 +19,18 @@ export interface InventoryItemDefinition {
   itemTypeDisplayName?: string;
   /** Présent sur les plugs (perks, mods, ornements, shaders…) */
   plug?: { plugCategoryIdentifier?: string };
+  /** Écarts de statistiques conférés — voir plug-stats.ts */
+  investmentStats?: {
+    statTypeHash: number;
+    value: number;
+    isConditionallyActive?: boolean;
+  }[];
+  /**
+   * Perks associés. Aspects, fragments et attributs d'artéfact ont un
+   * `displayProperties.description` vide : leur texte est ici.
+   * `perkVisibility` : 0 = visible, 1 = désactivé, 2 = masqué.
+   */
+  perks?: { perkHash: number; perkVisibility?: number }[];
   /** Filigrane de saison par défaut */
   iconWatermark?: string;
   /** Filigrane des objets « mis en avant » */
@@ -42,6 +54,10 @@ export interface InventoryItemDefinition {
    * (`defaultDamageType` vaut toujours 0), `buildName` le couple élément/classe.
    */
   talentGrid?: { hudDamageType?: number; buildName?: string };
+  equippingBlock?: {
+    /** Ensemble d'armures conférant des bonus, s'il y en a un */
+    equipableItemSetHash?: number;
+  };
   sockets?: {
     socketEntries: SocketEntryDefinition[];
     socketCategories: {
@@ -49,6 +65,20 @@ export interface InventoryItemDefinition {
       socketIndexes: number[];
     }[];
   };
+}
+
+/** Bonus d'ensemble : perks actifs à partir de N pièces équipées. */
+export interface EquipableItemSetDefinition {
+  displayProperties: DisplayProperties;
+  /** Tous les objets de l'ensemble (5 emplacements × 3 classes) */
+  setItems: number[];
+  setPerks: { requiredSetCount: number; sandboxPerkHash: number }[];
+}
+
+export interface SandboxPerkDefinition {
+  displayProperties: DisplayProperties;
+  /** false quand le perk ne porte pas d'information destinée au joueur */
+  isDisplayable?: boolean;
 }
 
 export interface StatDefinition {

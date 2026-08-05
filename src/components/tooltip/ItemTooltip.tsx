@@ -35,6 +35,7 @@ import {PlugIcon} from "./PlugIcon";
 import {StatBar} from "./StatBar";
 import {TooltipSkeleton} from "./TooltipSkeleton";
 import {SubclassSockets} from "./SubclassSockets";
+import {SetBonus} from "./SetBonus";
 
 /**
  * Attributs d'un artéfact.
@@ -383,6 +384,10 @@ export function ItemTooltip({
                                 square={false}
                             />
                         )}
+
+                        {/* Bonus d'ensemble : au même niveau que les attributs
+                            d'armure exotique, donc avant les mods */}
+                        {isArmor && <SetBonus def={def}/>}
 
                         {/* Mods et cosmétiques : plugs équipés */}
                         <PlugRow
