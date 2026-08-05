@@ -30,13 +30,25 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npx prisma generate && npm run build
 
+# ---- Étape migrations ----
+# Conserve node_modules complet : le CLI Prisma est absent de la sortie
+# autonome. Ce conteneur ne tourne qu'au déploiement, puis s'arrête.
+FROM builder AS migrate
+CMD ["npx", "prisma", "migrate", "deploy"]
+
 # ---- Étape production ----
+# Sortie autonome de Next : le serveur et ses seules dépendances utiles.
 FROM base AS prod
 ENV NODE_ENV=production
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package.json ./package.json
-COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/public ./public
+ENV PORT=3000
+ENV HOSTNAME=0.0.0.0
+
+# Le serveur tourne sans privilèges (l'utilisateur "node" existe dans l'image)
+COPY --from=builder --chown=node:node /app/.next/standalone ./
+COPY --from=builder --chown=node:node /app/.next/static ./.next/static
+COPY --from=builder --chown=node:node /app/public ./public
+
+USER node
 EXPOSE 3000
-CMD ["npm", "run", "start"]
+# Point d'entrée généré par la sortie autonome
+CMD ["node", "server.js"]

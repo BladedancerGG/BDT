@@ -2,7 +2,8 @@
 # Lancer "make" ou "make help" pour voir toutes les cibles disponibles.
 
 # ".PHONY" : ces cibles ne sont pas des fichiers, make les exécute toujours.
-.PHONY: help start stop restart build up down logs logs-db shell db-shell \
+.PHONY: prod-up prod-down prod-logs prod-ps prod-migrate prod-backup \
+        help start stop restart build up down logs logs-db shell db-shell \
         ps migrate generate studio adminer install lint clean reset
 
 # Cible par défaut (exécutée quand on tape juste "make")
@@ -67,6 +68,32 @@ install: ## Installe une dépendance npm (ex: make install pkg=zod)
 
 lint: ## Lance le linter
 	docker compose exec app npm run lint
+
+## —— Production ————————————————————————————————————————————
+# Ces cibles s'utilisent SUR LE SERVEUR, avec un .env de production
+# (voir .env.production.example).
+
+COMPOSE_PROD = docker compose -f docker-compose.prod.yml
+
+prod-up: ## Construit et démarre la production (migrations incluses)
+	$(COMPOSE_PROD) up -d --build
+
+prod-down: ## Arrête la production (conserve données et certificats)
+	$(COMPOSE_PROD) down
+
+prod-logs: ## Suit les logs de l'application en production
+	$(COMPOSE_PROD) logs -f app
+
+prod-ps: ## État des conteneurs de production
+	$(COMPOSE_PROD) ps
+
+prod-migrate: ## Rejoue les migrations seules
+	$(COMPOSE_PROD) run --rm migrate
+
+prod-backup: ## Sauvegarde la base dans backup-<date>.sql.gz
+	$(COMPOSE_PROD) exec -T db pg_dump -U $${POSTGRES_USER} $${POSTGRES_DB} \
+		| gzip > backup-$$(date +%Y%m%d-%H%M%S).sql.gz
+	@echo "Sauvegarde écrite."
 
 ## —— Nettoyage —————————————————————————————————————————————
 

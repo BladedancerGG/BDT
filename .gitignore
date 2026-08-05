@@ -30,3 +30,6 @@ npm-debug.log*
 
 # useless stuff
 tsconfig.tsbuildinfo
+
+# sauvegardes de base produites par « make prod-backup »
+backup-*.sql.gz

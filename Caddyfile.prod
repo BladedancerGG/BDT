@@ -1,0 +1,42 @@
+# Reverse proxy de production.
+#
+# Caddy obtient et renouvelle seul le certificat TLS auprès de Let's Encrypt,
+# à condition que :
+#   - le domaine pointe (enregistrement A/AAAA) vers l'IP du serveur ;
+#   - les ports 80 et 443 soient joignables depuis Internet (le port 80 sert à
+#     la validation ACME et à la redirection vers HTTPS).
+#
+# Les variables viennent de l'environnement du conteneur (voir .env).
+
+{
+	# Adresse de contact pour Let's Encrypt (expiration, problèmes de compte)
+	email {$ACME_EMAIL}
+}
+
+{$APP_DOMAIN} {
+	encode zstd gzip
+
+	# Journaux au format JSON, exploitables par docker logs
+	log {
+		output stdout
+		format json
+	}
+
+	# En-têtes de sécurité de base
+	header {
+		# HSTS : 1 an, sous-domaines inclus
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		X-Frame-Options "DENY"
+		# Ne pas annoncer le serveur
+		-Server
+	}
+
+	reverse_proxy app:3000 {
+		# Coupe court si l'application ne répond plus
+		health_uri /api/health
+		health_interval 30s
+		health_timeout 5s
+	}
+}

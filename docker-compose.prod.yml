@@ -1,0 +1,114 @@
+# Déploiement de production.
+#
+#   docker compose -f docker-compose.prod.yml up -d --build
+#
+# Différences notables avec la configuration de développement :
+#   - aucun montage du code source : l'image contient le build
+#   - Postgres et l'app n'exposent AUCUN port sur l'hôte, ils ne sont joignables
+#     que par le réseau interne ; seul Caddy est exposé
+#   - pas d'Adminer (outil de développement)
+#   - les migrations tournent dans un conteneur dédié, avant l'app
+#   - redémarrage automatique et journaux plafonnés
+
+x-logging: &logging
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    <<: *logging
+    ports:
+      - "80:80" # validation ACME + redirection vers HTTPS
+      - "443:443"
+      - "443:443/udp" # HTTP/3
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN:?APP_DOMAIN est requis}
+      ACME_EMAIL: ${ACME_EMAIL:?ACME_EMAIL est requis}
+    volumes:
+      - ./Caddyfile.prod:/etc/caddy/Caddyfile:ro
+      # Certificats et état ACME : à conserver, sous peine de réémission
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app
+
+  # Applique les migrations puis s'arrête. L'app attend sa réussite.
+  migrate:
+    build:
+      context: .
+      target: migrate
+    restart: "no"
+    <<: *logging
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:?}:${POSTGRES_PASSWORD:?}@db:5432/${POSTGRES_DB:?}?schema=public
+    depends_on:
+      db:
+        condition: service_healthy
+
+  app:
+    build:
+      context: .
+      target: prod
+    restart: unless-stopped
+    <<: *logging
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:?}:${POSTGRES_PASSWORD:?}@db:5432/${POSTGRES_DB:?}?schema=public
+
+      BUNGIE_API_KEY: ${BUNGIE_API_KEY:?BUNGIE_API_KEY est requis}
+      BUNGIE_CLIENT_ID: ${BUNGIE_CLIENT_ID:?BUNGIE_CLIENT_ID est requis}
+      BUNGIE_CLIENT_SECRET: ${BUNGIE_CLIENT_SECRET:?BUNGIE_CLIENT_SECRET est requis}
+      NEXT_PUBLIC_BUNGIE_CLIENT_ID: ${BUNGIE_CLIENT_ID}
+      SESSION_SECRET: ${SESSION_SECRET:?SESSION_SECRET est requis}
+
+      # Doit correspondre EXACTEMENT à l'URL de redirection déclarée côté Bungie
+      APP_URL: https://${APP_DOMAIN}
+
+      # Proxy sortant (optionnel)
+      HTTP_PROXY: ${HTTP_PROXY:-}
+      HTTPS_PROXY: ${HTTPS_PROXY:-}
+      NO_PROXY: ${NO_PROXY:-}
+      NODE_OPTIONS: ${NODE_OPTIONS:-}
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    <<: *logging
+    # Aucun port publié : la base n'est joignable que depuis le réseau interne
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER est requis}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD est requis}
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB est requis}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+  caddy_data:
+  caddy_config:
