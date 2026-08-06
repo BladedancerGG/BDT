@@ -57,7 +57,8 @@
     "error": "Unable to load the profile.",
     "equipped": "Equipped",
     "stored": "Inventory",
-    "vault": "Vault"
+    "vault": "Vault",
+    "equipment": "Equipment"
   },
   "subclass": {
     "abilities": "Abilities",

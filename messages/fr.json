@@ -57,7 +57,8 @@
     "error": "Impossible de charger le profil.",
     "equipped": "Équipé",
     "stored": "Inventaire",
-    "vault": "Coffre"
+    "vault": "Coffre",
+    "equipment": "Équipement"
   },
   "subclass": {
     "abilities": "Compétences",

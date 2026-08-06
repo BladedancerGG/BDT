@@ -4,40 +4,91 @@ import {useMemo, useState} from "react";
 import {useTranslations} from "next-intl";
 import {useProfile, type ProfileData} from "@/lib/bungie/use-profile";
 import type {DestinyItemComponent} from "@/lib/bungie/profile";
-import type {ItemDetail} from "@/lib/bungie/item-components";
 import {ItemDefsProvider, useItemDefs} from "@/lib/destiny/item-defs";
 import {
     countEquippedSets,
     EquippedSetsProvider,
 } from "@/lib/destiny/set-bonus";
+import {
+    ARMOR_COLUMN,
+    BUCKET,
+    EQUIPMENT_BUCKETS,
+    WEAPON_COLUMN,
+    groupByBucket,
+    type SlotSide,
+} from "@/lib/destiny/buckets";
+import {
+    useDefinition,
+    type DisplayProperties,
+} from "@/lib/manifest/use-definition";
 import {useSettings} from "@/lib/settings/store";
 import {useDisplayableItems} from "@/lib/destiny/use-displayable-items";
 import {CharacterTab} from "./CharacterTab";
+import {EquipmentSlot} from "./EquipmentSlot";
 import {ItemIcon} from "./ItemIcon";
 import {VirtualItemGrid} from "./VirtualItemGrid";
 
 // Référence stable : évite de relancer le filtrage à chaque rendu
 const NO_ITEMS: DestinyItemComponent[] = [];
 
-function ItemGrid({
-                      title,
-                      items,
-                      details,
-                  }: {
-    title: string;
-    items: DestinyItemComponent[];
-    details: Record<string, ItemDetail>;
+/** Une colonne d'emplacements d'équipement. */
+function SlotColumn({
+                        buckets,
+                        side,
+                        equipped,
+                        inventory,
+                        details,
+                    }: {
+    buckets: readonly number[];
+    side: SlotSide;
+    equipped: Map<number, DestinyItemComponent[]>;
+    inventory: Map<number, DestinyItemComponent[]>;
+    details: ProfileData["items"];
 }) {
-    // Armes, armures, doctrines et artéfacts uniquement
-    const displayed = useDisplayableItems(items);
+    return (
+        <div className={`slot-column slot-column--${side}`}>
+            {buckets.map((bucketHash) => (
+                <EquipmentSlot
+                    key={bucketHash}
+                    bucketHash={bucketHash}
+                    equipped={equipped.get(bucketHash)?.[0]}
+                    inventory={inventory.get(bucketHash) ?? NO_ITEMS}
+                    details={details}
+                    side={side}
+                />
+            ))}
+        </div>
+    );
+}
+
+/**
+ * Objets du Courrier, qui ne relèvent d'aucun emplacement d'équipement.
+ *
+ * Sans cette section ils disparaîtraient : ils vivent dans l'inventaire du
+ * personnage, mais dans le bucket « Objets perdus ». Le libellé vient du
+ * manifeste, donc traduit.
+ */
+function PostmasterGrid({
+                            items,
+                            details,
+                        }: {
+    items: DestinyItemComponent[];
+    details: ProfileData["items"];
+}) {
+    const bucket = useDefinition<{ displayProperties: DisplayProperties }>(
+        "DestinyInventoryBucketDefinition",
+        BUCKET.Postmaster,
+    );
+
+    if (items.length === 0) return null;
 
     return (
         <section className="item-grid">
             <h2 className="item-grid__title">
-                {title} ({displayed.length})
+                {bucket?.displayProperties?.name ?? ""} ({items.length})
             </h2>
             <div className="item-grid__items">
-                {displayed.map((item, i) => {
+                {items.map((item, i) => {
                     const detail = item.itemInstanceId
                         ? details[item.itemInstanceId]
                         : undefined;
@@ -57,60 +108,101 @@ function ItemGrid({
     );
 }
 
-/** Personnages, objets du personnage sélectionné, puis coffre. */
+/** Personnages, emplacements d'équipement, puis coffre. */
 function Inventory({data}: { data: ProfileData }) {
     const t = useTranslations("inventory");
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const current = selectedId ?? data.characters[0]?.characterId ?? null;
 
+    const currentEquipped = current
+        ? (data.equipment[current] ?? NO_ITEMS)
+        : NO_ITEMS;
+    const currentInventory = current
+        ? (data.inventory[current] ?? NO_ITEMS)
+        : NO_ITEMS;
+
+    // Armes, armures, doctrines et artéfacts uniquement
+    const displayedEquipped = useDisplayableItems(currentEquipped);
+    const displayedInventory = useDisplayableItems(currentInventory);
+
+    // Regroupement par emplacement : l'API fournit `bucketHash` aussi bien sur
+    // les objets équipés que sur ceux de l'inventaire du personnage.
+    const equippedByBucket = useMemo(
+        () => groupByBucket(displayedEquipped),
+        [displayedEquipped],
+    );
+    const inventoryByBucket = useMemo(
+        () => groupByBucket(displayedInventory),
+        [displayedInventory],
+    );
+
+    // Tout ce qui n'entre dans aucun emplacement d'équipement — en pratique le
+    // Courrier. Calculé par différence pour ne rien perdre si Bungie ajoute un
+    // emplacement.
+    const leftovers = useMemo(
+        () => displayedInventory.filter((i) => !EQUIPMENT_BUCKETS.has(i.bucketHash)),
+        [displayedInventory],
+    );
+
     // Pièces équipées par ensemble d'armures : sert à savoir quels bonus
     // d'ensemble sont actifs. Dépend du personnage affiché, d'où le calcul ici.
     const {defs} = useItemDefs();
     const setCounts = useMemo(
-        () => countEquippedSets(current ? (data.equipment[current] ?? NO_ITEMS) : NO_ITEMS, defs),
-        [current, data.equipment, defs],
+        () => countEquippedSets(currentEquipped, defs),
+        [currentEquipped, defs],
     );
 
     return (
         <EquippedSetsProvider counts={setCounts}>
-        <div className="inventory-view">
-            {/* Sélecteur de personnage */}
-            <div className="inventory-view__characters">
-                {data.characters.map((c) => (
-                    <CharacterTab
-                        key={c.characterId}
-                        character={c}
-                        selected={c.characterId === current}
-                        onSelect={() => setSelectedId(c.characterId)}
-                    />
-                ))}
-            </div>
+            <div className="inventory-view">
+                {/* Sélecteur de personnage */}
+                <div className="inventory-view__characters">
+                    {data.characters.map((c) => (
+                        <CharacterTab
+                            key={c.characterId}
+                            character={c}
+                            selected={c.characterId === current}
+                            onSelect={() => setSelectedId(c.characterId)}
+                        />
+                    ))}
+                </div>
 
-            <div className="inventory-view__sections">
-                {current && (
-                    <>
-                        <ItemGrid
-                            title={t("equipped")}
-                            items={data.equipment[current] ?? NO_ITEMS}
+                <div className="inventory-view__body">
+                    {/* Équipement du personnage : deux colonnes d'emplacements */}
+                    <section className="equipment">
+                        <h2 className="equipment__title">{t("equipment")}</h2>
+                        <div className="equipment__columns">
+                            <SlotColumn
+                                buckets={WEAPON_COLUMN}
+                                side="left"
+                                equipped={equippedByBucket}
+                                inventory={inventoryByBucket}
+                                details={data.items}
+                            />
+                            <SlotColumn
+                                buckets={ARMOR_COLUMN}
+                                side="right"
+                                equipped={equippedByBucket}
+                                inventory={inventoryByBucket}
+                                details={data.items}
+                            />
+                        </div>
+                    </section>
+
+                    {/* Colonne de droite : le Courrier au-dessus du coffre */}
+                    <div className="inventory-view__storage">
+                        <PostmasterGrid items={leftovers} details={data.items}/>
+
+                        {/* Le coffre est commun à tous les personnages.
+                            Virtualisé : il contient environ un millier d'objets. */}
+                        <VirtualItemGrid
+                            title={t("vault")}
+                            items={data.vault}
                             details={data.items}
                         />
-                        <ItemGrid
-                            title={t("stored")}
-                            items={data.inventory[current] ?? NO_ITEMS}
-                            details={data.items}
-                        />
-                    </>
-                )}
-
-                {/* Le coffre est commun à tous les personnages. Virtualisé : il
-            contient environ un millier d'objets. */}
-                <VirtualItemGrid
-                    title={t("vault")}
-                    items={data.vault}
-                    details={data.items}
-                />
+                    </div>
+                </div>
             </div>
-        </div>
         </EquippedSetsProvider>
     );
 }

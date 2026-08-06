@@ -1,23 +1,55 @@
+@use "../abstracts/variables" as v;
 @use "../abstracts/mixins" as m;
 
-// Vue inventaire : onglets de personnages + grilles d'objets.
+// Vue inventaire : onglets de personnages, équipement, coffre.
 
 .inventory-view {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
 
+  // Maillon de la chaîne de hauteurs (voir .app-main)
+  @include m.from(v.$bp-lg) {
+    flex: 1;
+    min-height: 0;
+  }
+
   &__characters {
     display: flex;
     justify-content: center;
     flex-wrap: wrap;
     gap: 0.75rem;
+    flex-shrink: 0; // ne se comprime pas au profit du coffre
   }
 
-  &__sections {
+  // Équipement à gauche, coffre à droite. Empilés sous 1024 px : les deux
+  // colonnes d'emplacements et leurs panneaux dépliants demandent de la largeur.
+  &__body {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2rem;
+    align-items: start;
+
+    @include m.from(v.$bp-lg) {
+      // L'équipement prend sa largeur naturelle, le stockage occupe le reste
+      grid-template-columns: auto minmax(0, 1fr);
+      // Maillon de la chaîne de hauteurs (voir .app-main)
+      flex: 1;
+      min-height: 0;
+      align-items: stretch; // les deux colonnes prennent toute la hauteur
+    }
+  }
+
+  // Colonne de droite : Courrier puis coffre, empilés
+  &__storage {
     display: flex;
     flex-direction: column;
     gap: 1.25rem;
+    min-width: 0; // laisse la grille virtualisée se réduire si besoin
+
+    @include m.from(v.$bp-lg) {
+      min-height: 0;
+    }
   }
 
   &__message {
@@ -46,11 +78,27 @@
   }
 
   // —— Variante virtualisée (coffre) ————————————————————————
+  // Occupe toute la hauteur restante de la colonne, pour être le seul élément
+  // à défiler sur grand écran.
+  &--fill {
+    @include m.from(v.$bp-lg) {
+      flex: 1;
+      min-height: 0;
+    }
+  }
+
   // Zone de défilement dédiée : seules les lignes visibles sont montées.
   &__viewport {
     max-height: min(60vh, 34rem);
     overflow-y: auto;
     overscroll-behavior: contain;
+
+    // Sur grand écran, la hauteur vient du parent plutôt que d'un plafond fixe
+    @include m.from(v.$bp-lg) {
+      max-height: none;
+      flex: 1;
+      min-height: 0;
+    }
 
     // Barre de défilement discrète, dans le ton de l'interface
     scrollbar-width: thin;

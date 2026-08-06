@@ -1,5 +1,6 @@
 // Styles globaux : reset minimal, palette et conteneur principal.
 @use "../abstracts/variables" as v;
+@use "../abstracts/mixins" as m;
 
 :root {
   // Dimensions de la grille d'objets, exposées en CSS pour que la
@@ -78,4 +79,20 @@ button {
   min-height: 100vh;
   padding: 1.5rem;
   margin-inline: auto;
+
+  // —— Mise en page « application » sur grand écran ——————————
+  // La page occupe exactement la hauteur de la fenêtre et ne défile plus :
+  // ce sont les colonnes internes (équipement, coffre) qui défilent. Sans ça,
+  // il fallait faire défiler la page APRÈS avoir atteint le bas du coffre.
+  //
+  // Chaque maillon de la chaîne porte `min-height: 0` : sans lui, un enfant
+  // flex refuse de descendre sous la hauteur de son contenu et déborde.
+  //
+  // Sous ce seuil la disposition est empilée : la page défile normalement et le
+  // coffre garde une hauteur plafonnée.
+  @include m.from(v.$bp-lg) {
+    height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
+  }
 }

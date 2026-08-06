@@ -6,13 +6,13 @@ import {
   useHover,
   useDismiss,
   useRole,
+  useClientPoint,
   useInteractions,
   offset,
   flip,
   shift,
   autoUpdate,
   FloatingPortal,
-  safePolygon,
 } from "@floating-ui/react";
 import { useSharedDefinition } from "@/lib/destiny/item-defs";
 import { subclassKind } from "@/lib/destiny/subclass";
@@ -51,15 +51,23 @@ export function ItemIcon({
     whileElementsMounted: autoUpdate,
   });
 
+  // Au survol, l'infobulle suit le curseur ; une fois épinglée elle s'ancre à
+  // la vignette, pour qu'on puisse aller survoler ses attributs sans la faire
+  // fuir. `useClientPoint` désactivé rend l'ancrage à l'élément de référence.
+  const clientPoint = useClientPoint(context, { enabled: !pinned });
+
   const hover = useHover(context, {
     enabled: !pinned,
-    move: false,
+    // `move: true` : le suivi du curseur exige les événements de déplacement
+    move: true,
     delay: { open: 80, close: 0 },
-    handleClose: safePolygon(),
+    // Pas de safePolygon : tant qu'elle suit le curseur, l'infobulle ne peut
+    // pas être survolée — le chemin protégé n'aurait aucun sens.
   });
   const dismiss = useDismiss(context);
   const role = useRole(context, { role: "dialog" });
   const { getReferenceProps, getFloatingProps } = useInteractions([
+    clientPoint,
     hover,
     dismiss,
     role,

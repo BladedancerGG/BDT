@@ -49,19 +49,19 @@ services:
   # Interface web de consultation de la base — équivalent PhpMyAdmin côté
   # Postgres. Outil de développement uniquement : il expose un formulaire de
   # connexion à la base, ne pas publier tel quel.
-  adminer:
-    container_name: adminer
-    image: adminer:latest
-    ports:
-      - "8080:8080"
-    environment:
-      # Pré-remplit le champ « serveur » avec le nom du service Postgres
-      ADMINER_DEFAULT_SERVER: db
-      # Pas de ADMINER_DESIGN : Adminer 5 suit déjà prefers-color-scheme, donc
-      # le thème sombre s'applique tout seul selon le réglage du système.
-    depends_on:
-      db:
-        condition: service_healthy
+#  adminer:
+#    container_name: adminer
+#    image: adminer:latest
+#    ports:
+#      - "8080:8080"
+#    environment:
+#      # Pré-remplit le champ « serveur » avec le nom du service Postgres
+#      ADMINER_DEFAULT_SERVER: db
+#      # Pas de ADMINER_DESIGN : Adminer 5 suit déjà prefers-color-scheme, donc
+#      # le thème sombre s'applique tout seul selon le réglage du système.
+#    depends_on:
+#      db:
+#        condition: service_healthy
 
   db:
     container_name: postgres

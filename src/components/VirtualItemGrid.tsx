@@ -48,7 +48,8 @@ export function VirtualItemGrid({
     });
 
     return (
-        <section className="item-grid">
+        // --fill : occupe la hauteur restante, pour être le seul élément à défiler
+    <section className="item-grid item-grid--fill">
             <h2 className="item-grid__title">
                 {title} ({displayed.length})
             </h2>
