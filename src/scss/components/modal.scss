@@ -1,4 +1,18 @@
-// Fenêtre modale : arrière-plan assombri + panneau centré.
+// Fenêtre modale : arrière-plan flouté et assombri + panneau centré.
+//
+// L'animation se joue sur l'attribut `data-status` posé par Floating UI, qui
+// vaut `initial` à l'arrivée, `open` une image plus tard, puis `close` au
+// départ. Les règles hors état décrivent donc l'état d'ENTRÉE et de SORTIE,
+// celles de `[data-status="open"]` l'état visible.
+//
+// Chaque propriété animée est nommée explicitement plutôt qu'un `transition: .3s`
+// global : celui-ci engloberait aussi les couleurs et le flou, qui n'ont pas à
+// être interpolés ici.
+
+// Doit rester égale à TRANSITION_MS dans components/ui/Modal.tsx, qui décide du
+// moment du démontage.
+$duration: 300ms;
+$ease: cubic-bezier(0.16, 1, 0.3, 1); // décélération franche, sans rebond
 
 .modal-overlay {
   display: flex;
@@ -7,21 +21,55 @@
   padding: 1rem;
   background-color: var(--color-overlay);
   z-index: 100;
+
+  // Le flou est posé une fois pour toutes, et c'est l'opacité seule qui est
+  // animée : le flou étant porté par l'élément qui s'estompe, il est composité
+  // avec cette opacité et s'installe donc progressivement, sans qu'on ait à
+  // interpoler son rayon.
+  //
+  // Ce détour est volontaire : le minificateur réduit `blur(0)` comme
+  // `blur(0px)` à `blur()`, si bien qu'animer le rayon depuis zéro reposait sur
+  // l'interprétation d'une forme sans argument. Une propriété de moins à animer,
+  // et un résultat identique à l'œil.
+  opacity: 0;
+  backdrop-filter: blur(5px);
+  transition: opacity $duration $ease;
+
+  &[data-status="open"] {
+    opacity: 1;
+  }
+
+  // Pendant la fermeture la modale est encore montée : on la rend inerte, pour
+  // qu'un clic ne puisse pas atteindre un panneau en train de disparaître.
+  &[data-status="close"] {
+    pointer-events: none;
+  }
 }
 
 .modal {
   display: flex;
   flex-direction: column;
   width: 100%;
-  max-width: 44rem;
-  height: 40rem;
-  max-height: min(85vh, 40rem);
+  max-width: 45rem;
+  height: 100%;
+  max-height: min(85vh, 45rem);
   overflow: hidden;
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius);
   background-color: var(--color-panel);
   color: var(--color-text);
   box-shadow: var(--shadow-panel);
+
+  opacity: 0;
+  scale: 0.9;
+  transition:
+    opacity $duration $ease,
+    scale $duration $ease;
+
+  &[data-status="open"] {
+    opacity: 1;
+    scale: 1;
+  }
 
   &__header {
     display: flex;
@@ -57,5 +105,26 @@
       background-color: var(--color-panel-alt);
       color: var(--color-text);
     }
+  }
+}
+
+// Préférence système : la modale apparaît et disparaît d'un coup.
+//
+// On neutralise aussi l'état d'entrée, et non seulement la transition : sans ça
+// l'échelle de 0,5 et l'opacité nulle resteraient figées, faute d'animation pour
+// en sortir.
+@media (prefers-reduced-motion: reduce) {
+  .modal-overlay,
+  .modal {
+    transition: none;
+  }
+
+  .modal-overlay {
+    opacity: 1;
+  }
+
+  .modal {
+    opacity: 1;
+    scale: 1;
   }
 }

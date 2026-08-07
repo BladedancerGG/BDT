@@ -6,17 +6,33 @@ import {
     useDismiss,
     useRole,
     useInteractions,
+    useTransitionStatus,
     FloatingOverlay,
     FloatingFocusManager,
     FloatingPortal,
 } from "@floating-ui/react";
 
 /**
- * Fenêtre modale accessible.
+ * Durée de l'animation d'ouverture et de fermeture, en millisecondes.
+ *
+ * Doit rester égale à `$duration` dans `scss/components/modal.scss` : c'est
+ * elle qui décide du moment où la modale est démontée. Trop courte, l'animation
+ * de sortie serait coupée ; trop longue, la modale resterait montée pour rien
+ * et le défilement de la page bloqué d'autant.
+ */
+const TRANSITION_MS = 300;
+
+/**
+ * Fenêtre modale accessible et animée.
  *
  * Floating UI fournit le piégeage du focus, la fermeture par Échap ou clic sur
  * l'arrière-plan, et les rôles ARIA. `FloatingOverlay lockScroll` empêche la
  * page de défiler derrière.
+ *
+ * L'animation passe par `useTransitionStatus` plutôt que par un simple
+ * `open && …` : sans lui, la fermeture démonterait l'élément dans l'instant et
+ * l'animation de sortie n'aurait jamais lieu. Le statut est exposé au CSS via
+ * `data-status`, qui vaut successivement `initial`, `open`, puis `close`.
  */
 export function Modal({
                           open,
@@ -40,11 +56,16 @@ export function Modal({
     const role = useRole(context, {role: "dialog"});
     const {getFloatingProps} = useInteractions([dismiss, role]);
 
-    if (!open) return null;
+    // Reste monté pendant l'animation de fermeture, puis se démonte
+    const {isMounted, status} = useTransitionStatus(context, {
+        duration: TRANSITION_MS,
+    });
+
+    if (!isMounted) return null;
 
     return (
         <FloatingPortal>
-            <FloatingOverlay className="modal-overlay" lockScroll>
+            <FloatingOverlay className="modal-overlay" data-status={status} lockScroll>
                 <FloatingFocusManager context={context} modal>
                     <div
                         // setFloating est un callback ref stable de Floating UI
@@ -52,6 +73,7 @@ export function Modal({
                         ref={refs.setFloating}
                         {...getFloatingProps()}
                         aria-label={title}
+                        data-status={status}
                         className="modal"
                     >
                         {children}

@@ -9,7 +9,7 @@ import {readPreferences} from "@/lib/settings/server";
 import "@/scss/style.scss";
 
 export const metadata: Metadata = {
-    title: "D2 API app",
+    title: "Bladedancer's Destiny Tools",
     description: "A secret that will reveal itself in time",
 };
 
@@ -17,13 +17,10 @@ export function generateStaticParams() {
     return routing.locales.map((locale) => ({locale}));
 }
 
-export default async function RootLayout({
-                                             children,
-                                             params,
-                                         }: {
-    children: React.ReactNode;
-    params: Promise<{ locale: string }>;
-}) {
+export default async function RootLayout(
+    {children, params,}:
+    { children: React.ReactNode; params: Promise<{ locale: string }>; }
+) {
     const {locale} = await params;
     if (!hasLocale(routing.locales, locale)) notFound();
 

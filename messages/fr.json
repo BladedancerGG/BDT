@@ -32,6 +32,7 @@
         "system": "Système"
       },
       "language": "Langue",
+      "languageHint": "Changer la langue d'affichage rechargera complètement l'application",
       "ornaments": "Afficher les ornements",
       "ornamentsHint": "Utilise l'ornement équipé au lieu de l'icône de base",
       "iconSize": "Taille des icônes"
@@ -90,7 +91,9 @@
     "equipped": "Équipé",
     "stored": "Inventaire",
     "vault": "Coffre",
-    "equipment": "Équipement"
+    "equipment": "Équipement",
+    "expand": "Déplier",
+    "collapse": "Replier"
   },
   "subclass": {
     "abilities": "Compétences",

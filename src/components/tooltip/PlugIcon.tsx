@@ -59,7 +59,7 @@ export function PlugIcon({
 
     // Pas de safePolygon ici : l'infobulle est purement informative, on n'a pas
     // besoin d'aller la survoler.
-    const hover = useHover(context, {move: false, delay: {open: 120, close: 0}});
+    const hover = useHover(context, {move: false, delay: {open: 0, close: 0}});
     const dismiss = useDismiss(context);
     const role = useRole(context, {role: "tooltip"});
     const {getReferenceProps, getFloatingProps} = useInteractions([

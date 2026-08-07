@@ -159,7 +159,7 @@ function AppearancePanel() {
                 />
             </SettingRow>
 
-            <SettingRow label={t("language")} htmlFor="setting-language">
+            <SettingRow label={t("language")} hint={t("languageHint")} htmlFor="setting-language">
                 <Select<Locale>
                     id="setting-language"
                     value={locale}

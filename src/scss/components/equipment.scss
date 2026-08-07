@@ -11,8 +11,8 @@
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  padding-left: 15rem;
-  padding-right: 15rem;
+  padding-left: calc(var(--item-size) * 2.3);
+  padding-right: calc(var(--item-size) * 2.3);
 
   // La page ne défilant plus sur grand écran, cette colonne défile pour son
   // propre compte si la fenêtre est trop courte — sinon elle serait tronquée.
@@ -128,7 +128,7 @@ $slot-columns: 3;
       transition: none;
     }
 
-    .item span {
+    span, .item span {
       opacity: 0;
       transition: opacity 100ms ease-in-out;
     }
@@ -169,7 +169,7 @@ $slot-columns: 3;
 .equipment-slot:focus-within .slot-inventory__grid {
   transform: scale(1);
   z-index: 5;
-  .item span {
+  span, .item span {
     opacity: 1;
   }
 }

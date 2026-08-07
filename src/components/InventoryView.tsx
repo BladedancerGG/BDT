@@ -68,13 +68,11 @@ function SlotColumn({
  * personnage, mais dans le bucket « Objets perdus ». Le libellé vient du
  * manifeste, donc traduit.
  */
-function PostmasterGrid({
-                            items,
-                            details,
-                        }: {
-    items: DestinyItemComponent[];
-    details: ProfileData["items"];
-}) {
+function PostmasterGrid(
+    {items, details,}: { items: DestinyItemComponent[]; details: ProfileData["items"]; }
+) {
+    const t = useTranslations("inventory");
+    const [collapsed, setCollapsed] = useState(false);
     const bucket = useDefinition<{ displayProperties: DisplayProperties }>(
         "DestinyInventoryBucketDefinition",
         BUCKET.Postmaster,
@@ -84,26 +82,50 @@ function PostmasterGrid({
 
     return (
         <section className="item-grid">
-            <h2 className="item-grid__title">
-                {bucket?.displayProperties?.name ?? ""} ({items.length})
-            </h2>
-            <div className="item-grid__items">
-                {items.map((item, i) => {
-                    const detail = item.itemInstanceId
-                        ? details[item.itemInstanceId]
-                        : undefined;
-                    return (
-                        <ItemIcon
-                            key={item.itemInstanceId ?? `${item.itemHash}-${i}`}
-                            itemHash={item.itemHash}
-                            itemInstanceId={item.itemInstanceId}
-                            state={item.state}
-                            versionNumber={item.versionNumber}
-                            gearTier={detail?.instance?.gearTier}
+            <div className="item-grid__header">
+                <h2 className="item-grid__title">
+                    {bucket?.displayProperties?.name ?? ""} ({items.length})
+                </h2>
+                <button
+                    type="button"
+                    className="item-grid__toggle"
+                    onClick={() => setCollapsed((c) => !c)}
+                    aria-expanded={!collapsed}
+                    aria-label={collapsed ? t("expand") : t("collapse")}
+                    title={collapsed ? t("expand") : t("collapse")}
+                >
+                    {/* Chevron orienté par CSS selon l'état */}
+                    <svg viewBox="0 0 16 16" aria-hidden focusable="false">
+                        <path
+                            d="M4 6l4 4 4-4"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
                         />
-                    );
-                })}
+                    </svg>
+                </button>
             </div>
+            {!collapsed && (
+                <div className="item-grid__items">
+                    {items.map((item, i) => {
+                        const detail = item.itemInstanceId
+                            ? details[item.itemInstanceId]
+                            : undefined;
+                        return (
+                            <ItemIcon
+                                key={item.itemInstanceId ?? `${item.itemHash}-${i}`}
+                                itemHash={item.itemHash}
+                                itemInstanceId={item.itemInstanceId}
+                                state={item.state}
+                                versionNumber={item.versionNumber}
+                                gearTier={detail?.instance?.gearTier}
+                            />
+                        );
+                    })}
+                </div>
+            )}
         </section>
     );
 }

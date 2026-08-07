@@ -32,6 +32,7 @@
         "system": "System"
       },
       "language": "Language",
+      "languageHint": "Changing language will completely reload the application",
       "ornaments": "Show ornaments",
       "ornamentsHint": "Use the equipped ornament instead of the base icon",
       "iconSize": "Icon size"
@@ -90,7 +91,9 @@
     "equipped": "Equipped",
     "stored": "Inventory",
     "vault": "Vault",
-    "equipment": "Equipment"
+    "equipment": "Equipment",
+    "expand": "Expand",
+    "collapse": "Collapse"
   },
   "subclass": {
     "abilities": "Abilities",
