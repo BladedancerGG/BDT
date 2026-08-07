@@ -1,0 +1,103 @@
+// Liste ordonnée des critères de tri du coffre, réordonnable au glisser-déposer.
+
+.sort-rules {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  &__item {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    padding: 0.375rem 0.5rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: var(--color-panel-alt);
+    // Le glissement se pilote par transform : pas de transition dessus, sinon
+    // la vignette suivrait le curseur avec un temps de retard.
+    touch-action: none;
+
+    // Critère mémorisé mais inactif : présent, visiblement en retrait
+    &--off {
+      opacity: 0.55;
+    }
+
+    // Pendant le déplacement, la ligne passe au-dessus de ses voisines
+    &--dragging {
+      z-index: 2;
+      position: relative;
+      border-color: var(--color-border-strong);
+      box-shadow: 0 0.25rem 0.75rem rgb(0 0 0 / 35%);
+    }
+  }
+
+  &__handle {
+    display: flex;
+    align-items: center;
+    padding: 0 0.125rem;
+    border: none;
+    background: none;
+    color: var(--color-text-muted);
+    font-size: 0.875rem;
+    line-height: 1;
+    cursor: grab;
+
+    &:active {
+      cursor: grabbing;
+    }
+
+    &:hover {
+      color: var(--color-text);
+    }
+  }
+
+  // Rang du critère : rappelle que l'ordre porte l'importance
+  &__rank {
+    flex-shrink: 0;
+    width: 1.25rem;
+    color: var(--color-text-muted);
+    font-size: 0.75rem;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+  }
+
+  &__label {
+    // Absorbe l'espace libre : les contrôles restent alignés à droite
+    flex: 1;
+    min-width: 0;
+    font-size: 0.8125rem;
+  }
+
+  &__direction {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    flex-shrink: 0;
+    padding: 0.125rem 0.375rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: none;
+    color: var(--color-text-muted);
+    font-size: 0.75rem;
+    cursor: pointer;
+
+    &:hover {
+      border-color: var(--color-border-strong);
+      color: var(--color-text);
+    }
+  }
+
+  // Le libellé du sens cède la place avant les autres contrôles sur les
+  // fenêtres étroites ; la flèche, elle, reste toujours visible.
+  &__direction-text {
+    white-space: nowrap;
+
+    @media (max-width: 30rem) {
+      display: none;
+    }
+  }
+}

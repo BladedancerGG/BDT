@@ -7,6 +7,7 @@ import {routing, type Locale} from "@/i18n/routing";
 import {Modal} from "@/components/ui/Modal";
 import {SettingRow, Toggle, Select} from "@/components/ui/SettingRow";
 import {IconSizeControl} from "./IconSizeControl";
+import {SortRuleList} from "./SortRuleList";
 import {useSettings, type ThemePreference} from "@/lib/settings/store";
 import {APP_VERSION, SUPPORT_EMAIL, BUNGIE_PROFILE_URL} from "@/lib/app-info";
 
@@ -133,6 +134,10 @@ function AppearancePanel() {
 
     const theme = useSettings((s) => s.theme);
     const setTheme = useSettings((s) => s.setTheme);
+    const iconSize = useSettings((s) => s.iconSize);
+    const setIconSize = useSettings((s) => s.setIconSize);
+    const showOrnaments = useSettings((s) => s.showOrnaments);
+    const setShowOrnaments = useSettings((s) => s.setShowOrnaments);
 
     const changeLocale = (next: Locale) => {
         // Conserve le chemin courant en changeant seulement la langue
@@ -166,25 +171,6 @@ function AppearancePanel() {
                 />
                 {pending && <span className="settings__pending" aria-hidden/>}
             </SettingRow>
-        </div>
-    );
-}
-
-function InventoryPanel() {
-    const t = useTranslations("settings.inventory");
-    const iconSize = useSettings((s) => s.iconSize);
-    const setIconSize = useSettings((s) => s.setIconSize);
-    const showOrnaments = useSettings((s) => s.showOrnaments);
-    const setShowOrnaments = useSettings((s) => s.setShowOrnaments);
-
-    return (
-        <div className="settings__group">
-            {/* Prévu, non encore implémenté */}
-            <SettingRow label={t("sort")} hint={t("sortHint")}>
-                <select className="select" disabled>
-                    <option>{t("sortPlaceholder")}</option>
-                </select>
-            </SettingRow>
 
             <SettingRow
                 label={t("ornaments")}
@@ -206,6 +192,32 @@ function InventoryPanel() {
                     unitLabel={t("iconSize")}
                 />
             </SettingRow>
+        </div>
+    );
+}
+
+function InventoryPanel() {
+    const t = useTranslations("settings.inventory");
+    const resetSorts = useSettings((s) => s.resetSorts);
+
+    return (
+        <div className="settings__group">
+            {/* Le tri occupe toute la largeur : la liste ordonnée ne tiendrait
+                pas dans la colonne de droite d'une SettingRow. */}
+            <div className="settings__block">
+                <div className="setting-row__text">
+                    <span className="setting-row__label">{t("sort")}</span>
+                    <p className="setting-row__hint">{t("sortHint")}</p>
+                </div>
+                <SortRuleList/>
+                <button
+                    type="button"
+                    className="btn btn--small"
+                    onClick={resetSorts}
+                >
+                    {t("sortReset")}
+                </button>
+            </div>
         </div>
     );
 }

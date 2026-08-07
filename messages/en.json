@@ -31,15 +31,47 @@
         "dark": "Dark",
         "system": "System"
       },
-      "language": "Language"
-    },
-    "inventory": {
-      "sort": "Item sorting",
-      "sortHint": "Coming soon",
-      "sortPlaceholder": "Default",
+      "language": "Language",
       "ornaments": "Show ornaments",
       "ornamentsHint": "Use the equipped ornament instead of the base icon",
       "iconSize": "Icon size"
+    },
+    "inventory": {
+      "sort": "Item sorting",
+      "sortHint": "The topmost criterion breaks ties first; the others only apply when it is equal. Drag the handle to reorder.",
+      "sortReset": "Reset sorting",
+      "sortMove": "Move “{name}”, position {position} of {total}",
+      "sortReverse": "Reverse “{name}”, currently {direction}",
+      "sortEnable": "Enable sorting by “{name}”",
+      "sortCriteria": {
+        "bucket": "Slot",
+        "rarity": "Rarity",
+        "power": "Power level",
+        "type": "Type",
+        "name": "Item name",
+        "gearTier": "Gear tier",
+        "damageType": "Damage type",
+        "ammoType": "Ammo type",
+        "armorArchetype": "Armor archetype",
+        "setBonus": "Set bonus",
+        "weaponFrame": "Weapon frame",
+        "masterwork": "Masterwork",
+        "crafted": "Crafted / enhanced"
+      },
+      "sortDirection": {
+        "text": {
+          "asc": "A → Z",
+          "desc": "Z → A"
+        },
+        "number": {
+          "asc": "Ascending",
+          "desc": "Descending"
+        },
+        "flag": {
+          "asc": "Without first",
+          "desc": "With first"
+        }
+      }
     },
     "about": {
       "version": "Site version",

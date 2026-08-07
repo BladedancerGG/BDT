@@ -16,7 +16,7 @@
 
   &__characters {
     display: flex;
-    justify-content: center;
+    justify-content: left;
     flex-wrap: wrap;
     gap: 0.75rem;
     flex-shrink: 0; // ne se comprime pas au profit du coffre

@@ -31,15 +31,47 @@
         "dark": "Sombre",
         "system": "Système"
       },
-      "language": "Langue"
-    },
-    "inventory": {
-      "sort": "Tri des objets",
-      "sortHint": "Bientôt disponible",
-      "sortPlaceholder": "Par défaut",
+      "language": "Langue",
       "ornaments": "Afficher les ornements",
       "ornamentsHint": "Utilise l'ornement équipé au lieu de l'icône de base",
       "iconSize": "Taille des icônes"
+    },
+    "inventory": {
+      "sort": "Tri des objets",
+      "sortHint": "Le critère du haut départage en premier ; les suivants ne servent qu'en cas d'égalité. Glissez la poignée pour changer l'ordre.",
+      "sortReset": "Réinitialiser le tri",
+      "sortMove": "Déplacer « {name} », position {position} sur {total}",
+      "sortReverse": "Inverser « {name} », actuellement {direction}",
+      "sortEnable": "Activer le tri par « {name} »",
+      "sortCriteria": {
+        "bucket": "Emplacement",
+        "rarity": "Rareté",
+        "power": "Niveau de puissance",
+        "type": "Type",
+        "name": "Nom de l'objet",
+        "gearTier": "Palier d'équipement",
+        "damageType": "Type de dégâts",
+        "ammoType": "Type de munitions",
+        "armorArchetype": "Archétype d'armure",
+        "setBonus": "Bonus d’ensemble",
+        "weaponFrame": "Armature d'arme",
+        "masterwork": "Pièce maîtresse",
+        "crafted": "Façonnée / améliorée"
+      },
+      "sortDirection": {
+        "text": {
+          "asc": "A → Z",
+          "desc": "Z → A"
+        },
+        "number": {
+          "asc": "Croissant",
+          "desc": "Décroissant"
+        },
+        "flag": {
+          "asc": "Sans en premier",
+          "desc": "Avec en premier"
+        }
+      }
     },
     "about": {
       "version": "Version du site",

@@ -12,6 +12,7 @@ import {
 import { cosmeticSocketIndexes, isOrnamentPlug } from "./ornaments";
 import { isPlugApplied } from "./sockets";
 import { bestIconPath, type IconDefinition } from "./icons";
+import { loadSortTraits, type ItemSortTraits } from "./sort-traits";
 
 /**
  * Définitions du manifeste mutualisées pour tout un inventaire.
@@ -27,6 +28,8 @@ interface ItemDefsValue {
   constants?: ItemConstantsDefinition;
   /** Icône de l'ornement équipé, par itemInstanceId (si l'option est active) */
   ornamentIcons: Map<string, string>;
+  /** Armature d'arme et archétype d'armure, par itemInstanceId — pour le tri */
+  traits: Map<string, ItemSortTraits>;
   /** false tant que la requête groupée n'a pas abouti */
   ready: boolean;
 }
@@ -35,6 +38,7 @@ const EMPTY: ItemDefsValue = {
   defs: new Map(),
   iconDefs: new Map(),
   ornamentIcons: new Map(),
+  traits: new Map(),
   ready: false,
 };
 
@@ -95,12 +99,18 @@ export function ItemDefsProvider({
         | ItemConstantsDefinition
         | undefined;
 
+      // 1 bis. Armature et archétype, servant au tri du coffre. Les définitions
+      //        des objets sont nécessaires pour savoir quels sockets lire, d'où
+      //        cette seconde étape.
+      const traits = await loadSortTraits(items, details, defs);
+
       if (!withOrnaments) {
         return {
           defs,
           iconDefs,
           constants,
           ornamentIcons: new Map(),
+          traits,
           ready: true,
         };
       }
@@ -189,7 +199,7 @@ export function ItemDefsProvider({
         ornamentIcons.set(instanceId, icon);
       }
 
-      return { defs, iconDefs, constants, ornamentIcons, ready: true };
+      return { defs, iconDefs, constants, ornamentIcons, traits, ready: true };
     },
     [items, details, withOrnaments],
     EMPTY,

@@ -57,6 +57,12 @@ export interface InventoryItemDefinition {
   equippingBlock?: {
     /** Ensemble d'armures conférant des bonus, s'il y en a un */
     equipableItemSetHash?: number;
+    /**
+     * Type de munitions (DestinyAmmunitionType) : 1 primaires, 2 spéciales,
+     * 3 lourdes. Vaut 0 (None) hors des armes — il ne dépend plus de
+     * l'emplacement de l'objet depuis longtemps.
+     */
+    ammoType?: number;
   };
   sockets?: {
     socketEntries: SocketEntryDefinition[];

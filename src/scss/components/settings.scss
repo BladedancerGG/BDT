@@ -67,6 +67,17 @@
     flex-direction: column;
   }
 
+  // Option qui ne tient pas dans le gabarit « libellé à gauche, contrôle à
+  // droite » : elle occupe toute la largeur, sous son propre intitulé.
+  &__block {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--color-border);
+  }
+
   &__value {
     font-variant-numeric: tabular-nums;
     color: var(--color-text-muted);

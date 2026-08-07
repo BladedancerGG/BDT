@@ -4,7 +4,7 @@ import {useRef} from "react";
 import {useVirtualizer} from "@tanstack/react-virtual";
 import type {DestinyItemComponent} from "@/lib/bungie/profile";
 import type {ItemDetail} from "@/lib/bungie/item-components";
-import {useDisplayableItems} from "@/lib/destiny/use-displayable-items";
+import {useSortedItems} from "@/lib/destiny/use-sorted-items";
 import {useGridMetrics} from "@/lib/destiny/use-grid-metrics";
 import {useSettings} from "@/lib/settings/store";
 import {ItemIcon} from "./ItemIcon";
@@ -30,7 +30,8 @@ export function VirtualItemGrid({
     items: DestinyItemComponent[];
     details: Record<string, ItemDetail>;
 }) {
-    const displayed = useDisplayableItems(items);
+    // Filtrés puis triés selon les critères réglés dans les paramètres
+    const displayed = useSortedItems(items, details);
     const viewportRef = useRef<HTMLDivElement>(null);
     // La taille réglée dans les paramètres change la grille sans changer sa
     // largeur : on la passe pour forcer une re-mesure.
