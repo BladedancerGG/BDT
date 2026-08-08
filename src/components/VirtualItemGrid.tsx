@@ -34,9 +34,10 @@ export function VirtualItemGrid({
     const displayed = useSortedItems(items, details);
     const viewportRef = useRef<HTMLDivElement>(null);
     // La taille réglée dans les paramètres change la grille sans changer sa
-    // largeur : on la passe pour forcer une re-mesure.
-    const iconSize = useSettings((s) => s.iconSize);
-    const {columns, rowHeight} = useGridMetrics(viewportRef, iconSize);
+    // largeur : on la passe pour forcer une re-mesure. C'est le réglage dédié au
+    // coffre, celui dont --item-size hérite ici (voir inventory-view.scss).
+    const vaultIconSize = useSettings((s) => s.vaultIconSize);
+    const {columns, rowHeight} = useGridMetrics(viewportRef, vaultIconSize);
 
     const rowCount = Math.ceil(displayed.length / columns);
 

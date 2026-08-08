@@ -12,10 +12,13 @@ import {ICON_SIZE, clampIconSize} from "@/lib/settings/store";
  * (Entrée ou perte de focus).
  */
 export function IconSizeControl({
+                                    id,
                                     value,
                                     onChange,
                                     unitLabel,
                                 }: {
+    /** Identifiant du champ, pour le lier au libellé de sa ligne */
+    id: string;
     value: number;
     onChange: (size: number) => void;
     unitLabel: string;
@@ -52,7 +55,7 @@ export function IconSizeControl({
             />
             <div className="icon-size__field">
                 <input
-                    id="setting-icon-size"
+                    id={id}
                     type="number"
                     className="icon-size__input"
                     min={ICON_SIZE.min}

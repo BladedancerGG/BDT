@@ -23,8 +23,10 @@ export type {ThemePreference};
 
 export interface SettingsState {
     theme: ThemePreference;
-    /** Taille des icônes d'objets en px, bornée à [40, 96] */
+    /** Taille des icônes d'inventaire et d'équipement en px, bornée à [40, 96] */
     iconSize: number;
+    /** Taille des icônes du coffre et des objets perdus en px, bornée à [40, 96] */
+    vaultIconSize: number;
     /** Afficher l'ornement équipé plutôt que l'icône de base */
     showOrnaments: boolean;
     /** Critères de tri du coffre, du plus important au moins important */
@@ -32,6 +34,7 @@ export interface SettingsState {
 
     setTheme: (theme: ThemePreference) => void;
     setIconSize: (size: number) => void;
+    setVaultIconSize: (size: number) => void;
     setShowOrnaments: (show: boolean) => void;
 
     /** Active ou désactive un critère, sans changer sa place */
@@ -48,11 +51,13 @@ export const useSettings = create<SettingsState>()(
         (set) => ({
             theme: "system",
             iconSize: ICON_SIZE.default,
+            vaultIconSize: ICON_SIZE.default,
             showOrnaments: false,
             sortRules: [...DEFAULT_SORT_RULES],
 
             setTheme: (theme) => set({theme}),
             setIconSize: (size) => set({iconSize: clampIconSize(size)}),
+            setVaultIconSize: (size) => set({vaultIconSize: clampIconSize(size)}),
             setShowOrnaments: (showOrnaments) => set({showOrnaments}),
 
             toggleSort: (id) =>
@@ -87,6 +92,7 @@ export const useSettings = create<SettingsState>()(
             partialize: (state) => ({
                 theme: state.theme,
                 iconSize: state.iconSize,
+                vaultIconSize: state.vaultIconSize,
                 showOrnaments: state.showOrnaments,
                 sorts: serializeSortRules(state.sortRules),
             }),

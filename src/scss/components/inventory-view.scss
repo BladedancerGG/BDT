@@ -52,6 +52,11 @@
 
   // Colonne de droite : Courrier puis coffre, empilés
   &__storage {
+    // Le coffre et les objets perdus suivent leur propre réglage de taille :
+    // redéfinir --item-size ici suffit, tout le sous-arbre (vignettes comme
+    // mesure de la grille virtualisée) lit déjà cette variable.
+    --item-size: var(--vault-item-size);
+
     display: flex;
     flex-direction: column;
     gap: 0.5rem;

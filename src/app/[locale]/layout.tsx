@@ -5,13 +5,26 @@ import {notFound} from "next/navigation";
 import {routing} from "@/i18n/routing";
 import {Providers} from "./providers";
 import {SettingsEffects} from "@/lib/settings/SettingsEffects";
-import {readPreferences} from "@/lib/settings/server";
+import {readPreferences, type ServerPreferences} from "@/lib/settings/server";
 import "@/scss/style.scss";
 
 export const metadata: Metadata = {
     title: "Bladedancer's Destiny Tools",
     description: "Personal tools used to manage stuff using the bungie.net Destiny 2 API",
 };
+
+/**
+ * Variables de taille d'icônes à poser sur <html>, ou `undefined` si aucune
+ * préférence n'est enregistrée — le SCSS garde alors ses valeurs par défaut.
+ */
+function rootSizeStyle(prefs: ServerPreferences): CSSProperties | undefined {
+    const style: Record<string, string> = {};
+    if (prefs.iconSize) style["--item-size"] = `${prefs.iconSize}px`;
+    if (prefs.vaultIconSize) {
+        style["--vault-item-size"] = `${prefs.vaultIconSize}px`;
+    }
+    return Object.keys(style).length ? (style as CSSProperties) : undefined;
+}
 
 export function generateStaticParams() {
     return routing.locales.map((locale) => ({locale}));
@@ -36,11 +49,7 @@ export default async function RootLayout(
         <html
             lang={locale}
             data-theme={prefs.theme}
-            style={
-                prefs.iconSize
-                    ? ({"--item-size": `${prefs.iconSize}px`} as CSSProperties)
-                    : undefined
-            }
+            style={rootSizeStyle(prefs)}
         >
             <body>
                 <SettingsEffects/>

@@ -8,6 +8,10 @@
   // À garder en px : elles sont lues via parseFloat côté JS.
   // --item-size est surchargée à l'exécution par le réglage utilisateur.
   --item-size: #{v.$item-size};
+  // Taille propre au coffre et aux objets perdus : réglée à part dans les
+  // paramètres, elle ne s'applique que sous .inventory-view__storage, qui y
+  // redéfinit --item-size pour tout son sous-arbre.
+  --vault-item-size: #{v.$item-size};
   --item-gap: 8px;
 
   // —— Géométrie des colonnes d'équipement ————————————————————

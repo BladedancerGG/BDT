@@ -35,7 +35,10 @@
       "languageHint": "Changer la langue d'affichage rechargera complètement l'application",
       "ornaments": "Afficher les ornements",
       "ornamentsHint": "Utilise l'ornement équipé au lieu de l'icône de base",
-      "iconSize": "Taille des icônes"
+      "iconSize": "Taille des icônes",
+      "iconSizeHint": "Objets équipés et inventaire du personnage",
+      "vaultIconSize": "Taille des icônes du coffre",
+      "vaultIconSizeHint": "Coffre et objets perdus"
     },
     "inventory": {
       "sort": "Tri des objets",

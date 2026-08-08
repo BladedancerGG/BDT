@@ -15,6 +15,15 @@ export interface ServerPreferences {
      */
     theme?: "light" | "dark";
     iconSize?: number;
+    vaultIconSize?: number;
+}
+
+/** Borne une taille lue dans le cookie, ou `undefined` si elle est inexploitable. */
+function readIconSize(value: unknown): number | undefined {
+    const size = Number(value);
+    return Number.isFinite(size) && size >= ICON_SIZE.min && size <= ICON_SIZE.max
+        ? size
+        : undefined;
 }
 
 export async function readPreferences(): Promise<ServerPreferences> {
@@ -25,7 +34,11 @@ export async function readPreferences(): Promise<ServerPreferences> {
         // Next décode déjà la valeur du cookie ; le decodeURIComponent reste sans
         // effet sur une chaîne déjà décodée, mais couvre le cas contraire.
         const parsed = JSON.parse(decodeURIComponent(raw)) as {
-            state?: { theme?: ThemePreference; iconSize?: number };
+            state?: {
+                theme?: ThemePreference;
+                iconSize?: number;
+                vaultIconSize?: number;
+            };
         };
         const state = parsed.state ?? {};
 
@@ -34,13 +47,11 @@ export async function readPreferences(): Promise<ServerPreferences> {
                 ? state.theme
                 : undefined;
 
-        const size = Number(state.iconSize);
-        const iconSize =
-            Number.isFinite(size) && size >= ICON_SIZE.min && size <= ICON_SIZE.max
-                ? size
-                : undefined;
-
-        return {theme, iconSize};
+        return {
+            theme,
+            iconSize: readIconSize(state.iconSize),
+            vaultIconSize: readIconSize(state.vaultIconSize),
+        };
     } catch {
         // Cookie illisible : on garde les valeurs par défaut du CSS
         return {};

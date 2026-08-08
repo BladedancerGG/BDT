@@ -136,6 +136,8 @@ function AppearancePanel() {
     const setTheme = useSettings((s) => s.setTheme);
     const iconSize = useSettings((s) => s.iconSize);
     const setIconSize = useSettings((s) => s.setIconSize);
+    const vaultIconSize = useSettings((s) => s.vaultIconSize);
+    const setVaultIconSize = useSettings((s) => s.setVaultIconSize);
     const showOrnaments = useSettings((s) => s.showOrnaments);
     const setShowOrnaments = useSettings((s) => s.setShowOrnaments);
 
@@ -185,11 +187,29 @@ function AppearancePanel() {
                 />
             </SettingRow>
 
-            <SettingRow label={t("iconSize")} htmlFor="setting-icon-size">
+            <SettingRow
+                label={t("iconSize")}
+                hint={t("iconSizeHint")}
+                htmlFor="setting-icon-size"
+            >
                 <IconSizeControl
+                    id="setting-icon-size"
                     value={iconSize}
                     onChange={setIconSize}
                     unitLabel={t("iconSize")}
+                />
+            </SettingRow>
+
+            <SettingRow
+                label={t("vaultIconSize")}
+                hint={t("vaultIconSizeHint")}
+                htmlFor="setting-vault-icon-size"
+            >
+                <IconSizeControl
+                    id="setting-vault-icon-size"
+                    value={vaultIconSize}
+                    onChange={setVaultIconSize}
+                    unitLabel={t("vaultIconSize")}
                 />
             </SettingRow>
         </div>

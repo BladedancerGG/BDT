@@ -35,7 +35,10 @@
       "languageHint": "Changing language will completely reload the application",
       "ornaments": "Show ornaments",
       "ornamentsHint": "Use the equipped ornament instead of the base icon",
-      "iconSize": "Icon size"
+      "iconSize": "Icon size",
+      "iconSizeHint": "Equipped items and character inventory",
+      "vaultIconSize": "Vault icon size",
+      "vaultIconSizeHint": "Vault and postmaster"
     },
     "inventory": {
       "sort": "Item sorting",

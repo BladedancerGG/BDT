@@ -14,6 +14,7 @@ import {useSettings} from "./store";
 export function SettingsEffects() {
     const theme = useSettings((s) => s.theme);
     const iconSize = useSettings((s) => s.iconSize);
+    const vaultIconSize = useSettings((s) => s.vaultIconSize);
 
     useEffect(() => {
         const root = document.documentElement;
@@ -29,6 +30,13 @@ export function SettingsEffects() {
     useEffect(() => {
         document.documentElement.style.setProperty("--item-size", `${iconSize}px`);
     }, [iconSize]);
+
+    useEffect(() => {
+        document.documentElement.style.setProperty(
+            "--vault-item-size",
+            `${vaultIconSize}px`,
+        );
+    }, [vaultIconSize]);
 
     return null;
 }
