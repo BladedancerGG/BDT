@@ -2,13 +2,19 @@
 // Régénérer le client : npm run db:generate
 // Créer/appliquer une migration : npm run db:migrate
 
+// Prisma 7 : le générateur « prisma-client-js » a disparu au profit de
+// « prisma-client », dont le chemin de sortie est obligatoire. Le client n'est
+// donc plus dans node_modules/@prisma/client mais dans src/generated/prisma,
+// versionné par .gitignore et régénéré au démarrage du conteneur.
 generator client {
-  provider = "prisma-client-js"
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
 }
 
+// L'URL n'a plus sa place ici depuis la v7 (erreur P1012) : Migrate la lit
+// dans prisma.config.ts, le client la reçoit via l'adaptateur.
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 // Un utilisateur = un compte Bungie authentifié

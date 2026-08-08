@@ -4,7 +4,7 @@
 import { prisma } from "@/lib/db/prisma";
 import { getSessionUserId } from "./session";
 import { refreshTokens } from "@/lib/bungie/oauth";
-import type { User } from "@prisma/client";
+import type { User } from "@/generated/prisma/client";
 
 /** Utilisateur en session, ou null. Ne renouvelle PAS le token. */
 export async function getCurrentUser(): Promise<User | null> {

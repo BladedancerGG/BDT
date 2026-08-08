@@ -16,6 +16,8 @@ next-env.d.ts
 
 # prisma
 /prisma/*.db
+# Client généré (Prisma 7 l'écrit dans les sources) — régénéré au démarrage
+/src/generated/
 
 # misc
 .DS_Store

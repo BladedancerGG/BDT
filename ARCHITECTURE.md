@@ -45,6 +45,31 @@ To use more game data, add the table to `src/lib/manifest/tables.ts` and bump
 `MANIFEST_SCHEMA_VERSION` — otherwise clients with an existing cache would be
 missing the new table.
 
+## Prisma client
+
+Since Prisma 7 the client is **no longer generated into `node_modules`**. The
+`output` of the `prisma-client` generator sends it to `src/generated/prisma`,
+which `.gitignore` excludes. A fresh `npm install` is therefore not enough: the
+project does not compile until `prisma generate` has run.
+
+The dev container runs it at every start (`CMD` of the `Dockerfile`), so the
+gap only shows outside that path — a clone, a wiped `node_modules`, or a tool
+run straight from the host:
+
+```bash
+docker compose exec app npx --no-install prisma generate
+```
+
+Keep `--no-install`: without it, a `prisma` missing from `node_modules` makes
+npx silently download `prisma@latest` **and rewrite `package-lock.json`** — how
+the lock once ended up committed on Prisma 7 against a `package.json` pinned to
+`^5`, a state in which `npm ci` refuses to run.
+
+Two other v7 consequences worth knowing: the connection URL lives in
+`prisma.config.ts`, no longer in the schema (it is rejected there, error
+P1012); and every query goes through the `@prisma/adapter-pg` driver adapter,
+the Rust engine being gone.
+
 ## Inspecting the database
 
 | Tool | URL | Scope |
@@ -494,7 +519,9 @@ src/
     settings/        User preferences (cookie-backed store)
   components/        UI components
   scss/              Styles (see "Styles")
+  generated/prisma/  Generated Prisma client — untracked, see "Prisma client"
 prisma/schema.prisma Server data model
+prisma.config.ts     Prisma CLI config (connection URL since v7)
 messages/            EN / FR translations
 ```
 
@@ -536,6 +563,31 @@ Volumineux et rarement modifié, il est mis en cache côté client dans
 Pour exploiter plus de données du jeu, ajoute la table dans
 `src/lib/manifest/tables.ts` et incrémente `MANIFEST_SCHEMA_VERSION` — sinon les
 clients ayant déjà un cache n'auraient pas la nouvelle table.
+
+## Client Prisma
+
+Depuis Prisma 7, le client n'est **plus généré dans `node_modules`**. L'`output`
+du générateur `prisma-client` l'envoie dans `src/generated/prisma`, que le
+`.gitignore` exclut. Un `npm install` tout neuf ne suffit donc pas : le projet
+ne compile pas tant que `prisma generate` n'a pas tourné.
+
+Le conteneur de dev le lance à chaque démarrage (`CMD` du `Dockerfile`), si bien
+que le manque ne se voit qu'en dehors de ce chemin — un clone, un `node_modules`
+effacé, ou un outil lancé directement depuis l'hôte :
+
+```bash
+docker compose exec app npx --no-install prisma generate
+```
+
+Conserver le `--no-install` : sans lui, un `prisma` absent de `node_modules`
+fait télécharger `prisma@latest` par npx **et réécrire `package-lock.json`** au
+passage — c'est ainsi que le lock s'est retrouvé commité en Prisma 7 face à un
+`package.json` en `^5`, état dans lequel `npm ci` refuse de tourner.
+
+Deux autres conséquences de la v7 à connaître : l'URL de connexion vit dans
+`prisma.config.ts` et non plus dans le schéma (qui la rejette, erreur P1012) ;
+et tout accès passe par l'adaptateur de pilote `@prisma/adapter-pg`, le moteur
+Rust ayant disparu.
 
 ## Consulter la base
 
@@ -1009,6 +1061,8 @@ src/
     settings/        Préférences utilisateur (store adossé au cookie)
   components/        Composants UI
   scss/              Styles (voir « Styles »)
+  generated/prisma/  Client Prisma généré — non versionné, voir « Client Prisma »
 prisma/schema.prisma Modèle de données serveur
+prisma.config.ts     Config du CLI Prisma (URL de connexion depuis la v7)
 messages/            Traductions FR / EN
 ```
