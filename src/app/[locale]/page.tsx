@@ -20,10 +20,20 @@ export default async function Home() {
                                 {user.displayName}
                             </span>
 
-                            {user.displayName === "Bladedancer#9791" ? " (Welcome back, administrator!)" : ""}
-                            {user.displayName === "Penguin#3117" ? " (the one and only antartica man)" : ""}
-                            {user.displayName === "Fay#8377" ? " :3" : ""}
-                            {user.displayName === "Synnefo#1676" ? " (nephew)" : ""}
+                            {/* Custom messages :) */}
+                            {user.displayName === "Bladedancer#9791" && " (C'est moi !!!)"}
+                            {user.displayName === "Penguin#3117" && " (antartica man)"}
+                            {user.displayName === "Fay#8377" && " (:3)"}
+                            {user.displayName === "Synnefo#1676" && " (nephew)"}
+                            {user.displayName === "Grayellow#4829" && " (certified unc status)"}
+                            {(user.displayName === "Lexa#6685" || user.displayName === "Phrolova#4092") && " (empl*yed)"}  {/* Sorrow */}
+                            {user.displayName === "Justabee0#6559" && " (omg is that noice???!!!)"}
+                            {user.displayName === "Alyx#4951" && " (final god of Last Wish farms)"}
+                            {user.displayName === "Eclipse#4170" && " (sedge farmer 👩‍🌾)"}
+                            {user.displayName === "Boog Sloogus#6012" && " (goog...)"}
+                            {user.displayName === "Imbaer#4829" && " (aha feet)"}
+
+                            {user.displayName === "bog on my dog#7426" ? " (god of sleep schedule)" : ""}
 
                         </p>
                         {/* Déconnexion déplacée dans les paramètres (onglet Compte) */}
@@ -32,7 +42,7 @@ export default async function Home() {
                 )}
             </header>
 
-            {user ? (
+            {(user && user.displayName !== "") ? (
                 <Dashboard/>
             ) : (
                 <div className="login-screen">

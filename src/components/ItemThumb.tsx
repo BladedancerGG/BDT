@@ -7,7 +7,11 @@ import {
   useSharedItemConstants,
   useOrnamentIcon,
 } from "@/lib/destiny/item-defs";
-import { itemOverlays, ornamentBackgroundPath } from "@/lib/destiny/overlays";
+import {
+  isMasterwork,
+  itemOverlays,
+  ornamentBackgroundPath,
+} from "@/lib/destiny/overlays";
 import { bestIconPath, tierClassName } from "@/lib/destiny/icons";
 import { isSubclass } from "@/lib/destiny/subclass";
 import { BUNGIE_ROOT } from "@/lib/destiny/display";
@@ -16,7 +20,7 @@ export interface ItemThumbProps {
   itemHash: number;
   /** Nécessaire pour retrouver l'ornement équipé sur cette instance */
   itemInstanceId?: string;
-  /** Masque ItemState (façonné, amélioré…) */
+  /** Masque ItemState (pièce maîtresse, façonné, amélioré…) */
   state?: number;
   /** Version de l'objet, pour choisir le bon filigrane de saison */
   versionNumber?: number;
@@ -66,8 +70,9 @@ export function ItemThumb({
     ? ornamentBackgroundPath(constants, tierType)
     : undefined;
 
-  // Calques ordonnés du fond vers le dessus : filigrane, palier, puis le fond
-  // et le marquage façonné/amélioré (voir itemOverlays).
+  // Calques ordonnés du fond vers le dessus : halo de pièce maîtresse,
+  // filigrane, palier, fond et marquage façonné/amélioré, puis le cadre doré
+  // de pièce maîtresse (voir itemOverlays).
   const overlays = itemOverlays({
     def,
     constants,
@@ -76,11 +81,19 @@ export function ItemThumb({
     gearTier,
   });
 
+  // Une pièce maîtresse reçoit son cadre doré depuis le manifeste (dernier
+  // calque de `overlays`) ; les autres objets prennent le cadre blanc du SCSS.
+  // Les doctrines en sont exemptées : leur vignette est un losange ou un
+  // cercle, un cadre carré n'aurait aucun sens autour.
+  const subclass = isSubclass(def);
+  const regularBorder = !subclass && !isMasterwork(state);
+
   const classes = [
     "item-thumb",
     // Les doctrines ont leur propre cadre : pas de fond de rareté
-    isSubclass(def) ? null : `item-thumb--tier-${tierClassName(tierType)}`,
+    subclass ? null : `item-thumb--tier-${tierClassName(tierType)}`,
     holofoil ? "item-thumb--holofoil" : null,
+    regularBorder ? "item-thumb--regular-border" : null,
     className,
   ]
     .filter(Boolean)

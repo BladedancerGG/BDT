@@ -11,7 +11,7 @@ import {
   type MoveTarget,
   type PlanContext,
 } from "@/lib/destiny/moves";
-import { useActionQueue } from "./store";
+import { useActionQueue, type QueuedItem } from "./store";
 
 /** Clé du profil dans le cache TanStack Query — partagée avec `useProfile`. */
 export const PROFILE_KEY = ["profile"] as const;
@@ -45,15 +45,16 @@ export function useMovePlanner() {
     [context],
   );
 
+  // L'objet arrive entier plutôt qu'en `(id, hash)` : la file recopie aussi ses
+  // habillages, pour que la carte du panneau puisse redessiner sa vignette.
   const enqueue = useCallback(
-    (itemInstanceId: string, itemHash: number, target: MoveTarget) => {
-      const result = plan(itemInstanceId, target);
+    (item: QueuedItem, target: MoveTarget) => {
+      const result = plan(item.itemInstanceId, target);
       // Rien à faire : l'objet est déjà là où on le dépose
       if (!result || (result.ok && result.steps.length === 0)) return;
 
       enqueueAction({
-        itemHash,
-        itemInstanceId,
+        ...item,
         target,
         steps: result.ok ? result.steps : [],
         failure: result.ok ? undefined : result.failure,

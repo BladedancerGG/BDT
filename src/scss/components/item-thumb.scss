@@ -1,4 +1,4 @@
-// Vignette d'objet : icône + habillages superposés.
+// Vignette d'objet : icône + habillages superposés + cadre.
 //
 // Filigrane de saison, palier d'équipement et marquages « façonné » /
 // « amélioré » sont tous des PNG 96×96 transparents fournis par le manifeste.
@@ -58,12 +58,28 @@
     pointer-events: none;
   }
 
-  // Variante compacte, utilisée dans l'en-tête du tooltip
+  // —— Cadre des objets ordinaires ————————————————————————————
+  // Pendant du cadre doré des pièces maîtresses, qui lui vient du manifeste et
+  // se pose en dernier calque. Celui-ci n'existe pas côté Bungie : c'est un SVG
+  // local. Un ::after suffit, et il passe au-dessus des calques du manifeste,
+  // qui sont des enfants absolus donc dessinés avant.
+  &--regular-border::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: url("/icons/regular_border_path.svg");
+    // Le trait du SVG suit l'échelle de la vignette, comme les PNG 96×96
+    background-size: 100% 100%;
+    pointer-events: none;
+  }
+
+  // Variante compacte, utilisée dans l'en-tête du tooltip.
+  // Pas de bordure propre : le cadre blanc ci-dessus (ou le cadre doré du
+  // manifeste) la ferait doubler.
   &--sm {
     flex-shrink: 0;
     width: 2.5rem;
     height: 2.5rem;
-    border: 1px solid rgba(255, 255, 255, 0.25);
     border-radius: var(--radius-sm);
   }
 }

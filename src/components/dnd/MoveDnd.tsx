@@ -20,11 +20,20 @@ import {
 } from "@dnd-kit/core";
 import { useMovePlanner } from "@/lib/actions/use-move-planner";
 import type { MoveTarget } from "@/lib/destiny/moves";
-import { ItemThumb } from "../ItemThumb";
+import { ItemThumb, type ItemThumbProps } from "../ItemThumb";
 
-export interface DraggedItem {
+/**
+ * L'objet saisi, tel qu'il voyage dans `active.data`.
+ *
+ * Il porte de quoi **redessiner** la vignette, pas seulement de quoi
+ * l'identifier : la vignette qui suit le curseur est montée hors de la grille,
+ * elle n'a donc accès à aucune des données d'instance de celle d'origine. Sans
+ * `state` / `versionNumber` / `gearTier`, elle perdait filigrane, palier et
+ * marquages en cours de geste.
+ */
+export interface DraggedItem extends ItemThumbProps {
+  /** Un objet non instancié ne se déplace pas : ici l'identifiant est requis. */
   itemInstanceId: string;
-  itemHash: number;
 }
 
 /** Attribut portant la destination d'une zone, lu au moment du dépôt. */
@@ -187,7 +196,7 @@ export function MoveDnd({
 
     const item = event.active.data.current as DraggedItem | undefined;
     if (!target || !item) return;
-    enqueue(item.itemInstanceId, item.itemHash, target);
+    enqueue(item, target);
   };
 
   const actions = useMemo<MoveActionsValue>(
@@ -195,7 +204,7 @@ export function MoveDnd({
       selectedCharacterId,
       equipOnSelected: (item) => {
         if (!selectedCharacterId) return;
-        enqueue(item.itemInstanceId, item.itemHash, {
+        enqueue(item, {
           kind: "equipped",
           characterId: selectedCharacterId,
         });
@@ -235,6 +244,9 @@ export function MoveDnd({
             <ItemThumb
               itemHash={dragged.itemHash}
               itemInstanceId={dragged.itemInstanceId}
+              state={dragged.state}
+              versionNumber={dragged.versionNumber}
+              gearTier={dragged.gearTier}
             />
           </div>
         )}

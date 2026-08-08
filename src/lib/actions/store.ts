@@ -23,10 +23,27 @@ export interface ActionStep extends PlannedStep {
   error?: string;
 }
 
-export interface QueuedAction {
-  id: string;
+/**
+ * L'objet d'une action : de quoi l'identifier, et de quoi **redessiner** sa
+ * vignette.
+ *
+ * Les trois derniers champs ne servent qu'à l'affichage. La carte du panneau
+ * survit à la disparition de l'objet de la grille — et même du profil, une fois
+ * le déplacement exécuté : elle ne peut donc pas aller relire l'instance, il
+ * faut que ces valeurs aient été copiées à la mise en file. Ce sont les mêmes
+ * que celles attendues par `ItemThumb`.
+ */
+export interface QueuedItem {
   itemHash: number;
   itemInstanceId: string;
+  /** Masque ItemState (pièce maîtresse, façonné, amélioré…) */
+  state?: number;
+  versionNumber?: number;
+  gearTier?: number;
+}
+
+export interface QueuedAction extends QueuedItem {
+  id: string;
   target: MoveTarget;
   steps: ActionStep[];
   status: ActionStatus;
@@ -55,7 +72,8 @@ interface ActionQueueState {
 
   /** Ajoute une action et renvoie son identifiant. */
   enqueue: (
-    action: Pick<QueuedAction, "itemHash" | "itemInstanceId" | "target"> & {
+    action: QueuedItem & {
+      target: MoveTarget;
       steps: PlannedStep[];
       failure?: MoveFailure;
     },
@@ -94,7 +112,16 @@ export const useActionQueue = create<ActionQueueState>()((set) => ({
   setFilter: (filter) => set({ filter }),
   setPanelOpen: (panelOpen) => set({ panelOpen }),
 
-  enqueue: ({ itemHash, itemInstanceId, target, steps, failure }) => {
+  enqueue: ({
+    itemHash,
+    itemInstanceId,
+    state: itemState,
+    versionNumber,
+    gearTier,
+    target,
+    steps,
+    failure,
+  }) => {
     const id = nextId("action");
     set((state) => ({
       actions: [
@@ -103,6 +130,9 @@ export const useActionQueue = create<ActionQueueState>()((set) => ({
           id,
           itemHash,
           itemInstanceId,
+          state: itemState,
+          versionNumber,
+          gearTier,
           target,
           steps: toSteps(steps),
           // Un refus connu dès la planification n'a pas à occuper la file

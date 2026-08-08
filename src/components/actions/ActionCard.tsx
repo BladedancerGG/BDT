@@ -105,6 +105,9 @@ export function ActionCard({
           <ItemThumb
             itemHash={action.itemHash}
             itemInstanceId={action.itemInstanceId}
+            state={action.state}
+            versionNumber={action.versionNumber}
+            gearTier={action.gearTier}
           />
         </span>
         <span className="action-card__arrow" aria-hidden>

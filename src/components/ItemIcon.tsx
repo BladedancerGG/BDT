@@ -15,7 +15,7 @@ import {
 import { useDraggable } from "@dnd-kit/core";
 import { useSharedDefinition } from "@/lib/destiny/item-defs";
 import { subclassKind } from "@/lib/destiny/subclass";
-import { useMoveActions } from "./dnd/MoveDnd";
+import { useMoveActions, type DraggedItem } from "./dnd/MoveDnd";
 import { ItemThumb, type ItemThumbProps } from "./ItemThumb";
 import { ItemTooltip } from "./tooltip/ItemTooltip";
 
@@ -52,6 +52,14 @@ export function ItemIcon({
   // vignettes montées à chaque saisie.
   const { equipOnSelected } = useMoveActions();
 
+  // L'objet tel qu'il part en déplacement — par glisser-déposer comme par
+  // double-clic. Les habillages en font partie : les vignettes du DragOverlay
+  // et du panneau d'actions sont montées hors de la grille et ne peuvent pas
+  // les retrouver seules.
+  const dragged: DraggedItem | undefined = itemInstanceId
+    ? { itemInstanceId, itemHash, state, versionNumber, gearTier }
+    : undefined;
+
   // Un objet non instancié n'a pas d'identité côté API : il ne se déplace pas.
   const {
     attributes,
@@ -60,8 +68,8 @@ export function ItemIcon({
     isDragging,
   } = useDraggable({
     id: itemInstanceId ?? `${itemHash}-static`,
-    disabled: !itemInstanceId,
-    data: itemInstanceId ? { itemInstanceId, itemHash } : undefined,
+    disabled: !dragged,
+    data: dragged,
   });
 
   // Pas d'infobulle sur l'objet qu'on déplace. Les autres sont masquées par le
@@ -104,9 +112,9 @@ export function ItemIcon({
           ...listeners,
           onClick: () => setOpen((o) => !o),
           onDoubleClick: () => {
-            if (!itemInstanceId) return;
+            if (!dragged) return;
             setOpen(false);
-            equipOnSelected({ itemInstanceId, itemHash });
+            equipOnSelected(dragged);
           },
         })}
         className={[

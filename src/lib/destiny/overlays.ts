@@ -1,5 +1,6 @@
-// Calcul des habillages d'une vignette d'objet : filigrane de saison, palier
-// d'équipement, marquage « façonné » / « amélioré ».
+// Calcul des habillages d'une vignette d'objet : halo et cadre de pièce
+// maîtresse, filigrane de saison, palier d'équipement, marquage « façonné » /
+// « amélioré ».
 //
 // Les chemins d'images ne sont pas codés en dur : ils viennent de la table
 // DestinyInventoryItemConstantsDefinition du manifeste (entrée unique, hash 1).
@@ -30,6 +31,15 @@ export interface ItemConstantsDefinition {
     /** Marquage des objets améliorés (losange) */
     enhancedItemOverlayPath: string;
     featuredItemFlagPath: string;
+    /**
+     * Pièces maîtresses. Bungie fournit deux axes : légendaire vs exotique, et
+     * halo seul vs halo + cadre doré. On se sert des deux — le halo passe sous
+     * le filigrane, le cadre par-dessus tout le reste.
+     */
+    masterworkOverlayPath: string;
+    masterworkExoticOverlayPath: string;
+    masterworkBorderedOverlayPath: string;
+    masterworkExoticBorderedOverlayPath: string;
     /** Fonds posés DERRIÈRE l'image quand un ornement est appliqué */
     universalOrnamentBackgroundOverlayPath: string;
     universalOrnamentLegendaryBackgroundOverlayPath: string;
@@ -105,6 +115,38 @@ export function isMasterwork(state: number | undefined): boolean {
 }
 
 /**
+ * Halo doré d'une pièce maîtresse, à poser juste au-dessus de l'image de
+ * l'objet — donc SOUS le filigrane de saison, comme le fait le jeu.
+ */
+export function masterworkGlowPath(
+    constants: ItemConstantsDefinition | undefined,
+    tierType: number | undefined,
+): string | undefined {
+    if (!constants) return undefined;
+    return tierType === TIER.Exotic
+        ? constants.masterworkExoticOverlayPath
+        : constants.masterworkOverlayPath;
+}
+
+/**
+ * Cadre doré d'une pièce maîtresse, dessiné par-dessus tous les autres calques.
+ *
+ * L'image embarque aussi le halo, plus dense que celui de la variante sans
+ * cadre : les empiler ne le renforce donc quasiment pas (alpha composé ~0,86
+ * contre ~0,79 pour le cadre seul), ce qui autorise à traiter les deux calques
+ * indépendamment.
+ */
+export function masterworkBorderPath(
+    constants: ItemConstantsDefinition | undefined,
+    tierType: number | undefined,
+): string | undefined {
+    if (!constants) return undefined;
+    return tierType === TIER.Exotic
+        ? constants.masterworkExoticBorderedOverlayPath
+        : constants.masterworkBorderedOverlayPath;
+}
+
+/**
  * Calques à superposer à l'icône d'un objet, du fond vers le dessus.
  *
  * Tous les chemins proviennent du manifeste : les filigranes de la définition
@@ -124,7 +166,12 @@ export function itemOverlays({
     versionNumber?: number;
     gearTier?: number;
 }): string[] {
+    const tierType = def?.inventory?.tierType;
+    const masterwork = isMasterwork(state);
+
     const layers: (string | undefined)[] = [
+        // Le halo passe sous le filigrane : sinon il le délaverait.
+        // masterwork ? masterworkGlowPath(constants, tierType) : undefined,
         watermarkPath(def, versionNumber),
         gearTierPath(constants, gearTier),
     ];
@@ -142,6 +189,12 @@ export function itemOverlays({
                 ? constants?.enhancedItemOverlayPath
                 : constants?.craftedOverlayPath,
         );
+    }
+
+    // Le cadre ferme la pile : il doit cerner tout ce qui précède, marquage
+    // façonné/amélioré compris.
+    if (masterwork) {
+        layers.push(masterworkBorderPath(constants, tierType));
     }
 
     return layers.filter((path): path is string => Boolean(path));
