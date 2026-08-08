@@ -3,6 +3,7 @@
 import {useState} from "react";
 import {useTranslations} from "next-intl";
 import {useIsFetching, useQueryClient} from "@tanstack/react-query";
+import {ActionsButton} from "./actions/ActionsButton";
 import {SettingsModal} from "./settings/SettingsModal";
 
 /**
@@ -29,6 +30,8 @@ export function HeaderActions({
     return (
         <>
             <div className="header-actions">
+                <ActionsButton/>
+
                 <button
                     type="button"
                     className="btn btn--small"

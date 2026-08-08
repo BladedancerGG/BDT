@@ -39,12 +39,28 @@ export async function getBungieDisplayName(
 }
 
 /**
+ * Membership principale déjà résolue, par access token.
+ *
+ * La plateforme d'un compte ne change pas ; sans ce cache, chaque déplacement
+ * d'objet paierait un aller-retour Bungie de plus que l'action elle-même. La
+ * clé est le token, qui expire au bout d'une heure : l'entrée devient
+ * inatteignable d'elle-même au renouvellement.
+ */
+const membershipCache = new Map<
+  string,
+  { membershipType: number; membershipId: string }
+>();
+
+/**
  * Récupère la membership Destiny principale (gère le cross-save : si le compte
  * est lié, une seule plateforme fait autorité).
  */
 export async function getPrimaryDestinyMembership(
   accessToken: string,
 ): Promise<{ membershipType: number; membershipId: string }> {
+  const cached = membershipCache.get(accessToken);
+  if (cached) return cached;
+
   const data = await bungieFetch<MembershipData>(
     "/User/GetMembershipsForCurrentUser/",
     { accessToken },
@@ -61,8 +77,10 @@ export async function getPrimaryDestinyMembership(
       memberships.find((m) => m.membershipId === data.primaryMembershipId)) ||
     memberships[0];
 
-  return {
+  const membership = {
     membershipType: primary.membershipType,
     membershipId: primary.membershipId,
   };
+  membershipCache.set(accessToken, membership);
+  return membership;
 }

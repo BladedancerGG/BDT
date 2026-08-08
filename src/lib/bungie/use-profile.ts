@@ -7,6 +7,8 @@ import type { ItemDetail } from "./item-components";
 export interface Character {
   characterId: string;
   classHash: number;
+  /** DestinyClass : 0 Titan, 1 Chasseur, 2 Arcaniste */
+  classType: number;
   light: number;
   emblemPath: string;
   emblemBackgroundPath: string;

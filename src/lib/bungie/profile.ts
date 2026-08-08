@@ -32,6 +32,8 @@ export interface DestinyItemComponent {
 interface DestinyCharacterComponent {
   characterId: string;
   classHash: number;
+  /** DestinyClass : 0 Titan, 1 Chasseur, 2 Arcaniste */
+  classType: number;
   light: number;
   emblemPath: string;
   emblemBackgroundPath: string;
@@ -63,6 +65,7 @@ export async function getProfileInventory(
   const characters = Object.values(data.characters.data).map((c) => ({
     characterId: c.characterId,
     classHash: c.classHash,
+    classType: c.classType,
     light: c.light,
     emblemPath: c.emblemPath,
     emblemBackgroundPath: c.emblemBackgroundPath,

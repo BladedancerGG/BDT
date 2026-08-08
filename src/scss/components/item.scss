@@ -13,6 +13,9 @@
   padding: -1px;
   background-color: var(--color-icon-surface);
   cursor: pointer;
+  // Exigé par dnd-kit sur tactile : sans ça le navigateur interprète le geste
+  // comme un défilement et le déplacement ne démarre jamais.
+  touch-action: none;
   transition: border-color 120ms ease;
 
   &:hover {

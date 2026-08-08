@@ -10,6 +10,24 @@
   --item-size: #{v.$item-size};
   --item-gap: 8px;
 
+  // —— Géométrie des colonnes d'équipement ————————————————————
+  //
+  // Une ligne d'emplacement fait exactement --item-size de haut (c'est la
+  // vignette équipée qui la dicte ; l'inventaire replié à côté est plus bas).
+  // Les zones de dépôt ont besoin de cette hauteur pour se caler sur les
+  // colonnes qu'elles recouvrent, et le CSS ne sait pas interroger un voisin :
+  // elle est donc DÉRIVÉE ici, une fois, au lieu d'être mesurée à l'exécution.
+  //
+  // --slot-rows suit la longueur de WEAPON_COLUMN / ARMOR_COLUMN dans
+  // lib/destiny/buckets.ts — les deux valent 5, et un emplacement d'équipement
+  // ne s'ajoute pas sans une extension de Destiny.
+  --slot-rows: 5;
+  --slot-row-gap: 1rem;
+  --equipment-columns-height: calc(
+    var(--slot-rows) * var(--item-size) + (var(--slot-rows) - 1) *
+      var(--slot-row-gap)
+  );
+
   --radius-sm: 2px;
   --radius: 4px;
   --radius-full: 999px;

@@ -238,6 +238,142 @@ virtualisation would buy nothing.
 > component: the React Compiler cannot memoise `useVirtualizer`. Expected
 > warning, no functional impact.
 
+## Moving & equipping items
+
+The API exposes **three** writes — `TransferItem`, `EquipItem`,
+`PullFromPostMaster` (`src/lib/bungie/actions.ts`) — and they draw a graph with
+no shortcuts:
+
+```
+Postmaster ──PullFromPostMaster──▶ character inventory
+character inventory ◀──TransferItem──▶ vault
+character inventory ◀──EquipItem──▶ equipped items
+```
+
+Everything follows from what the graph *lacks*:
+
+- **no edge between two characters** — a hand-off goes through the vault;
+- **no "unequip"** — an equipped item is freed by equipping another one from the
+  same bucket, so moving it costs one extra request and one extra decision
+  (which item takes its place);
+- **the Postmaster only empties into its own character's inventory.**
+
+Hence a weapon equipped on character 1, wanted on character 2, costs four
+requests: equip a replacement on 1, transfer to the vault, transfer to 2, equip.
+
+`src/lib/destiny/moves.ts` is the planner — pure, React-free, testable with the
+compile-and-run recipe in `CLAUDE.md`. It also enforces the constraints the API
+would otherwise reject after the fact:
+
+| Constraint | Source |
+|---|---|
+| Subclasses & artifacts never leave their character | `nonTransferrable` |
+| Armor is class-locked | `classType` vs the character's |
+| 9 stored items per bucket (6 for the artifact), 1300 in the vault | `DestinyInventoryBucketDefinition.itemCount` |
+| Some Postmaster pulls destroy things | `doesPostmasterPullHaveSideEffects` |
+| One exotic weapon **and** one exotic armor piece per character | `tierType` + the bucket's family |
+
+Equipping an exotic while another one of the same family occupies a *different*
+slot costs an extra step: the one in place is freed first, and its replacement
+must be non-exotic — otherwise the conflict would simply move one slot over. An
+exotic already sitting in the target slot needs nothing: it is replaced outright.
+
+When a destination bucket is full the planner adds an **eviction** step (its
+least valuable item goes to the vault) rather than failing — the same thing the
+game does. Exotics are picked last as replacements or evictions: equipping one
+can force another one off, which nobody asked for.
+
+### Queue
+
+`src/lib/actions/` holds the queue (Zustand, **not** persisted — a half-sent
+action replayed on reload would start from an account state that no longer
+matches its plan). It runs **one request at a time**: each step assumes the
+previous one succeeded, and Bungie throttles writes per account anyway
+(`ThrottleSeconds` is honoured, with two retries).
+
+Two things happen so the UI stays fast:
+
+- the plan is recomputed **just before execution**, not when queued — earlier
+  actions have moved items around in the meantime;
+- a successful step is replayed on the cached profile (`applyStep`) instead of
+  refetching it. The profile weighs ~1.6 MB and one action costs up to four
+  steps; the real refetch happens once the queue drains.
+
+`ErrorCode` is checked in `bungieFetch`: Bungie reports its refusals with
+**HTTP 200**, so a rejected `EquipItem` used to look exactly like a success.
+
+### Interface
+
+Dragging an item reveals seven drop zones over the view — equip / inventory for
+each character, plus the vault. They overlay rather than insert themselves: the
+layout does not shift at the moment the user is aiming. Each zone asks the
+planner whether it is reachable, and a zone that is not stays visible, disabled,
+carrying its reason.
+
+They are three layers, all **direct children** of `.inventory-view__body`: an
+absolutely-positioned child of a grid that is given a grid position takes that
+**grid area** as its containing block. The vault layer therefore matches the
+`.inventory-view__storage` column exactly, with nothing to measure and no
+approximate ratio to keep in sync — which is also why `__body` declares explicit
+`grid-template-rows` even for a single row (an implicit line does not exist for
+an absolutely-positioned child, which would fall back to the whole block).
+
+> **Both lines of each axis must be given.** Unlike a real grid item, an
+> absolutely-positioned child does not stop at the end of its track when the end
+> line is left `auto`: that edge falls back to the grid container's padding
+> edge. `grid-column: 1` therefore stretched the character zones across the full
+> width, underneath the vault one — which happened to look right only because
+> its area ends at the container edge anyway. `grid-column: 1 / 2` is the fix.
+
+The layers stay mounted and fade in and out on a `--visible` modifier: it is
+what makes the exit animatable at all — there is nothing to unmount — and it
+moves the mounting work away from the instant the user grabs an item.
+
+The displayed character's row matches the height of `.equipment__columns`, which
+CSS cannot read from a sibling overlay. It is **derived**, not measured:
+`--equipment-columns-height` in `layout/main.scss` computes it from
+`--slot-rows`, `--item-size` and `--slot-row-gap`, and `.slot-column` uses that
+same gap — one source, so the zones follow the icon-size setting on their own.
+
+> A `ResizeObserver` publishing the measured height was tried first and dropped.
+> It failed in a way that is worth remembering: nothing in the compiled CSS or
+> the client bundle is wrong when a value written at runtime never arrives, so
+> there is nothing to grep. A CSS derivation either computes or does not, and
+> the compiled stylesheet says which. `--slot-rows` must track the length of
+> `WEAPON_COLUMN` / `ARMOR_COLUMN` in `lib/destiny/buckets.ts` — that is the
+> price, and it is a game constant.
+
+Double-clicking equips on the displayed character.
+
+> **dnd-kit's droppables are deliberately unused.** `over` lives in the context
+> that *every* `useDraggable` reads, so pointing at a zone re-rendered the ~100
+> mounted tiles — a visible stutter each time the pointer crossed a zone
+> boundary. `collisionDetection` therefore returns nothing, `over` stays `null`
+> for the whole gesture, the highlight is plain CSS `:hover`, and the drop
+> target is read back from the DOM at pointer-up (`data-drop-target` +
+> `elementFromPoint`). The overlay must keep `pointer-events: none` for both to
+> work.
+>
+> A cursor-following tooltip must carry `pointer-events: none`
+> (`.floating-layer--passive`). Without it, it sits *under* the cursor and
+> receives the `pointerdown` itself: the item never starts moving and the drop
+> zones never appear. Once pinned it becomes interactive again — its perks have
+> to be hoverable.
+>
+> During a gesture every tooltip is hidden by `:root[data-dragging]`, an
+> attribute written straight to `<html>` by `MoveDnd`. Telling the tiles through
+> a context would re-render all hundred of them, twice per gesture. The drop
+> target is read from the DOM **before** the attribute is cleared — restoring a
+> tooltip under the drop point first would hide the zone from
+> `elementFromPoint`.
+
+> For the same reason the dragged item is kept in a **separate context** from
+> the actions the tiles consume, and auto-scroll is off (the zones cover the
+> view, nothing is left to scroll). What remains is one unavoidable re-render
+> per gesture, caused by dnd-kit's own `active`. The seven plans are computed
+> once at drag start — 0.13 ms with a thousand-item vault, measured — and never
+> recomputed while aiming.
+
 ## Bungie call resilience & outbound proxy
 
 bungie.net regularly returns transient errors (often Cloudflare **522**: timeout
@@ -601,6 +737,152 @@ dizaines d'objets, la virtualisation n'y apporterait rien.
 > ESLint signale `Compilation Skipped: Use of incompatible library` sur ce
 > composant : le React Compiler ne sait pas mémoïser `useVirtualizer`.
 > Avertissement attendu, sans effet sur le fonctionnement.
+
+## Déplacer et équiper des objets
+
+L'API n'expose que **trois** écritures — `TransferItem`, `EquipItem`,
+`PullFromPostMaster` (`src/lib/bungie/actions.ts`) — et elles dessinent un
+graphe sans raccourci :
+
+```
+Objets perdus ──PullFromPostMaster──▶ inventaire du personnage
+inventaire du personnage ◀──TransferItem──▶ coffre
+inventaire du personnage ◀──EquipItem──▶ objets équipés
+```
+
+Tout découle de ce que ce graphe **n'a pas** :
+
+- **aucune arête entre deux personnages** — un passage de l'un à l'autre transite
+  par le coffre ;
+- **aucun « déséquiper »** — on libère un objet équipé en équipant un autre objet
+  du même emplacement, d'où une requête de plus et une décision de plus (lequel
+  prend sa place) ;
+- **les Objets perdus ne se vident que vers leur propre personnage.**
+
+Une arme équipée sur le personnage 1 et voulue sur le personnage 2 coûte donc
+quatre requêtes : équiper un remplaçant sur 1, transférer au coffre, transférer
+vers 2, équiper.
+
+`src/lib/destiny/moves.ts` est le planificateur — pur, sans React, vérifiable
+avec la recette « compiler puis exécuter » de `CLAUDE.md`. Il fait aussi
+respecter les contraintes que l'API ne signalerait qu'après coup :
+
+| Contrainte | Source |
+|---|---|
+| Doctrines et artéfacts ne quittent pas leur personnage | `nonTransferrable` |
+| Les armures sont réservées à une classe | `classType` face à celle du personnage |
+| 9 objets rangés par emplacement (6 pour l'artéfact), 1300 au coffre | `DestinyInventoryBucketDefinition.itemCount` |
+| Certains retraits des Objets perdus détruisent quelque chose | `doesPostmasterPullHaveSideEffects` |
+| Une arme **et** une pièce d'armure exotiques par personnage | `tierType` + la famille de l'emplacement |
+
+Équiper un exotique alors qu'un autre de la même famille occupe un *autre*
+emplacement coûte une étape de plus : celui en place est libéré d'abord, et son
+remplaçant doit être non exotique — sinon le conflit ne ferait que se déplacer
+d'un emplacement à l'autre. Un exotique déjà dans l'emplacement visé, lui, ne
+demande rien : il est simplement remplacé.
+
+Quand l'emplacement de destination est plein, le planificateur ajoute une étape
+d'**éviction** (son objet le moins précieux part au coffre) plutôt que
+d'échouer — c'est ce que fait le jeu. Les exotiques sont choisis en dernier comme
+remplaçants ou comme évincés : en équiper un peut en faire sauter un autre, ce
+que personne n'a demandé.
+
+### File d'actions
+
+`src/lib/actions/` porte la file (Zustand, **non** persistée : une action à
+moitié envoyée qu'on rejouerait au rechargement partirait d'un état de compte
+qui n'est plus celui de son plan). Elle envoie **une requête à la fois** : chaque
+étape suppose que la précédente a abouti, et Bungie limite de toute façon le
+débit des écritures sur un compte (`ThrottleSeconds` est respecté, avec deux
+reprises).
+
+Deux choix gardent l'interface vive :
+
+- le plan est recalculé **juste avant l'exécution**, pas à la mise en file — les
+  actions précédentes ont déplacé des objets entre-temps ;
+- une étape réussie est rejouée sur le profil en cache (`applyStep`) au lieu
+  d'être rechargée. Le profil pèse ~1,6 Mo et une action coûte jusqu'à quatre
+  étapes ; le vrai rechargement n'a lieu qu'une fois la file vidée.
+
+`ErrorCode` est contrôlé dans `bungieFetch` : Bungie signale ses refus en
+**HTTP 200**, un `EquipItem` rejeté ressemblait donc exactement à un succès.
+
+### Interface
+
+Saisir un objet fait apparaître sept zones de dépôt par-dessus la vue —
+équiper / inventaire pour chaque personnage, plus le coffre. Elles recouvrent au
+lieu de s'insérer : la mise en page ne bouge pas au moment où l'utilisateur vise.
+Chaque zone demande au planificateur si elle est atteignable ; celle qui ne l'est
+pas reste affichée, désactivée, avec son motif.
+
+Ce sont trois calques, tous enfants **directs** de `.inventory-view__body` : un
+enfant en position absolue d'une grille, à qui l'on donne une position dans
+cette grille, prend pour bloc conteneur la **zone de grille** désignée. Le
+calque du coffre épouse donc exactement la colonne de
+`.inventory-view__storage`, sans rien à mesurer ni ratio approché à tenir à
+jour — c'est aussi pourquoi `__body` déclare des `grid-template-rows` explicites
+même pour une seule rangée (une ligne implicite n'existe pas pour un enfant en
+position absolue, qui retomberait sur le bloc entier).
+
+> **Les deux lignes de chaque axe doivent être données.** Contrairement à un
+> véritable élément de grille, un enfant en position absolue ne s'arrête pas au
+> bout de sa piste quand la ligne de fin est laissée à `auto` : ce bord retombe
+> sur celui du conteneur. `grid-column: 1` étalait donc les zones des
+> personnages sur toute la largeur, par-dessous celle du coffre — qui ne
+> paraissait juste que parce que sa zone se termine de toute façon au bord du
+> conteneur. La forme correcte est `grid-column: 1 / 2`.
+
+Les calques restent montés et s'estompent sur un modificateur `--visible` :
+c'est ce qui rend la sortie animable (il n'y a rien à démonter), et cela retire
+au passage le travail de montage de l'instant précis où l'utilisateur saisit un
+objet.
+
+La ligne du personnage affiché épouse la hauteur de `.equipment__columns`, que
+le CSS ne peut pas lire depuis un calque voisin. Elle est **dérivée**, et non
+mesurée : `--equipment-columns-height` dans `layout/main.scss` la calcule depuis
+`--slot-rows`, `--item-size` et `--slot-row-gap`, et `.slot-column` utilise ce
+même espacement — une seule source, si bien que les zones suivent d'elles-mêmes
+le réglage de taille d'icônes.
+
+> Un `ResizeObserver` publiant la hauteur mesurée a d'abord été essayé, puis
+> abandonné. Son échec mérite d'être retenu : quand une valeur écrite à
+> l'exécution n'arrive jamais, ni le CSS compilé ni le bundle client ne
+> comportent la moindre anomalie — il n'y a rien à chercher. Une dérivation CSS,
+> elle, se calcule ou ne se calcule pas, et la feuille compilée le dit.
+> `--slot-rows` doit suivre la longueur de `WEAPON_COLUMN` / `ARMOR_COLUMN` dans
+> `lib/destiny/buckets.ts` — c'est le prix à payer, et c'est une constante du
+> jeu.
+
+Le double-clic équipe sur le personnage affiché.
+
+> **Les zones de dépôt de dnd-kit ne sont volontairement pas utilisées.** `over`
+> vit dans le contexte que lit **tout** `useDraggable` : désigner une zone
+> re-rendait la centaine de vignettes montées, d'où un à-coup à chaque passage
+> d'une zone à l'autre. `collisionDetection` ne renvoie donc rien, `over` reste
+> `null` pendant tout le geste, la mise en avant est un simple `:hover` CSS, et
+> la destination est relue dans le DOM au relâchement (`data-drop-target` +
+> `elementFromPoint`). La vignette qui suit le curseur doit garder
+> `pointer-events: none` pour que les deux fonctionnent.
+>
+> Une infobulle qui suit le curseur doit porter `pointer-events: none`
+> (`.floating-layer--passive`). Sans ça, elle se trouve *sous* le curseur et
+> reçoit elle-même le `pointerdown` : l'objet ne part jamais, et les zones de
+> dépôt n'apparaissent pas. Une fois épinglée, elle redevient interactive — on
+> doit pouvoir survoler ses attributs.
+>
+> Pendant un geste, toutes les infobulles sont masquées par
+> `:root[data-dragging]`, un attribut écrit directement sur `<html>` par
+> `MoveDnd`. Prévenir les vignettes par un contexte les re-rendrait toutes,
+> deux fois par geste. La cible du dépôt est lue dans le DOM **avant** que
+> l'attribut ne soit retiré : rendre d'abord une infobulle au point de dépôt la
+> dissimulerait à `elementFromPoint`.
+
+> Pour la même raison, l'objet saisi vit dans un **contexte séparé** de celui des
+> actions que lisent les vignettes, et le défilement automatique est coupé (les
+> zones recouvrent la vue, il n'y a plus rien à faire défiler). Reste un rendu
+> incompressible par geste, provoqué par le `active` de dnd-kit lui-même. Les
+> sept plans sont calculés une fois à la saisie — 0,13 ms sur un coffre de mille
+> objets, mesuré — et jamais recalculés pendant qu'on vise.
 
 ## Robustesse des appels Bungie & proxy sortant
 

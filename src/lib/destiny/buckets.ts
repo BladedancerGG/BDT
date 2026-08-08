@@ -20,7 +20,20 @@ export const BUCKET = {
    * sans traitement dédié, ses objets disparaîtraient de l'affichage.
    */
   Postmaster: 215593132,
+  /**
+   * Le coffre — « Général » dans le manifeste, `scope: 1` (compte) : c'est le
+   * seul emplacement partagé par tous les personnages, donc le seul point de
+   * passage d'un transfert de l'un à l'autre.
+   */
+  Vault: 138197802,
 } as const;
+
+/**
+ * Capacité de repli, objet équipé compris, si le manifeste n'a pas encore
+ * répondu. Elle vaut 10 pour les armes et armures ; l'artéfact (7) et le coffre
+ * (1300) diffèrent, d'où la lecture du manifeste dès qu'elle est disponible.
+ */
+export const DEFAULT_BUCKET_CAPACITY = 10;
 
 /**
  * Colonne de gauche : doctrine, armes, artéfact.
@@ -45,6 +58,21 @@ export const ARMOR_COLUMN: readonly number[] = [
   BUCKET.LegArmor,
   BUCKET.ClassArmor,
 ];
+
+/**
+ * Emplacements d'armes, au sens de la limite d'un exotique équipé.
+ *
+ * Ce n'est pas `WEAPON_COLUMN` : celle-ci contient aussi la doctrine et
+ * l'artéfact, qui ne sont ni des armes ni soumis à cette limite.
+ */
+export const WEAPON_BUCKETS: ReadonlySet<number> = new Set([
+  BUCKET.KineticWeapons,
+  BUCKET.EnergyWeapons,
+  BUCKET.PowerWeapons,
+]);
+
+/** Emplacements d'armure — l'objet de classe compte dans la limite. */
+export const ARMOR_BUCKETS: ReadonlySet<number> = new Set(ARMOR_COLUMN);
 
 /** Tous les emplacements couverts par les deux colonnes. */
 export const EQUIPMENT_BUCKETS: ReadonlySet<number> = new Set([

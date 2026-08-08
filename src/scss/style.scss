@@ -11,11 +11,14 @@
 @use "layout/header";
 
 // —— Composants ————————————————————————————————————————————
+@use "components/actions-panel";
 @use "components/button";
 @use "components/dashboard";
+@use "components/drop-zones";
 @use "components/equipment";
 @use "components/inventory-view";
 @use "components/character-tab";
+@use "components/class-icon";
 @use "components/item";
 @use "components/item-thumb";
 @use "components/item-tooltip";

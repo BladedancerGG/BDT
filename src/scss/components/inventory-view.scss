@@ -6,6 +6,7 @@
 .inventory-view {
   display: flex;
   flex-direction: column;
+  justify-content: flex-end;
   gap: 1.5rem;
 
   // Maillon de la chaîne de hauteurs (voir .app-main)
@@ -27,12 +28,21 @@
   &__body {
     display: grid;
     grid-template-columns: 1fr;
+    // Lignes de rangée **explicites**, même quand il n'y a qu'une seule
+    // rangée : les calques de dépôt s'y accrochent pour épouser exactement
+    // l'équipement et le stockage (voir drop-zones.scss). Une ligne implicite
+    // n'existe pas pour un enfant en position absolue, qui retomberait alors
+    // sur le bloc entier.
+    grid-template-rows: auto auto;
     gap: 2rem;
     align-items: start;
+    // Bloc conteneur des calques de dépôt
+    position: relative;
 
     @include m.from(v.$bp-lg) {
       // L'équipement prend sa largeur naturelle, le stockage occupe le reste
       grid-template-columns: auto minmax(0, 1fr);
+      grid-template-rows: minmax(0, 1fr);
       // Maillon de la chaîne de hauteurs (voir .app-main)
       flex: 1;
       min-height: 0;
@@ -151,6 +161,7 @@
     position: absolute;
     top: 0;
     left: 0;
+    width: 100%;
     display: flex;
     gap: var(--item-gap);
   }

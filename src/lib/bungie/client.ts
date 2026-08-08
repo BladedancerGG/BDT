@@ -31,9 +31,40 @@ export class BungieApiError extends Error {
   constructor(
     message: string,
     readonly status?: number,
+    /** PlatformErrorCodes, quand l'échec est applicatif et non HTTP */
+    readonly errorCode?: number,
+    /** Nom symbolique du code : « DestinyNoRoomInDestination »… */
+    readonly errorStatus?: string,
+    /** Délai imposé par Bungie avant de réessayer (limitation de débit) */
+    readonly throttleSeconds?: number,
   ) {
     super(message);
     this.name = "BungieApiError";
+  }
+}
+
+/** PlatformErrorCodes.Success — tout le reste est un échec applicatif. */
+const SUCCESS = 1;
+
+/** Enveloppe commune à toutes les réponses de la plateforme Bungie. */
+interface BungiePlatformResponse<T> {
+  Response: T;
+  ErrorCode?: number;
+  ErrorStatus?: string;
+  Message?: string;
+  /** Attente imposée avant une nouvelle tentative, en secondes */
+  ThrottleSeconds?: number;
+}
+
+/** Lit l'enveloppe Bungie d'un corps de réponse, ou null si ce n'en est pas une. */
+function parseEnvelope(body: string): BungiePlatformResponse<unknown> | null {
+  try {
+    const parsed: unknown = JSON.parse(body);
+    if (typeof parsed !== "object" || parsed === null) return null;
+    return parsed as BungiePlatformResponse<unknown>;
+  } catch {
+    // Page HTML de Cloudflare, corps vide… : ce n'est pas une erreur en soi
+    return null;
   }
 }
 
@@ -84,12 +115,19 @@ export async function bungieFetch<T>(
       });
 
       if (!res.ok) {
-        // Cloudflare renvoie une page HTML entière : on tronque pour ne pas
-        // noyer les logs.
-        const body = (await res.text()).slice(0, 200).replace(/\s+/g, " ");
+        // Bungie renvoie parfois son enveloppe complète AVEC un statut HTTP
+        // d'erreur : on en extrait le message, sinon c'est tout le JSON qui
+        // remontait jusqu'à l'interface. À défaut (page HTML de Cloudflare),
+        // on tronque pour ne pas noyer les logs.
+        const raw = await res.text();
+        const envelope = parseEnvelope(raw);
         const error = new BungieApiError(
-          `Bungie API ${res.status}: ${body}`,
+          envelope?.Message?.trim() ||
+            `Bungie API ${res.status}: ${raw.slice(0, 200).replace(/\s+/g, " ")}`,
           res.status,
+          envelope?.ErrorCode,
+          envelope?.ErrorStatus,
+          envelope?.ThrottleSeconds,
         );
 
         if (attempt < attempts && RETRYABLE_STATUS.has(res.status)) {
@@ -103,10 +141,32 @@ export async function bungieFetch<T>(
         throw error;
       }
 
-      const json = await res.json();
-      // L'API Bungie enveloppe tout dans { Response, ErrorCode, ... }
-      return json.Response as T;
+      const json = (await res.json()) as BungiePlatformResponse<T>;
+
+      // L'API Bungie enveloppe tout dans { Response, ErrorCode, ... } et
+      // signale ses refus applicatifs en HTTP 200 : un `EquipItem` rejeté
+      // (objet verrouillé, joueur en activité…) ressemble sinon à un succès.
+      if (json.ErrorCode !== undefined && json.ErrorCode !== SUCCESS) {
+        // Le message de Bungie, et lui seul : c'est ce que l'interface affiche.
+        // Le code symbolique reste disponible à part, pour les logs.
+        throw new BungieApiError(
+          json.Message?.trim() ||
+            json.ErrorStatus ||
+            `ErrorCode ${json.ErrorCode}`,
+          res.status,
+          json.ErrorCode,
+          json.ErrorStatus,
+          json.ThrottleSeconds,
+        );
+      }
+
+      return json.Response;
     } catch (error) {
+      // Un refus applicatif est définitif : le retenter ne ferait que répéter
+      // l'échec, et pour une écriture il pourrait la rejouer.
+      if (error instanceof BungieApiError && error.errorCode !== undefined) {
+        throw error;
+      }
       // Un statut non retryable a déjà été relancé ci-dessus : on le propage
       if (error instanceof BungieApiError && error.status !== undefined) {
         if (!RETRYABLE_STATUS.has(error.status)) throw error;

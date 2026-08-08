@@ -1,0 +1,318 @@
+@use "../abstracts/variables" as v;
+@use "../abstracts/mixins" as m;
+
+// Panneau latéral des actions : file des déplacements demandés.
+//
+// Il flotte au-dessus de la vue plutôt que de s'y insérer : l'inventaire ne se
+// réorganise pas quand on l'ouvre, et il peut rester ouvert pendant qu'on
+// continue à glisser des objets.
+
+.actions-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  width: min(24rem, 100vw);
+  height: 100dvh;
+  background-color: var(--color-panel);
+  border-left: 1px solid var(--color-border);
+  box-shadow: var(--shadow-panel);
+
+  &__header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  &__title {
+    @include m.section-title;
+    flex: 1;
+  }
+
+  &__filter {
+    font: inherit;
+    font-size: 0.75rem;
+    color: var(--color-text);
+    background-color: var(--color-panel-alt);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    padding: 0.125rem 0.25rem;
+  }
+
+  &__close {
+    border: 0;
+    background: none;
+    cursor: pointer;
+    font-size: 1.25rem;
+    line-height: 1;
+    color: var(--color-text-muted);
+
+    &:hover {
+      color: var(--color-text);
+    }
+  }
+
+  &__list {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    margin: 0;
+    padding: 0.5rem;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-border-strong) transparent;
+  }
+
+  &__empty {
+    flex: 1;
+    padding: 1rem 0.75rem;
+    font-size: 0.8125rem;
+    color: var(--color-text-muted);
+  }
+
+  &__footer {
+    padding: 0.5rem 0.75rem;
+    border-top: 1px solid var(--color-border);
+  }
+}
+
+// —— Une action ————————————————————————————————————————————
+
+.action-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  background-color: var(--color-panel-alt);
+  border: 1px solid var(--color-border);
+  border-left: 2px solid var(--color-border-strong);
+  border-radius: var(--radius);
+
+  // La bordure de gauche porte l'état : lisible même en survolant la liste
+  &--running {
+    border-left-color: var(--color-accent);
+  }
+
+  &--done {
+    border-left-color: var(--color-success);
+  }
+
+  &--error {
+    border-left-color: var(--color-danger);
+  }
+
+  &__header {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  &__titles {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  &__name {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    @include m.truncate;
+  }
+
+  &__target {
+    font-size: 0.6875rem;
+    color: var(--color-text-muted);
+    @include m.truncate;
+  }
+
+  &__flow {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  // La vignette est réduite : la carte doit tenir dans un panneau étroit.
+  // C'est ce conteneur qui porte la taille — .item-thumb se dimensionne à 100 %
+  // de son parent.
+  &__thumb {
+    position: relative;
+    display: block;
+    width: 2.5rem;
+    height: 2.5rem;
+    flex-shrink: 0;
+    background-color: var(--color-icon-surface);
+  }
+
+  &__arrow {
+    color: var(--color-text-muted);
+  }
+
+  &__progress {
+    margin-left: auto;
+    font-size: 0.8125rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--color-text-muted);
+  }
+
+  &__toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    width: 1.25rem;
+    height: 1.25rem;
+    border: 0;
+    background: none;
+    color: var(--color-text-muted);
+    cursor: pointer;
+
+    svg {
+      width: 1rem;
+      height: 1rem;
+      transition: transform 125ms ease;
+    }
+
+    &:hover {
+      color: var(--color-text);
+    }
+
+    &[aria-expanded="false"] svg {
+      transform: rotate(-90deg);
+    }
+  }
+
+  &__failure {
+    font-size: 0.6875rem;
+    color: var(--color-danger);
+  }
+
+  &__steps {
+    margin: 0;
+    padding: 0.375rem 0 0;
+    border-top: 1px solid var(--color-border);
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  &__step {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.6875rem;
+  }
+
+  &__step-label {
+    flex: 1;
+    min-width: 0;
+    @include m.truncate;
+  }
+
+  &__step-error {
+    color: var(--color-danger);
+    @include m.truncate;
+  }
+}
+
+// —— Pastille d'état ————————————————————————————————————————
+
+.action-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-shrink: 0;
+  font-size: 0.6875rem;
+  color: var(--color-text-muted);
+
+  &--running {
+    color: var(--color-accent);
+  }
+
+  &--done {
+    color: var(--color-success);
+  }
+
+  &--error {
+    color: var(--color-danger);
+  }
+
+  &__label {
+    white-space: nowrap;
+  }
+
+  &__mark {
+    width: 0.875rem;
+    height: 0.875rem;
+    flex-shrink: 0;
+  }
+
+  // L'animation vit dans le SVG lui-même (public/icons/loading.svg) : le
+  // fichier étant chargé en <img>, aucune règle CSS d'ici ne l'atteint.
+  &__spinner {
+    width: 0.875rem;
+    height: 0.875rem;
+    flex-shrink: 0;
+  }
+}
+
+// —— Sigil de destination ————————————————————————————————————
+
+.destination-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  flex-shrink: 0;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  // Les icônes de Bungie sont des dessins clairs : elles ont besoin d'un fond
+  // sombre dans les deux thèmes (voir --color-icon-surface). Le symbole de
+  // classe étant teinté par `color`, il suit la même contrainte — d'où l'encre
+  // dédiée plutôt que --color-text, invisible ici en thème clair.
+  background-color: var(--color-icon-surface);
+  color: var(--color-icon-ink);
+
+  // `> *` et non `img` : le symbole de classe est un masque porté par un span
+  > * {
+    width: 70%;
+    height: 70%;
+    object-fit: contain;
+  }
+
+  // Équiper n'est pas ranger : l'accent le distingue d'un simple transfert
+  &--equip {
+    border-color: var(--color-accent);
+  }
+}
+
+// —— Bouton d'en-tête ————————————————————————————————————————
+
+.actions-button {
+  &__counts {
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__pending {
+    color: var(--color-accent);
+  }
+
+  &__done {
+    color: var(--color-text-muted);
+  }
+
+  &__failed {
+    color: var(--color-danger);
+  }
+}

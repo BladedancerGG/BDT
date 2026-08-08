@@ -6,7 +6,10 @@ import {
 } from "@/lib/manifest/use-definition";
 import type { DestinyItemComponent } from "@/lib/bungie/profile";
 import type { ItemDetail } from "@/lib/bungie/item-components";
-import type { SlotSide } from "@/lib/destiny/buckets";
+import {
+    DEFAULT_BUCKET_CAPACITY,
+    type SlotSide,
+} from "@/lib/destiny/buckets";
 import { ItemIcon } from "./ItemIcon";
 
 interface BucketDefinition {
@@ -14,9 +17,6 @@ interface BucketDefinition {
     /** Capacité de l'emplacement, objet équipé inclus */
     itemCount?: number;
 }
-
-/** Repli si le manifeste n'a pas encore répondu (10 = armes et armures). */
-const DEFAULT_CAPACITY = 10;
 
 /** Vignette d'un objet, avec les données d'instance associées. */
 function SlotItem({
@@ -74,7 +74,7 @@ export function EquipmentSlot({
     // Capacité hors objet équipé
     const capacity = Math.max(
         inventory.length,
-        (bucket?.itemCount ?? DEFAULT_CAPACITY) - 1,
+        (bucket?.itemCount ?? DEFAULT_BUCKET_CAPACITY) - 1,
     );
 
     return (

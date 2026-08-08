@@ -1,0 +1,29 @@
+// Symbole de classe, teinté par la couleur de texte héritée.
+//
+// Le fichier SVG n'est pas affiché : il sert de **masque**, et c'est la couleur
+// de fond qui devient l'encre. Une balise `<img>` ne conviendrait pas — le SVG
+// y est un document isolé, où `currentColor` se résout contre sa propre racine
+// et non contre la page, si bien qu'aucun `color` écrit ici ne l'atteindrait.
+//
+// Le masque n'utilise que le canal alpha du fichier : la couleur de remplissage
+// des SVG n'a donc plus aucune importance, `currentColor` comme le reste.
+
+.class-icon {
+  display: block;
+  width: 100%;
+  height: 100%;
+
+  background-color: currentColor;
+
+  mask-image: var(--class-icon);
+  mask-repeat: no-repeat;
+  mask-position: center;
+  mask-size: contain;
+
+  // Safari ne suit la spécification que depuis la 15.4 ; le préfixe reste utile
+  // et ne coûte que quelques octets.
+  -webkit-mask-image: var(--class-icon);
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  -webkit-mask-size: contain;
+}

@@ -1,0 +1,254 @@
+@use "../abstracts/variables" as v;
+@use "../abstracts/mixins" as m;
+
+// Zones de dépôt, révélées le temps d'un glisser-déposer.
+//
+// Elles recouvrent la vue au lieu de s'y insérer : la mise en page ne bouge pas
+// au moment précis où l'utilisateur vise. Le découpage reprend celui de la vue
+// — les personnages à gauche, le coffre à droite — pour que la cible soit là où
+// l'œil l'attend.
+
+// Durée du fondu d'entrée et de sortie. Purement CSS : les calques restent
+// montés en permanence, il n'y a donc aucune durée à tenir en phase côté React.
+$duration: 250ms;
+
+.drop-zones {
+  // —— Calques ————————————————————————————————————————————————
+  //
+  // Chacun est un enfant **direct** de .inventory-view__body, et porte une
+  // position dans sa grille. C'est ce qui rend la largeur exacte : un élément
+  // en position absolue placé dans une grille prend pour bloc conteneur la
+  // *zone de grille* désignée, et non le bloc entier. Le calque du coffre
+  // épouse ainsi la colonne de .inventory-view__storage au pixel près, quelle
+  // que soit la largeur que prend l'équipement à sa gauche.
+  //
+  // ⚠ Les DEUX lignes de chaque axe doivent être données. Une ligne de fin
+  // laissée à `auto` ne s'arrête pas au bout de la piste comme pour un vrai
+  // élément de grille : pour un enfant en position absolue, elle retombe sur le
+  // bord du conteneur. `grid-column: 1` étalait donc les zones des personnages
+  // sur toute la largeur, par-dessous celle du coffre.
+  &__layer {
+    position: absolute;
+    inset: 0;
+    z-index: 20;
+
+    opacity: 0;
+    visibility: hidden;
+    // La visibilité ne bascule qu'une fois le fondu terminé : sans ce délai,
+    // le calque disparaîtrait d'un coup au lieu de s'effacer.
+    transition:
+      opacity $duration ease,
+      visibility 0s linear $duration;
+
+    &--visible {
+      opacity: 1;
+      visibility: visible;
+      // Seul le report change : à l'entrée la visibilité bascule tout de
+      // suite, à la sortie seulement une fois le fondu terminé. Écrit en
+      // propriété longue à dessein — réécrire la transition entière ici
+      // laissait le minificateur réduire `0s linear 0s` à `linear`, dont la
+      // durée et le report ne se lisent plus.
+      transition-delay: 0s;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      transition: none;
+    }
+  }
+
+  // Assombrit l'inventaire sans le masquer : on reconnaît encore ce qu'on
+  // survole, ce qui aide à viser. Couvre aussi la gouttière entre les colonnes.
+  &__scrim {
+    grid-column: 1 / -1;
+    grid-row: 1 / -1;
+    background-color: var(--color-overlay);
+    border-radius: var(--radius);
+  }
+
+  &__characters {
+    grid-column: 1 / 2;
+    grid-row: 1 / 2;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    min-height: 0;
+  }
+
+  // Empilé sous le seuil, à droite au-delà — comme les colonnes qu'ils
+  // recouvrent (voir .inventory-view__body).
+  &__vault {
+    grid-column: 1 / 2;
+    grid-row: 2 / 3;
+    display: flex;
+  }
+
+  @include m.from(v.$bp-lg) {
+    &__vault {
+      grid-column: 2 / 3;
+      grid-row: 1 / 2;
+    }
+  }
+
+  &__row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    flex: 1;
+    min-height: 0;
+  }
+
+  // Le personnage affiché : ses deux zones épousent la hauteur des colonnes
+  // d'équipement qu'elles recouvrent. La valeur est dérivée en CSS dans
+  // layout/main.scss, jamais mesurée à l'exécution — elle suit donc le réglage
+  // de taille d'icônes sans le moindre JavaScript.
+  //
+  // ⚠ La taille passe par `flex-basis`, pas par `height` : dans un conteneur
+  // flex en colonne, c'est lui qui donne la taille principale, et `height` est
+  // ignoré dès qu'il vaut autre chose que `auto`. Or `flex: 1` ci-dessus le
+  // fixe à 0 — que `flex-grow: 0` ne rattrape pas. La ligne s'effondrait donc
+  // à zéro, et les autres personnages se partageaient toute la hauteur.
+  //
+  &__row--current {
+    flex-grow: 0;
+    // Elle garde sa hauteur exacte tant qu'il y a la place, mais reste
+    // compressible : sur une fenêtre courte, `.equipment` défile pour son
+    // propre compte et ses colonnes peuvent dépasser la hauteur visible — une
+    // ligne incompressible chasserait alors les autres personnages hors champ.
+    flex-shrink: 1;
+    flex-basis: var(--equipment-columns-height);
+  }
+}
+
+.drop-zone {
+  // Le calque du coffre n'en contient qu'une : elle en occupe toute la surface
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 0.5rem;
+  text-align: center;
+  border: 2px dashed var(--color-border-strong);
+  border-radius: var(--radius);
+  //background-color: var(--color-panel);
+  color: var(--color-text);
+
+  // Les zones se posent en même temps que le fondu du calque. `scale(1)` plutôt
+  // que `none` : les fonctions de transformation s'interpolent entre elles,
+  // pas avec un mot-clé.
+  transform: scale(0.95);
+  transition:
+    background-color $duration ease,
+    border-color $duration ease,
+    transform $duration ease;
+
+  .drop-zones__layer--visible & {
+    transform: scale(1);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+    transform: scale(1);
+  }
+
+  &__label {
+    font-size: 0.9375rem;
+    font-weight: 600;
+  }
+
+  &__reason {
+    font-size: 0.6875rem;
+    color: var(--color-danger);
+  }
+
+  // —— Repères de la destination ————————————————————————————
+  //
+  // Le libellé nomme la destination, ces icônes la font reconnaître d'un coup
+  // d'œil — c'est utile quand on vise en pleine action.
+  &__icons {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+    // Les icônes s'effacent avant le libellé quand la zone manque de hauteur
+    min-height: 0;
+    overflow: hidden;
+    aspect-ratio: 1/1;
+    width: 50px;
+    height: 50px;
+    // Emblème et symbole de classe se superposent. `> *` et non `img` : le
+    // symbole est un masque porté par un span, plus une image.
+    > * {
+      position: absolute;
+      height: 100%;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+    }
+  }
+
+  // Symbole de classe, posé par-dessus l'emblème.
+  //
+  // Ce bloc ne porte que le voile et la marge : l'encre du symbole vient de
+  // `color`, que .class-icon reprend en `currentColor` à travers son masque
+  // (voir components/class-icon.scss).
+  &__class {
+    width: 100%;
+    height: 100%;
+    padding: 10px;
+    flex-shrink: 0;
+    color: var(--color-text);
+    background-color: var(--color-overlay-semi-transparent);
+  }
+
+  &__emblem {
+    width: 3rem;
+    height: 3rem;
+    flex-shrink: 0;
+    border: 1px solid var(--color-icon-border);
+  }
+
+  // Sigil du coffre
+  &__sigil {
+    width: 3rem;
+    height: 3rem;
+    flex-shrink: 0;
+  }
+
+  // Mise en avant au survol, en CSS et non en JavaScript.
+  //
+  // dnd-kit range la zone survolée dans un contexte que lit **tout** objet
+  // déplaçable : la désigner re-rendait la centaine de vignettes montées à
+  // chaque entrée et sortie de zone. Le navigateur, lui, ne repeint que la
+  // zone concernée. Le geste n'utilise aucune capture de pointeur, `:hover`
+  // suit donc bien le curseur pendant le déplacement.
+  &:hover:not(&--disabled) {
+    border-style: solid;
+    border-color: var(--color-accent);
+    background-color: var(--color-panel-alt-semi-transparent);
+  }
+
+  // Destination impossible : visible mais clairement hors jeu. On la garde
+  // affichée plutôt que masquée — sa disparition déplacerait les autres.
+  &--disabled {
+    opacity: 0.4;
+    border-style: dotted;
+  }
+}
+
+// Vignette suivant le curseur : elle ne doit jamais capter le pointeur, sinon
+// elle se trouve toujours entre lui et la zone visée.
+.item--drag-overlay {
+  cursor: grabbing;
+  pointer-events: none;
+  opacity: 0.9;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.5));
+}
+
+// L'original reste en place, estompé : sa case ne se referme pas derrière lui
+.item--dragging {
+  opacity: 0.35;
+}

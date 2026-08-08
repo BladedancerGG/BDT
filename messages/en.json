@@ -81,6 +81,61 @@
       "openLink": "Open"
     }
   },
+  "actions": {
+    "title": "Actions",
+    "openHint": "Show pending, running and completed moves",
+    "failedHint": "Failed actions",
+    "close": "Close panel",
+    "expand": "Show details",
+    "collapse": "Hide details",
+    "empty": "No action to show.",
+    "clear": "Clear finished actions",
+    "filterLabel": "Filter actions",
+    "filter": {
+      "all": "Show all",
+      "pending": "Pending",
+      "running": "Running",
+      "done": "Completed"
+    },
+    "status": {
+      "pending": "Pending",
+      "running": "Running",
+      "done": "Done",
+      "error": "Failed"
+    },
+    "target": {
+      "vault": "Transfer to the vault",
+      "inventory": "Transfer to {character}",
+      "equip": "Equip on {character}"
+    },
+    "step": {
+      "pull": "Pull from the postmaster to {character}",
+      "toVault": "Transfer to the vault",
+      "fromVault": "Transfer to {character}",
+      "equip": "Equip on {character}",
+      "unequip": "Unequip: “{item}” takes its place",
+      "evict": "Move “{item}” to the vault to free a slot"
+    },
+    "zone": {
+      "equipHere": "Equip",
+      "inventoryHere": "Move to inventory",
+      "equipOn": "Equip on {character}",
+      "inventoryOf": "Move to {character}'s inventory",
+      "vault": "Transfer to the vault"
+    },
+    "failure": {
+      "unknownItem": "Item missing from the manifest.",
+      "notInstanced": "Item not found in the profile.",
+      "notEquippable": "This item cannot be equipped.",
+      "wrongClass": "This item belongs to another class.",
+      "nonTransferrable": "This item never leaves its character.",
+      "noReplacement": "No other item to equip in its place.",
+      "noExoticSwap": "Another exotic is equipped, and no non-exotic item can take its place.",
+      "postmasterSideEffects": "Bungie refuses to pull this item from the postmaster.",
+      "vaultFull": "The vault is full.",
+      "bucketFull": "The destination slot is full."
+    }
+  },
   "manifest": {
     "loading": "Loading manifest…",
     "error": "Failed to load the manifest (see console)."
@@ -110,7 +165,6 @@
     "setBonus": "Set bonus",
     "setPieces": "{count} pieces",
     "crafted": "Crafted",
-    "enhanced": "Enhanced",
-    "pinHint": "Click to pin and reveal stats"
+    "enhanced": "Enhanced"
   }
 }

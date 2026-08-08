@@ -36,7 +36,8 @@
 .slot-column {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  // Source unique : --equipment-columns-height s'en déduit (voir layout/main)
+  gap: var(--slot-row-gap);
 
   // La colonne des armes est collée à droite, celle des armures à gauche :
   // les vignettes des deux colonnes se font ainsi face.

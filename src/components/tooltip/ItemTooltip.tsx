@@ -175,14 +175,12 @@ export function ItemTooltip({
                                 state,
                                 versionNumber,
                                 gearTier,
-                                pinned,
                             }: {
     itemHash: number;
     itemInstanceId?: string;
     state?: number;
     versionNumber?: number;
     gearTier?: number;
-    pinned: boolean;
 }) {
     const t = useTranslations("item");
     const def = useDefinition<InventoryItemDefinition>(
@@ -229,7 +227,9 @@ export function ItemTooltip({
                 ? SWORD_STAT_ORDER
                 : WEAPON_STAT_ORDER;
     const statEntries = orderStats(detail?.stats ?? {}, statOrder);
-    const showStats = isArmor || isSubclassItem || (isWeapon && pinned);
+    // Tout est affiché d'emblée : l'infobulle ne s'ouvre plus qu'au clic, donc
+    // elle est toujours volontaire — plus de version « survol » abrégée.
+    const showStats = isArmor || isSubclassItem || isWeapon;
     // Les stats d'arme sont sur 100 ; celles d'armure varient → échelle relative.
     // Les valeurs sans barre (cadence, chargeur…) sont exclues du maximum, sinon
     // une cadence de 900 écraserait toutes les autres barres.
@@ -414,9 +414,6 @@ export function ItemTooltip({
                     </>
                 )}
 
-                {isWeapon && !pinned && (
-                    <p className="item-tooltip__hint">{t("pinHint")}</p>
-                )}
             </div>
         </div>
     );

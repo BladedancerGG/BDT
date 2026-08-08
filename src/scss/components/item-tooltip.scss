@@ -17,6 +17,15 @@
   }
 }
 
+// Pendant un déplacement, plus aucune infobulle : elle masquerait les zones
+// qu'on est en train de viser et capterait le curseur qui les survole.
+// L'attribut est posé sur <html> par MoveDnd — un simple écriture DOM, qui
+// évite de re-rendre la centaine de vignettes montées.
+:root[data-dragging] .floating-layer {
+  visibility: hidden;
+  pointer-events: none;
+}
+
 .item-tooltip {
   width: v.$tooltip-width;
   overflow: hidden;
@@ -146,12 +155,6 @@
     &--used {
       background-color: var(--color-energy);
     }
-  }
-
-  &__hint {
-    font-size: 0.625rem;
-    font-style: italic;
-    color: var(--color-text-muted);
   }
 
   &__loading {

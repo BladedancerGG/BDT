@@ -23,10 +23,26 @@ import {
 } from "@/lib/manifest/use-definition";
 import {useSettings} from "@/lib/settings/store";
 import {useDisplayableItems} from "@/lib/destiny/use-displayable-items";
+import {useActionRunner} from "@/lib/actions/use-action-runner";
 import {CharacterTab} from "./CharacterTab";
 import {EquipmentSlot} from "./EquipmentSlot";
 import {ItemIcon} from "./ItemIcon";
 import {VirtualItemGrid} from "./VirtualItemGrid";
+import {ActionsPanel} from "./actions/ActionsPanel";
+import {DropZones} from "./dnd/DropZones";
+import {MoveDnd} from "./dnd/MoveDnd";
+
+/**
+ * Vide l'unique file d'actions.
+ *
+ * Un composant plutôt qu'un appel dans `Inventory` : le hook doit être monté
+ * **une seule fois**, et un composant sans rendu le dit plus clairement qu'une
+ * ligne perdue au milieu d'un autre.
+ */
+function ActionRunner() {
+    useActionRunner();
+    return null;
+}
 
 // Référence stable : évite de relancer le filtrage à chaque rendu
 const NO_ITEMS: DestinyItemComponent[] = [];
@@ -176,6 +192,8 @@ function Inventory({data}: { data: ProfileData }) {
 
     return (
         <EquippedSetsProvider counts={setCounts}>
+            <MoveDnd selectedCharacterId={current}>
+            <ActionRunner/>
             <div className="inventory-view">
                 {/* Sélecteur de personnage */}
                 <div className="inventory-view__characters">
@@ -192,7 +210,7 @@ function Inventory({data}: { data: ProfileData }) {
                 <div className="inventory-view__body">
                     {/* Équipement du personnage : deux colonnes d'emplacements */}
                     <section className="equipment">
-                        <h2 className="equipment__title">{t("equipment")}</h2>
+                        {/*<h2 className="equipment__title">{t("equipment")}</h2>*/}
                         <div className="equipment__columns">
                             <SlotColumn
                                 buckets={WEAPON_COLUMN}
@@ -223,8 +241,20 @@ function Inventory({data}: { data: ProfileData }) {
                             details={data.items}
                         />
                     </div>
+
+                    {/* Zones de dépôt : trois calques, enfants DIRECTS de
+                        __body. Ils s'accrochent à ses colonnes pour épouser
+                        exactement l'équipement et le stockage — les imbriquer
+                        romprait ce lien. */}
+                    <DropZones
+                        characters={data.characters}
+                        selectedCharacterId={current}
+                    />
                 </div>
             </div>
+
+            <ActionsPanel/>
+            </MoveDnd>
         </EquippedSetsProvider>
     );
 }

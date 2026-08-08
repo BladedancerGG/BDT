@@ -81,6 +81,61 @@
       "openLink": "Ouvrir"
     }
   },
+  "actions": {
+    "title": "Actions",
+    "openHint": "Afficher les déplacements en attente, en cours et effectués",
+    "failedHint": "Actions en échec",
+    "close": "Fermer le panneau",
+    "expand": "Voir le détail",
+    "collapse": "Masquer le détail",
+    "empty": "Aucune action à afficher.",
+    "clear": "Effacer les actions terminées",
+    "filterLabel": "Filtrer les actions",
+    "filter": {
+      "all": "Tout afficher",
+      "pending": "En attente",
+      "running": "En cours",
+      "done": "Effectuées"
+    },
+    "status": {
+      "pending": "En attente",
+      "running": "En cours",
+      "done": "Terminé",
+      "error": "Échec"
+    },
+    "target": {
+      "vault": "Transfert vers le coffre",
+      "inventory": "Transfert vers {character}",
+      "equip": "Équipement sur {character}"
+    },
+    "step": {
+      "pull": "Retrait des objets perdus vers {character}",
+      "toVault": "Transfert vers le coffre",
+      "fromVault": "Transfert vers {character}",
+      "equip": "Équipement sur {character}",
+      "unequip": "Déséquipement : « {item} » prend sa place",
+      "evict": "Rangement de « {item} » au coffre pour faire de la place"
+    },
+    "zone": {
+      "equipHere": "Équiper",
+      "inventoryHere": "Transférer dans l'inventaire",
+      "equipOn": "Équiper sur {character}",
+      "inventoryOf": "Transférer dans l'inventaire de {character}",
+      "vault": "Transférer vers le coffre"
+    },
+    "failure": {
+      "unknownItem": "Objet inconnu du manifeste.",
+      "notInstanced": "Objet introuvable dans le profil.",
+      "notEquippable": "Cet objet ne s'équipe pas.",
+      "wrongClass": "Cet objet est réservé à une autre classe.",
+      "nonTransferrable": "Cet objet ne quitte pas son personnage.",
+      "noReplacement": "Aucun objet à équiper à la place pour le libérer.",
+      "noExoticSwap": "Un autre exotique est équipé, et aucun objet non exotique ne peut prendre sa place.",
+      "postmasterSideEffects": "Bungie refuse de sortir cet objet des objets perdus.",
+      "vaultFull": "Le coffre est plein.",
+      "bucketFull": "L'emplacement de destination est plein."
+    }
+  },
   "manifest": {
     "loading": "Chargement du manifeste…",
     "error": "Échec du chargement du manifeste (voir la console)."
@@ -110,7 +165,6 @@
     "setBonus": "Bonus d'ensemble",
     "setPieces": "{count} pièces",
     "crafted": "Façonnée",
-    "enhanced": "Améliorée",
-    "pinHint": "Clic pour épingler et voir les statistiques"
+    "enhanced": "Améliorée"
   }
 }

@@ -38,6 +38,24 @@ export interface InventoryItemDefinition {
   isFeaturedItem?: boolean;
   /** Objet « holofoil » : fond animé au lieu de la couleur de rareté */
   isHolofoil?: boolean;
+  /**
+   * Objet lié au personnage : doctrines, artéfacts. L'API refuse tout
+   * `TransferItem` dessus — il ne peut ni rejoindre le coffre ni changer de
+   * personnage.
+   */
+  nonTransferrable?: boolean;
+  /** false pour ce qui ne s'équipe pas (matériaux, quêtes…) */
+  equippable?: boolean;
+  /**
+   * Sortir cet objet des Objets perdus peut détruire quelque chose (Bungie ne
+   * sait pas dire quoi) : l'API refuse le `PullFromPostMaster` par défaut.
+   */
+  doesPostmasterPullHaveSideEffects?: boolean;
+  /**
+   * Classe requise (DestinyClass) : 0 Titan, 1 Chasseur, 2 Arcaniste,
+   * 3 = aucune restriction. Les armures et doctrines la portent.
+   */
+  classType?: number;
   quality?: {
     /** Filigranes par version : indexés par le versionNumber de l'instance */
     displayVersionWatermarkIcons?: string[];
