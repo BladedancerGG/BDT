@@ -21,6 +21,9 @@ export default async function Home() {
                             </span>
 
                             {user.displayName === "Bladedancer#9791" ? " (Welcome back, administrator!)" : ""}
+                            {user.displayName === "Penguin#3117" ? " (the one and only antartica man)" : ""}
+                            {user.displayName === "Fay#8377" ? " :3" : ""}
+                            {user.displayName === "Synnefo#1676" ? " (nephew)" : ""}
 
                         </p>
                         {/* Déconnexion déplacée dans les paramètres (onglet Compte) */}

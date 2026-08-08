@@ -10,7 +10,7 @@ import "@/scss/style.scss";
 
 export const metadata: Metadata = {
     title: "Bladedancer's Destiny Tools",
-    description: "A secret that will reveal itself in time",
+    description: "Personal suite of tools used to manage a wide variety of stuff through the buntie.net Destiny 2 API",
 };
 
 export function generateStaticParams() {
