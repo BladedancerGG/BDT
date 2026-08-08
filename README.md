@@ -104,7 +104,7 @@ This URL must match `APP_URL` **exactly** (Compose builds it from
 ### Bring it up
 
 ```bash
-git clone <your-repo> dlm && cd dlm
+git clone <your-repo> bdt && cd bdt
 
 cp .env.production.example .env
 # Fill in APP_DOMAIN, ACME_EMAIL, the Bungie credentials, and generate:
@@ -254,7 +254,7 @@ depuis `APP_DOMAIN`), sinon l'échange de token échoue.
 ### Mise en service
 
 ```bash
-git clone <ton-dépôt> dlm && cd dlm
+git clone <ton-dépôt> bdt && cd bdt
 
 cp .env.production.example .env
 # Remplir APP_DOMAIN, ACME_EMAIL, les identifiants Bungie, et générer :

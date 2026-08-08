@@ -20,7 +20,7 @@ services:
       - "5555:5555" # Prisma Studio
     environment:
 
-      DATABASE_URL: postgresql://${POSTGRES_USER:-dlm}:${POSTGRES_PASSWORD:-dlm}@${POSTGRES_HOST:-db}:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-dlm}?schema=public
+      DATABASE_URL: postgresql://${POSTGRES_USER:-bdt}:${POSTGRES_PASSWORD:-bdt}@${POSTGRES_HOST:-db}:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-bdt}?schema=public
 
       # Bungie Application info (set those in .env)
       BUNGIE_API_KEY: ${BUNGIE_API_KEY}
@@ -46,73 +46,20 @@ services:
       - db
       - caddy
 
-  # Navigateur sans interface, piloté par le protocole DevTools. Sert à vérifier
-  # ce que le CSS et le JavaScript produisent RÉELLEMENT dans une page — une
-  # variable CSS posée à l'exécution, une hauteur mesurée, un état de survol ne
-  # se lisent pas dans la feuille compilée.
-  #
-  #   docker compose up -d chrome
-  #   docker compose exec -e DIAG_USER_ID=<id User> \
-  #     -e CDP_URL=http://$(docker inspect d2-chrome \
-  #       --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}'):9222 \
-  #     app node scripts/inspect-drop-zones.mjs
-  #
-  # Outil de développement uniquement : il expose un débogueur sans
-  # authentification, absent de la stack de production.
-  #
-  # ⚠ Ne pas installer Chromium dans le conteneur `app` avec apk : l'extraction
-  # des gros fichiers (binaire Chromium, LLVM, mesa) échoue en I/O error sur le
-  # système de fichiers superposé de Docker sous WSL2, alors même que le disque
-  # est libre. D'où une image dédiée.
-#  chrome:
-#    container_name: d2-chrome
-#    image: zenika/alpine-chrome:latest
-#    # Chrome refuse un en-tête Host qui ne soit ni localhost ni une IP :
-#    # les scripts doivent viser l'IP du conteneur, pas son nom.
-#    command:
-#      - --no-sandbox
-#      - --disable-gpu
-#      - --remote-debugging-address=0.0.0.0
-#      - --remote-debugging-port=9222
-#      - --ignore-certificate-errors
-#      - about:blank
-#    # Chrome sature la /dev/shm par défaut (64 Mo) et plante en chargeant une
-#    # page lourde comme l'inventaire.
-#    shm_size: 1gb
-#    ports:
-#      - "9222:9222"
-
-  # Interface web de consultation de la base — équivalent PhpMyAdmin côté
-  # Postgres. Outil de développement uniquement : il expose un formulaire de
-  # connexion à la base, ne pas publier tel quel.
-#  adminer:
-#    container_name: adminer
-#    image: adminer:latest
-#    ports:
-#      - "8080:8080"
-#    environment:
-#      # Pré-remplit le champ « serveur » avec le nom du service Postgres
-#      ADMINER_DEFAULT_SERVER: db
-#      # Pas de ADMINER_DESIGN : Adminer 5 suit déjà prefers-color-scheme, donc
-#      # le thème sombre s'applique tout seul selon le réglage du système.
-#    depends_on:
-#      db:
-#        condition: service_healthy
-
   db:
     container_name: postgres
     image: postgres:16-alpine
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-dlm}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dlm}
-      POSTGRES_DB: ${POSTGRES_DB:-dlm}
+      POSTGRES_USER: ${POSTGRES_USER:-bdt}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-bdt}
+      POSTGRES_DB: ${POSTGRES_DB:-bdt}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
       # Compose attend que Postgres soit réellement prêt avant de démarrer "app"
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-dlm}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-bdt}"]
       interval: 5s
       timeout: 5s
       retries: 5

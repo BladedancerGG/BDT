@@ -1,0 +1,24 @@
+# Copie ce fichier en ".env" et remplis les valeurs.
+# cp .env.example .env
+
+# --- PostgreSQL ---
+POSTGRES_USER=dlm
+POSTGRES_PASSWORD=dlm
+POSTGRES_DB=dlm
+
+# URL utilisée par Prisma / l'app.
+# En local (hors Docker) l'hôte est "localhost". Dans Docker, Compose fournit
+# automatiquement la variante avec "db" comme hôte (voir docker-compose.yml).
+DATABASE_URL=postgresql://dlm:dlm@localhost:5432/dlm?schema=public
+
+# --- Bungie.net ---
+# Crée une app sur https://www.bungie.net/en/Application
+# OAuth Client Type : "Confidential"
+# Redirect URL : http://localhost:3000/api/auth/callback
+BUNGIE_API_KEY=136e709102ef4e9abe2b721c43410cfb
+BUNGIE_CLIENT_ID=49546
+BUNGIE_CLIENT_SECRET=3eXNRy4gSDsv729g7z0ibpYWgaM0IwAUhZLrmNseCcs
+
+APP_URL=https://localhost
+
+SESSION_SECRET=274b8c79257e633c08d47d1a61701bd869ed09ddce38b4836f09a8d83698bc0d

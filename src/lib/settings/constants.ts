@@ -8,7 +8,7 @@
 export type ThemePreference = "light" | "dark" | "system";
 
 /** Nom du cookie portant les préférences (lisible par le serveur). */
-export const PREFS_COOKIE = "dlm-prefs";
+export const PREFS_COOKIE = "bdt-prefs";
 
 /** Bornes de la taille des icônes d'objets, en pixels. */
 export const ICON_SIZE = {min: 40, max: 96, default: 75} as const;

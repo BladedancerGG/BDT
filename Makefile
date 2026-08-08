@@ -40,7 +40,7 @@ shell: ## Ouvre un shell dans le conteneur de l'app
 	docker compose exec app sh
 
 db-shell: ## Ouvre une console psql dans la base
-	docker compose exec db psql -U $${POSTGRES_USER:-dlm} -d $${POSTGRES_DB:-dlm}
+	docker compose exec db psql -U $${POSTGRES_USER:-bdt} -d $${POSTGRES_DB:-bdt}
 
 ## —— Base de données (Prisma) ——————————————————————————————
 
@@ -52,14 +52,6 @@ generate: ## Régénère le client Prisma
 
 studio: ## Ouvre Prisma Studio (http://localhost:5555)
 	docker compose exec app npm run db:studio
-
-adminer: ## Rappelle l'URL et les identifiants d'Adminer
-	@echo "Adminer : http://localhost:8080"
-	@echo "  système      : PostgreSQL"
-	@echo "  serveur      : db (déjà pré-rempli)"
-	@echo "  utilisateur  : $${POSTGRES_USER:-dlm}"
-	@echo "  mot de passe : $${POSTGRES_PASSWORD:-dlm}"
-	@echo "  base         : $${POSTGRES_DB:-dlm}"
 
 ## —— Projet ————————————————————————————————————————————————
 

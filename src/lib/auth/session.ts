@@ -5,7 +5,7 @@
 import { cookies } from "next/headers";
 import crypto from "crypto";
 
-const COOKIE_NAME = "dlm_session";
+const COOKIE_NAME = "bdt_session";
 const SECRET = process.env.SESSION_SECRET;
 const MAX_AGE = 60 * 60 * 24 * 30; // 30 jours
 

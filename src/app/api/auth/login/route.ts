@@ -9,7 +9,7 @@ export async function GET() {
   const state = crypto.randomUUID();
 
   const store = await cookies();
-  store.set("dlm_oauth_state", state, {
+  store.set("bdt_oauth_state", state, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",

@@ -13,8 +13,8 @@ export async function GET(req: NextRequest) {
   const state = req.nextUrl.searchParams.get("state");
 
   const store = await cookies();
-  const expectedState = store.get("dlm_oauth_state")?.value;
-  store.delete("dlm_oauth_state");
+  const expectedState = store.get("bdt_oauth_state")?.value;
+  store.delete("bdt_oauth_state");
 
   // Validation anti-CSRF
   if (!code || !state || !expectedState || state !== expectedState) {

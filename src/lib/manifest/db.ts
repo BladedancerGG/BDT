@@ -23,7 +23,7 @@ class ManifestDatabase extends Dexie {
     meta!: Table<MetaRow, string>;
 
     constructor() {
-        super("dlm-manifest");
+        super("bdt-manifest");
         this.version(1).stores({
             // clé primaire composite [table+hash] + index secondaire sur "table"
             definitions: "[table+hash], table",
