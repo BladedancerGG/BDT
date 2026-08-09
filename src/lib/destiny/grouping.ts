@@ -265,19 +265,19 @@ function groupKeyOf(
       return { key: `set:${name}`, label: name, order: name };
     }
 
-    case "armorArchetype": {
-      const name = traits?.archetype;
-      if (!name) return undefined;
-      return {
-        key: `archetype:${name}`,
-        label: name,
-        icon: traits?.archetypeIcon
-          ? `${BUNGIE_ROOT}${traits.archetypeIcon}`
-          : undefined,
-        iconKind: "image",
-        order: name,
-      };
-    }
+    // case "armorArchetype": {
+    //   const name = traits?.archetype;
+    //   if (!name) return undefined;
+    //   return {
+    //     key: `archetype:${name}`,
+    //     label: name,
+    //     icon: traits?.archetypeIcon
+    //       ? `${BUNGIE_ROOT}${traits.archetypeIcon}`
+    //       : undefined,
+    //     iconKind: "image",
+    //     order: name,
+    //   };
+    // }
   }
 }
 

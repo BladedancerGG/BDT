@@ -84,7 +84,7 @@ export const SORT_KIND: Record<SortId, SortKind> = {
   gearTier: "number",
   damageType: "number",
   ammoType: "number",
-  armorArchetype: "text",
+  // armorArchetype: "text",
   setBonus: "text",
   weaponFrame: "text",
   masterwork: "flag",
@@ -165,8 +165,8 @@ function sortKey(
       return ammo;
     }
 
-    case "armorArchetype":
-      return traits?.archetype;
+    // case "armorArchetype":
+    //   return traits?.archetype;
 
     case "setBonus":
       // Les armures hors ensemble n'ont pas de valeur : elles sont regroupées
