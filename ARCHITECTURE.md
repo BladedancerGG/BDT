@@ -424,6 +424,72 @@ Double-clicking equips on the displayed character.
 > once at drag start — 0.13 ms with a thousand-item vault, measured — and never
 > recomputed while aiming.
 
+## Item search
+
+The query language is **Destiny Item Manager's**, minus what is specific to it
+(tags, wishlists, notes, loadouts). `src/lib/search/` holds it, and the split
+mirrors `sort.ts` / `grouping.ts`: pure modules first, React last.
+
+| File | Role |
+|---|---|
+| `query.ts` | lexer + parser → syntax tree. Space = implicit AND, plus `and` / `or` / `not`, a leading `-`, parentheses and quotes |
+| `keywords.ts` | the vocabulary: stat, damage, rarity, class, ammo and item-subtype names → hashes and enum values |
+| `filters.ts` | tree → predicate. `is:`, `stat:`, `basestat:`, `perkname:`, `power:`, `id:`… |
+| `index-build.ts` | one batched manifest read: names of equipped plugs, and the stat deltas of mods |
+| `provider.tsx` | the only React part: debounce, evaluation over the whole profile, result set |
+
+Three decisions carry the rest.
+
+**A faulty query filters nothing.** An unknown keyword or an incomplete
+comparison (`stat:range:>=`) marks the query invalid — the bar turns red and the
+view stays as it was. Filtering on the part that parsed would empty the screen
+at every keystroke while typing `stat:ran`.
+
+**An apostrophe only quotes when it opens a segment.** Both `"` and `'` delimit
+a quoted segment, so `id:'6917…'` works — but `frenzy's` and `l'ordre` must stay
+plain words. The rule is positional: a quote character is a delimiter only when
+the segment is still empty. Operators are matched case-insensitively, so `OR`
+reads like `or`.
+
+**Stat names are hard-coded, not read from the manifest.** DIM's syntax is
+English, and the manifest is downloaded in the player's language: mapping
+`range` to a hash through a translated table would make queries locale-dependent.
+A handful of French aliases are accepted on top (`portee`, `filobscur`…).
+
+**"Base stat" means before the mod sockets.** Checked against the manifest
+(version 244213): on Edge of Fate armour, mods, masterwork *and* tuning all sit
+in ARMOR MODS sockets, while the base stat rolls are `armor_stats` plugs in
+ARMOR PERKS; on weapons, masterwork and mods are in WEAPON MODS while barrels
+and magazines are in WEAPON PERKS. One rule covers both, and it needs no
+plug-category allowlist to keep up to date.
+
+The plug index costs a few thousand definitions, so it is **not** built by
+`ItemDefsProvider`: only a query that reads it (free text, `perkname:`,
+`basestat:`) triggers it, and nothing is filtered until it lands.
+
+Evaluation produces a `Set` of instance ids, once per query, over the entire
+profile. The vault and the postmaster then either drop the misses or dim them
+(a setting); a character's inventory and equipped items only ever dim — an item
+must not vanish from the slot the player is looking at.
+
+The bar itself lives in the header, outside the tree where the manifest and the
+profile are loaded. It therefore knows nothing: the query goes down through a
+Zustand store, and what is known about the results — how many were found, where
+they can be sent — comes back up the same way (`SearchActionsBridge`). The match
+count also feeds each character tab, which reports how many of the items found
+sit on that character.
+
+The search history goes to **localStorage**, not to the preferences cookie,
+which is capped at 4 KB and shared.
+
+> Everything the bar draws from the store is gated behind `useHydrated()`: the
+> server can only ever render an empty bar, and the client's first render has to
+> match it. Without that gate React reports a hydration mismatch as soon as a
+> hot reload re-hydrates a page whose store is already filled. It is a
+> `useSyncExternalStore` and not a `setState` in an effect — the latter is what
+> guarantees the *server* snapshot during hydration, and the repo's lint refuses
+> the other form anyway.
+
 ## Bungie call resilience & outbound proxy
 
 bungie.net regularly returns transient errors (often Cloudflare **522**: timeout
@@ -989,6 +1055,77 @@ Le double-clic équipe sur le personnage affiché.
 > incompressible par geste, provoqué par le `active` de dnd-kit lui-même. Les
 > sept plans sont calculés une fois à la saisie — 0,13 ms sur un coffre de mille
 > objets, mesuré — et jamais recalculés pendant qu'on vise.
+
+## Recherche d'objets
+
+Le langage de requête est celui de **Destiny Item Manager**, moins ce qui lui
+est propre (étiquettes, listes de souhaits, notes, équipements enregistrés).
+Il vit dans `src/lib/search/`, découpé comme `sort.ts` et `grouping.ts` : les
+modules purs d'abord, React en dernier.
+
+| Fichier | Rôle |
+|---|---|
+| `query.ts` | découpage + analyse syntaxique → arbre. L'espace vaut ET implicite, plus `and` / `or` / `not`, le préfixe `-`, les parenthèses et les guillemets |
+| `keywords.ts` | le vocabulaire : noms de statistiques, de types de dégâts, de raretés, de classes, de munitions et de sous-types → hashes et valeurs d'énumération |
+| `filters.ts` | arbre → prédicat. `is:`, `stat:`, `basestat:`, `perkname:`, `power:`, `id:`… |
+| `index-build.ts` | une lecture groupée du manifeste : noms des plugs équipés, et écarts de statistiques des mods |
+| `provider.tsx` | la seule partie React : anti-rebond, évaluation sur tout le profil, ensemble des résultats |
+
+Trois décisions portent le reste.
+
+**Une requête fautive ne filtre rien.** Un mot-clé inconnu ou une comparaison
+incomplète (`stat:range:>=`) rend la requête invalide : la barre passe au rouge
+et l'affichage reste tel quel. Filtrer sur ce qui a été compris viderait l'écran
+à chaque lettre pendant qu'on tape `stat:ran`.
+
+**Une apostrophe n'ouvre une chaîne qu'en début de segment.** `"` et `'`
+délimitent tous deux un segment entre guillemets, ce qui fait marcher
+`id:'6917…'` — mais `frenzy's` et `l'ordre` doivent rester des mots ordinaires.
+La règle est donc positionnelle : un guillemet ne délimite que si le segment est
+encore vide. Les opérateurs, eux, sont reconnus sans tenir compte de la casse :
+`OR` vaut `or`.
+
+**Les noms de statistiques sont codés en dur, pas lus du manifeste.** La syntaxe
+de DIM est anglaise, et le manifeste est téléchargé dans la langue du joueur :
+passer par une table traduite rendrait les requêtes dépendantes de la locale.
+Quelques alias français sont acceptés en plus (`portee`, `filobscur`…).
+
+**« Statistique de base » veut dire avant les sockets de mods.** Vérifié sur le
+manifeste (version 244213) : sur une armure Edge of Fate, mods, pièce maîtresse
+**et** ajustage occupent tous des sockets ARMOR MODS, tandis que les tirages de
+base sont des plugs `armor_stats` de la catégorie ARMOR PERKS ; côté armes, la
+pièce maîtresse et les mods relèvent de WEAPON MODS quand canons et chargeurs
+relèvent de WEAPON PERKS. Une seule règle couvre les deux, sans liste blanche de
+familles de plugs à tenir à jour.
+
+L'index des plugs coûte quelques milliers de définitions : il n'est donc **pas**
+construit par `ItemDefsProvider`. Seule une requête qui le lit (texte libre,
+`perkname:`, `basestat:`) le déclenche, et rien n'est filtré avant qu'il
+n'arrive.
+
+L'évaluation produit un `Set` d'identifiants d'instance, une fois par requête,
+sur tout le profil. Le coffre et les objets perdus en écartent alors les objets
+non trouvés ou les estompent (au choix, dans les paramètres) ; l'inventaire du
+personnage et les objets équipés se contentent toujours d'estomper — un objet ne
+doit pas disparaître de l'emplacement que le joueur est en train de regarder.
+
+La barre, elle, vit dans l'en-tête, hors de l'arbre où le manifeste et le profil
+sont chargés. Elle ne connaît donc rien : la requête descend par un store
+Zustand, et ce qu'on sait des résultats — combien ils sont, où on peut les
+envoyer — remonte par le même chemin (`SearchActionsBridge`). Ce même décompte
+alimente l'onglet de chaque personnage, qui annonce combien des objets trouvés
+se trouvent chez lui.
+
+L'historique part dans **localStorage** et non dans le cookie de préférences,
+plafonné à 4 Ko et partagé.
+
+> Tout ce que la barre tire du store passe par `useHydrated()` : le serveur ne
+> peut rendre qu'une barre vierge, et le premier rendu du client doit lui être
+> identique. Sans ce garde-fou, React signale un écart d'hydratation dès qu'un
+> rechargement à chaud réhydrate une page dont le store est déjà rempli. C'est
+> un `useSyncExternalStore` et non un `setState` dans un effet : lui seul
+> garantit l'emploi de l'instantané *serveur* pendant l'hydratation, et le lint
+> du dépôt refuse de toute façon l'autre forme.
 
 ## Robustesse des appels Bungie & proxy sortant
 

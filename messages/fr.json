@@ -17,7 +17,8 @@
       "account": "Compte",
       "appearance": "Apparence",
       "inventory": "Inventaire",
-      "about": "À propos"
+      "about": "À propos",
+      "search": "Recherche"
     },
     "account": {
       "logout": "Déconnexion",
@@ -90,6 +91,18 @@
           "desc": "Avec en premier"
         }
       }
+    },
+    "search": {
+      "historySize": "Recherches mémorisées",
+      "historySizeHint": "Nombre de recherches proposées par le chevron de la barre (0 à 30)",
+      "missMode": "Objets écartés par la recherche",
+      "missModeHint": "Ne concerne que le coffre et les objets perdus : l'inventaire des personnages se contente toujours d'estomper.",
+      "missModes": {
+        "hide": "Les masquer",
+        "dim": "Les estomper"
+      },
+      "syntax": "Syntaxe",
+      "syntaxHint": "Celle de Destiny Item Manager : is:, stat:, basestat:, perkname:, power:, id:… combinables avec and, or, not et des parenthèses. Un mot seul cherche dans le nom de l'objet et de ses attributs."
     },
     "about": {
       "version": "Version du site",
@@ -189,5 +202,18 @@
     "setPieces": "{count} pièces",
     "crafted": "Façonnée",
     "enhanced": "Améliorée"
+  },
+  "search": {
+    "label": "Rechercher des objets",
+    "placeholder": "Rechercher des objets/attributs",
+    "invalid": "Requête incomplète ou mot-clé inconnu : la recherche n'est pas appliquée.",
+    "found": "{count, plural, =0 {Aucun objet trouvé} one {# objet trouvé} other {# objets trouvés}}",
+    "clear": "Effacer la recherche",
+    "historyLabel": "Recherches précédentes",
+    "historyEmpty": "Aucune recherche précédente.",
+    "historyClear": "Effacer l'historique",
+    "actionsLabel": "Actions sur les objets trouvés",
+    "moveTo": "Transférer vers {character}",
+    "moveToVault": "Transférer vers le coffre"
   }
 }

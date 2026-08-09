@@ -6,7 +6,11 @@ import {cookieStorage} from "./cookie-storage";
 import {
     ICON_SIZE,
     PREFS_COOKIE,
+    SEARCH_HISTORY_SIZE,
     clampIconSize,
+    clampSearchHistorySize,
+    parseSearchMissMode,
+    type SearchMissMode,
     type ThemePreference,
 } from "./constants";
 import {
@@ -26,8 +30,8 @@ import {
     type WeaponGrouping,
 } from "@/lib/destiny/grouping";
 
-export {ICON_SIZE, clampIconSize};
-export type {ThemePreference};
+export {ICON_SIZE, SEARCH_HISTORY_SIZE, clampIconSize};
+export type {SearchMissMode, ThemePreference};
 
 export interface SettingsState {
     theme: ThemePreference;
@@ -43,6 +47,10 @@ export interface SettingsState {
     weaponGrouping: WeaponGrouping;
     /** Sous-groupe des sections d'armures du coffre */
     armorGrouping: ArmorGrouping;
+    /** Nombre de recherches passées proposées sous la barre de recherche */
+    searchHistorySize: number;
+    /** Sort des objets du coffre qui ne répondent pas à la recherche */
+    searchMissMode: SearchMissMode;
 
     setTheme: (theme: ThemePreference) => void;
     setIconSize: (size: number) => void;
@@ -50,6 +58,8 @@ export interface SettingsState {
     setShowOrnaments: (show: boolean) => void;
     setWeaponGrouping: (grouping: WeaponGrouping) => void;
     setArmorGrouping: (grouping: ArmorGrouping) => void;
+    setSearchHistorySize: (size: number) => void;
+    setSearchMissMode: (mode: SearchMissMode) => void;
 
     /** Active ou désactive un critère, sans changer sa place */
     toggleSort: (id: SortId) => void;
@@ -70,6 +80,8 @@ export const useSettings = create<SettingsState>()(
             sortRules: [...DEFAULT_SORT_RULES],
             weaponGrouping: DEFAULT_WEAPON_GROUPING,
             armorGrouping: DEFAULT_ARMOR_GROUPING,
+            searchHistorySize: SEARCH_HISTORY_SIZE.default,
+            searchMissMode: "hide",
 
             setTheme: (theme) => set({theme}),
             setIconSize: (size) => set({iconSize: clampIconSize(size)}),
@@ -77,6 +89,9 @@ export const useSettings = create<SettingsState>()(
             setShowOrnaments: (showOrnaments) => set({showOrnaments}),
             setWeaponGrouping: (weaponGrouping) => set({weaponGrouping}),
             setArmorGrouping: (armorGrouping) => set({armorGrouping}),
+            setSearchHistorySize: (size) =>
+                set({searchHistorySize: clampSearchHistorySize(size)}),
+            setSearchMissMode: (searchMissMode) => set({searchMissMode}),
 
             toggleSort: (id) =>
                 set((state) => ({
@@ -115,6 +130,8 @@ export const useSettings = create<SettingsState>()(
                 sorts: serializeSortRules(state.sortRules),
                 weaponGrouping: state.weaponGrouping,
                 armorGrouping: state.armorGrouping,
+                searchHistorySize: state.searchHistorySize,
+                searchMissMode: state.searchMissMode,
             }),
             // Reconstruit les règles depuis les jetons. Un cookie écrit avant
             // l'arrivée du tri n'a pas de clé `sorts` : les valeurs par défaut
@@ -127,6 +144,8 @@ export const useSettings = create<SettingsState>()(
                     sorts,
                     weaponGrouping,
                     armorGrouping,
+                    searchHistorySize,
+                    searchMissMode,
                     ...rest
                 } = (persisted ?? {}) as Partial<SettingsState> & {
                     sorts?: unknown;
@@ -139,6 +158,12 @@ export const useSettings = create<SettingsState>()(
                         parseWeaponGrouping(weaponGrouping) ?? current.weaponGrouping,
                     armorGrouping:
                         parseArmorGrouping(armorGrouping) ?? current.armorGrouping,
+                    searchHistorySize:
+                        typeof searchHistorySize === "number"
+                            ? clampSearchHistorySize(searchHistorySize)
+                            : current.searchHistorySize,
+                    searchMissMode:
+                        parseSearchMissMode(searchMissMode) ?? current.searchMissMode,
                 };
             },
         },

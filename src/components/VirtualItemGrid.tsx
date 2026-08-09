@@ -8,6 +8,7 @@ import type {ItemDetail} from "@/lib/bungie/item-components";
 import type {GroupIconKind} from "@/lib/destiny/grouping";
 import {useGroupedItems} from "@/lib/destiny/use-grouped-items";
 import {useGridMetrics} from "@/lib/destiny/use-grid-metrics";
+import {useSearchFiltered} from "@/lib/search/provider";
 import {useSettings} from "@/lib/settings/store";
 import {ItemIcon} from "./ItemIcon";
 
@@ -71,8 +72,11 @@ export function VirtualItemGrid({
     details: Record<string, ItemDetail>;
 }) {
     const t = useTranslations("inventory");
+    // La recherche s'applique avant le regroupement : les compteurs des
+    // sections comptent alors ce qui est réellement affiché.
+    const found = useSearchFiltered(items);
     // Filtrés, triés selon les critères réglés dans les paramètres, puis groupés
-    const sections = useGroupedItems(items, details);
+    const sections = useGroupedItems(found, details);
     const viewportRef = useRef<HTMLDivElement>(null);
     // La taille réglée dans les paramètres change la grille sans changer sa
     // largeur : on la passe pour forcer une re-mesure. C'est le réglage dédié au

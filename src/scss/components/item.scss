@@ -15,13 +15,25 @@
   // Exigé par dnd-kit sur tactile : sans ça le navigateur interprète le geste
   // comme un défilement et le déplacement ne démarre jamais.
   touch-action: none;
-  transition: width 300ms ease, height 300ms ease;
+  transition: 150ms ease;
 
   // Le contenu (icône + habillages) est fourni par .item-thumb
 
   // Objet dont le tooltip est épinglé
   &--pinned {
     border-color: var(--color-accent);
+  }
+
+  // Écarté par la recherche. Il reste cliquable et déplaçable : c'est un
+  // effacement visuel, pas une désactivation — et dans l'équipement comme dans
+  // l'inventaire d'un personnage, c'est le seul retour possible, ces objets ne
+  // disparaissant jamais.
+  &--search-miss {
+    opacity: 0.2;
+
+    &:hover {
+      opacity: 0.6;
+    }
   }
 
   // —— Doctrines ————————————————————————————————————————————

@@ -8,7 +8,12 @@ import {Modal} from "@/components/ui/Modal";
 import {SettingRow, Toggle, Select} from "@/components/ui/SettingRow";
 import {IconSizeControl} from "./IconSizeControl";
 import {SortRuleList} from "./SortRuleList";
-import {useSettings, type ThemePreference} from "@/lib/settings/store";
+import {
+    SEARCH_HISTORY_SIZE,
+    useSettings,
+    type SearchMissMode,
+    type ThemePreference,
+} from "@/lib/settings/store";
 import {
     ARMOR_GROUPINGS,
     WEAPON_GROUPINGS,
@@ -17,12 +22,13 @@ import {
 } from "@/lib/destiny/grouping";
 import {APP_VERSION, SUPPORT_EMAIL, BUNGIE_PROFILE_URL} from "@/lib/app-info";
 
-type Category = "account" | "appearance" | "inventory" | "about";
+type Category = "account" | "appearance" | "inventory" | "search" | "about";
 
 const CATEGORIES: Category[] = [
     "account",
     "appearance",
     "inventory",
+    "search",
     "about",
 ];
 
@@ -87,6 +93,7 @@ export function SettingsModal({
                     )}
                     {category === "appearance" && <AppearancePanel/>}
                     {category === "inventory" && <InventoryPanel/>}
+                    {category === "search" && <SearchPanel/>}
                     {category === "about" && <AboutPanel/>}
                 </div>
             </div>
@@ -280,6 +287,73 @@ function InventoryPanel() {
                 >
                     {t("sortReset")}
                 </button>
+            </div>
+        </div>
+    );
+}
+
+/**
+ * Onglet « Recherche ».
+ *
+ * Deux réglages seulement : la longueur de l'historique proposé sous la barre,
+ * et ce qu'il advient des objets écartés. Le rappel de syntaxe qui suit évite
+ * d'avoir à retenir les mots-clés — ce sont ceux de Destiny Item Manager.
+ */
+function SearchPanel() {
+    const t = useTranslations("settings.search");
+    const historySize = useSettings((s) => s.searchHistorySize);
+    const setHistorySize = useSettings((s) => s.setSearchHistorySize);
+    const missMode = useSettings((s) => s.searchMissMode);
+    const setMissMode = useSettings((s) => s.setSearchMissMode);
+
+    const examples = ["frenzy", "is:exotic is:strand", "stat:range:>=80", "basestat:weapons:30 and basestat:grenade:>=20"];
+
+    return (
+        <div className="settings__group">
+            <SettingRow
+                label={t("historySize")}
+                hint={t("historySizeHint")}
+                htmlFor="setting-search-history"
+            >
+                <input
+                    id="setting-search-history"
+                    type="number"
+                    className="setting-number"
+                    min={SEARCH_HISTORY_SIZE.min}
+                    max={SEARCH_HISTORY_SIZE.max}
+                    value={historySize}
+                    onChange={(e) => setHistorySize(Number(e.target.value))}
+                />
+            </SettingRow>
+
+            <SettingRow
+                label={t("missMode")}
+                hint={t("missModeHint")}
+                htmlFor="setting-search-miss"
+            >
+                <Select<SearchMissMode>
+                    id="setting-search-miss"
+                    value={missMode}
+                    onChange={setMissMode}
+                    options={[
+                        {value: "hide", label: t("missModes.hide")},
+                        {value: "dim", label: t("missModes.dim")},
+                    ]}
+                />
+            </SettingRow>
+
+            <div className="settings__block">
+                <div className="setting-row__text">
+                    <span className="setting-row__label">{t("syntax")}</span>
+                    <p className="setting-row__hint">{t("syntaxHint")}</p>
+                </div>
+                <ul className="settings__examples">
+                    {examples.map((example) => (
+                        <li key={example}>
+                            <code>{example}</code>
+                        </li>
+                    ))}
+                </ul>
             </div>
         </div>
     );

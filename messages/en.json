@@ -17,7 +17,8 @@
       "account": "Account",
       "appearance": "Appearance",
       "inventory": "Inventory",
-      "about": "About"
+      "about": "About",
+      "search": "Search"
     },
     "account": {
       "logout": "Sign out",
@@ -90,6 +91,18 @@
           "desc": "With first"
         }
       }
+    },
+    "search": {
+      "historySize": "Remembered searches",
+      "historySizeHint": "How many past searches the bar's chevron offers (0 to 30)",
+      "missMode": "Items ruled out by the search",
+      "missModeHint": "Vault and postmaster only: a character's inventory always merely dims them.",
+      "missModes": {
+        "hide": "Hide them",
+        "dim": "Dim them"
+      },
+      "syntax": "Syntax",
+      "syntaxHint": "Destiny Item Manager's: is:, stat:, basestat:, perkname:, power:, id:… combined with and, or, not and parentheses. A bare word searches the item and perk names."
     },
     "about": {
       "version": "Site version",
@@ -189,5 +202,18 @@
     "setPieces": "{count} pieces",
     "crafted": "Crafted",
     "enhanced": "Enhanced"
+  },
+  "search": {
+    "label": "Search items",
+    "placeholder": "Search items/perks",
+    "invalid": "Incomplete query or unknown keyword: the search is not applied.",
+    "found": "{count, plural, =0 {No item found} one {# item found} other {# items found}}",
+    "clear": "Clear the search",
+    "historyLabel": "Recent searches",
+    "historyEmpty": "No recent search.",
+    "historyClear": "Clear history",
+    "actionsLabel": "Actions on the items found",
+    "moveTo": "Transfer to {character}",
+    "moveToVault": "Transfer to the vault"
   }
 }

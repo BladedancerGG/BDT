@@ -45,8 +45,11 @@
     display: flex;
     width: 100%;
     height: 100%;
-    align-items: center;
+    // La colonne de droite occupe toute la hauteur : la puissance se cale en
+    // haut et le résultat de recherche en bas, la classe restant centrée.
+    align-items: stretch;
     justify-content: space-between;
+    padding: 0.25rem 0.5rem 0.25rem 0;
   }
 
   &__info {
@@ -60,13 +63,31 @@
   }
 
   &__class {
+    align-self: center;
     font-weight: 600;
     color: var(--tab-text);
   }
 
+  // Puissance et résultats de recherche, empilés à droite. `space-between`
+  // maintient la puissance en haut même quand la seconde ligne est absente.
+  &__aside {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: space-between;
+  }
+
   &__power {
     font-size: 1.2rem;
+    line-height: 1.1;
     color: var(--tab-accent);
+  }
+
+  &__found {
+    font-size: 0.75rem;
+    line-height: 1.1;
+    color: var(--tab-text);
+    white-space: nowrap;
   }
 
   &--selected {

@@ -85,6 +85,24 @@
     color: var(--color-text-muted);
   }
 
+  // Exemples de syntaxe de recherche, à recopier tels quels
+  &__examples {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    code {
+      display: inline-block;
+      padding: 0.125rem 0.375rem;
+      border-radius: var(--radius-sm);
+      background-color: var(--color-panel-alt);
+      font-size: 0.8125rem;
+    }
+  }
+
   // Petit témoin d'activité pendant un changement de langue
   &__pending {
     width: 0.75rem;
@@ -220,4 +238,19 @@
     font-size: 0.75rem;
     color: var(--color-text-muted);
   }
+}
+
+// Saisie numérique simple d'une ligne d'option (longueur d'historique…),
+// alignée sur le champ de la taille d'icônes sans en reprendre le gabarit
+// curseur + unité.
+.setting-number {
+  width: 4rem;
+  padding: 0.25rem 0.375rem;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius);
+  background-color: var(--color-panel-alt);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 0.875rem;
+  text-align: right;
 }

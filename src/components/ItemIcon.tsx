@@ -14,6 +14,7 @@ import {
 } from "@floating-ui/react";
 import { useDraggable } from "@dnd-kit/core";
 import { useSharedDefinition } from "@/lib/destiny/item-defs";
+import { useSearchMiss } from "@/lib/search/provider";
 import { subclassKind } from "@/lib/destiny/subclass";
 import { useMoveActions, type DraggedItem } from "./dnd/MoveDnd";
 import { ItemThumb, type ItemThumbProps } from "./ItemThumb";
@@ -46,6 +47,11 @@ export function ItemIcon({
   const def = useSharedDefinition(itemHash);
   const shape = subclassKind(def);
   const [open, setOpen] = useState(false);
+
+  // Écarté par la recherche : la vignette pâlit. Les objets équipés et ceux de
+  // l'inventaire d'un personnage ne disparaissent jamais — seuls le coffre et
+  // les objets perdus peuvent être filtrés, et cela se décide plus haut.
+  const searchMiss = useSearchMiss(itemHash, itemInstanceId);
 
   // Seules les actions transitent par le contexte : l'objet en cours de
   // déplacement en est volontairement absent, il re-rendrait toutes les
@@ -122,6 +128,7 @@ export function ItemIcon({
           shape ? SHAPE_CLASS[shape] : null,
           open ? "item--pinned" : null,
           isDragging ? "item--dragging" : null,
+          searchMiss ? "item--search-miss" : null,
         ]
           .filter(Boolean)
           .join(" ")}

@@ -23,6 +23,8 @@ import {
 } from "@/lib/manifest/use-definition";
 import {useSettings} from "@/lib/settings/store";
 import {useDisplayableItems} from "@/lib/destiny/use-displayable-items";
+import {SearchProvider, useSearchFiltered} from "@/lib/search/provider";
+import {SearchActionsBridge} from "./search/SearchActionsBridge";
 import {useActionRunner} from "@/lib/actions/use-action-runner";
 import {CharacterTab} from "./CharacterTab";
 import {EquipmentSlot} from "./EquipmentSlot";
@@ -93,14 +95,17 @@ function PostmasterGrid(
         "DestinyInventoryBucketDefinition",
         BUCKET.Postmaster,
     );
+    // Comme le coffre : selon le réglage, les objets écartés par la recherche
+    // disparaissent d'ici, ou n'y sont qu'estompés.
+    const shown = useSearchFiltered(items);
 
-    if (items.length === 0) return null;
+    if (shown.length === 0) return null;
 
     return (
         <section className="item-grid">
             <div className="item-grid__header">
                 <h2 className="item-grid__title">
-                    {bucket?.displayProperties?.name ?? ""} ({items.length})
+                    {bucket?.displayProperties?.name ?? ""} ({shown.length})
                 </h2>
                 <button
                     type="button"
@@ -125,7 +130,7 @@ function PostmasterGrid(
             </div>
             {!collapsed && (
                 <div className="item-grid__items">
-                    {items.map((item, i) => {
+                    {shown.map((item, i) => {
                         const detail = item.itemInstanceId
                             ? details[item.itemInstanceId]
                             : undefined;
@@ -192,8 +197,12 @@ function Inventory({data}: { data: ProfileData }) {
 
     return (
         <EquippedSetsProvider counts={setCounts}>
+            {/* La recherche englobe toute la vue : les vignettes de
+                l'équipement s'estompent elles aussi. */}
+            <SearchProvider data={data} currentCharacterId={current}>
             <MoveDnd selectedCharacterId={current}>
             <ActionRunner/>
+            <SearchActionsBridge data={data}/>
             <div className="inventory-view">
                 {/* Sélecteur de personnage */}
                 <div className="inventory-view__characters">
@@ -255,6 +264,7 @@ function Inventory({data}: { data: ProfileData }) {
 
             <ActionsPanel/>
             </MoveDnd>
+            </SearchProvider>
         </EquippedSetsProvider>
     );
 }

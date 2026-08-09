@@ -2,6 +2,7 @@ import {getTranslations} from "next-intl/server";
 import {getCurrentUser} from "@/lib/auth/current-user";
 import {Dashboard} from "@/components/Dashboard";
 import {HeaderActions} from "@/components/HeaderActions";
+import {SearchBar} from "@/components/search/SearchBar";
 
 export default async function Home() {
     const user = await getCurrentUser();
@@ -11,6 +12,9 @@ export default async function Home() {
         <main className="app-main">
             <header className="app-header">
                 <h1 className="app-header__title">Bladedancer's Destiny Tools</h1>
+
+                {/* La barre s'étire entre le titre et la barre de compte */}
+                {user && <SearchBar/>}
 
                 {user && (
                     <div className="auth-bar">
