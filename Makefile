@@ -68,7 +68,7 @@ lint: ## Lance le linter
 COMPOSE_PROD = docker compose -f docker-compose.prod.yml
 
 prod-up: ## Démarre le conteneur de production
-	$(COMPOSE_PROD) up
+	$(COMPOSE_PROD) up -d
 
 prod-down: ## Arrête la production (conserve données et certificats)
 	$(COMPOSE_PROD) down
