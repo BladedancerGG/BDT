@@ -33,7 +33,7 @@ export const ARMOR_GROUPINGS = [
   "none",
   "class",
   "setBonus",
-  "armorArchetype",
+  // "armorArchetype",
 ] as const;
 
 export type WeaponGrouping = (typeof WEAPON_GROUPINGS)[number];

@@ -11,6 +11,7 @@ import {useGridMetrics} from "@/lib/destiny/use-grid-metrics";
 import {useSearchFiltered} from "@/lib/search/provider";
 import {useSettings} from "@/lib/settings/store";
 import {ItemIcon} from "./ItemIcon";
+import {GroupHeader} from "./GroupHeader";
 
 /**
  * Une ligne de la grille virtualisée. Les en-têtes en font partie au même titre
@@ -87,6 +88,8 @@ export function VirtualItemGrid({
         vaultIconSize,
     );
 
+    // Repli de la section entière, comme les objets perdus juste au-dessus
+    const [headerCollapsed, setHeaderCollapsed] = useState(false);
     const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(
         () => new Set(),
     );
@@ -174,11 +177,23 @@ export function VirtualItemGrid({
     return (
         // --fill : occupe la hauteur restante, pour être le seul élément à défiler
         <section className="item-grid item-grid--fill">
-            <h2 className="item-grid__title">
-                {title} ({total})
-            </h2>
+            <GroupHeader
+                kind="section"
+                label={title}
+                count={total}
+                icon="/icons/vault.svg"
+                iconKind="mask"
+                collapsed={headerCollapsed}
+                onToggle={() => setHeaderCollapsed((c) => !c)}
+                expandLabel={t("expand")}
+                collapseLabel={t("collapse")}
+            />
 
-            <div ref={viewportRef} className="item-grid__viewport">
+            <div
+                ref={viewportRef}
+                className="item-grid__viewport"
+                hidden={headerCollapsed}
+            >
                 <div
                     className="item-grid__canvas"
                     style={{height: virtualizer.getTotalSize()}}
@@ -217,88 +232,22 @@ export function VirtualItemGrid({
                         return (
                             <GroupHeader
                                 key={virtualRow.key}
-                                row={row}
-                                style={style}
-                                onToggle={toggle}
+                                kind={row.kind}
+                                label={row.label}
+                                count={row.count}
+                                icon={row.kind === "group" ? row.icon : undefined}
+                                iconKind={row.kind === "group" ? row.iconKind : undefined}
+                                collapsed={row.collapsed}
+                                onToggle={() => toggle(row.key)}
                                 expandLabel={t("expand")}
                                 collapseLabel={t("collapse")}
+                                style={style}
+                                virtual
                             />
                         );
                     })}
                 </div>
             </div>
         </section>
-    );
-}
-
-/**
- * En-tête d'emplacement ou de sous-groupe : bouton pleine largeur, pour que la
- * cible de repli couvre toute la ligne.
- */
-function GroupHeader({
-                         row,
-                         style,
-                         onToggle,
-                         expandLabel,
-                         collapseLabel,
-                     }: {
-    row: Extract<GridRow, { kind: "section" | "group" }>;
-    style: CSSProperties;
-    onToggle: (key: string) => void;
-    expandLabel: string;
-    collapseLabel: string;
-}) {
-    return (
-        <button
-            type="button"
-            className={`item-group item-group--${row.kind}`}
-            style={style}
-            onClick={() => onToggle(row.key)}
-            aria-expanded={!row.collapsed}
-            title={row.collapsed ? expandLabel : collapseLabel}
-        >
-            {/* Chevron orienté par CSS selon l'état */}
-            <svg className="item-group__chevron" viewBox="0 0 16 16" aria-hidden focusable="false">
-                <path
-                    d="M4 6l4 4 4-4"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                />
-            </svg>
-
-            {row.kind === "group" && <GroupIcon icon={row.icon} kind={row.iconKind}/>}
-
-            <span className="item-group__label">{row.label}</span>
-            <span className="item-group__count">{row.count}</span>
-        </button>
-    );
-}
-
-/**
- * Icône d'un sous-groupe.
- *
- * Deux rendus, selon la nature du fichier : les symboles monochromes passent en
- * masque CSS pour hériter de la couleur du texte (voir `GroupIconKind`), les
- * illustrations déjà colorées en simple image.
- */
-function GroupIcon({icon, kind}: { icon?: string; kind?: GroupIconKind }) {
-    if (!icon) return null;
-
-    if (kind === "mask") {
-        return (
-            <span
-                className="item-group__icon item-group__icon--mask"
-                style={{"--group-icon": `url(${icon})`} as CSSProperties}
-                aria-hidden
-            />
-        );
-    }
-
-    return (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img className="item-group__icon" src={icon} alt="" aria-hidden/>
     );
 }

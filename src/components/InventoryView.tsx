@@ -28,6 +28,7 @@ import {SearchActionsBridge} from "./search/SearchActionsBridge";
 import {useActionRunner} from "@/lib/actions/use-action-runner";
 import {CharacterTab} from "./CharacterTab";
 import {EquipmentSlot} from "./EquipmentSlot";
+import {GroupHeader} from "./GroupHeader";
 import {ItemIcon} from "./ItemIcon";
 import {VirtualItemGrid} from "./VirtualItemGrid";
 import {ActionsPanel} from "./actions/ActionsPanel";
@@ -103,31 +104,17 @@ function PostmasterGrid(
 
     return (
         <section className="item-grid">
-            <div className="item-grid__header">
-                <h2 className="item-grid__title">
-                    {bucket?.displayProperties?.name ?? ""} ({shown.length})
-                </h2>
-                <button
-                    type="button"
-                    className="item-grid__toggle"
-                    onClick={() => setCollapsed((c) => !c)}
-                    aria-expanded={!collapsed}
-                    aria-label={collapsed ? t("expand") : t("collapse")}
-                    title={collapsed ? t("expand") : t("collapse")}
-                >
-                    {/* Chevron orienté par CSS selon l'état */}
-                    <svg viewBox="0 0 16 16" aria-hidden focusable="false">
-                        <path
-                            d="M4 6l4 4 4-4"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                        />
-                    </svg>
-                </button>
-            </div>
+            <GroupHeader
+                kind="section"
+                label={bucket?.displayProperties?.name ?? ""}
+                count={shown.length}
+                icon="/icons/postmaster.svg"
+                iconKind="mask"
+                collapsed={collapsed}
+                onToggle={() => setCollapsed((c) => !c)}
+                expandLabel={t("expand")}
+                collapseLabel={t("collapse")}
+            />
             {!collapsed && (
                 <div className="item-grid__items">
                     {shown.map((item, i) => {

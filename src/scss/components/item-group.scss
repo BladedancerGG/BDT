@@ -1,24 +1,27 @@
 // En-têtes de groupe du coffre : emplacement (« Armes cinétiques ») et
-// sous-groupe (« Munitions spéciales », « Titans »…).
+// sous-groupe (« Munitions spéciales », « Titans »…). Les sections statiques de
+// l'inventaire (objets perdus, coffre) réutilisent la même structure.
 //
-// Ces en-têtes sont positionnés par la virtualisation, exactement comme les
-// lignes d'objets : ils sont donc en position absolue et reçoivent leur hauteur
-// en style inline, gouttière comprise. Cette hauteur est dérivée de
-// `--group-section-height` / `--group-header-height` (layout/main.scss), lues
-// par `useGridMetrics` : une seule valeur gouverne la mise en page et le calcul
-// de virtualisation.
+// Trois variables de hauteur, toutes dans layout/main.scss :
+//   `--inventory-header-height` — les en-têtes statiques, appliquée ici en CSS ;
+//   `--group-section-height` / `--group-header-height` — les en-têtes du coffre,
+//   lues par `useGridMetrics` et posées en style inline, gouttière comprise
+//   (ils sont des lignes de la virtualisation, donc en position absolue). Le
+//   style inline l'emporte sur la hauteur de base, aucune règle à dupliquer.
 
 .item-group {
-  position: absolute;
-  top: 0;
-  left: 0;
   width: 100%;
+  // Une seule valeur gouverne la hauteur des en-têtes. Les lignes de la
+  // virtualisation la reçoivent en style inline (calculée par useGridMetrics à
+  // partir des mêmes variables), ce qui l'emporte sur cette règle.
+  height: var(--inventory-header-height);
+  flex-shrink: 0; // hors virtualisation, la colonne ne doit pas l'écraser
 
   display: flex;
   align-items: center;
   gap: 0.5rem;
 
-  padding: 0;
+  padding: 1rem 0;
   border: 0;
   background: none;
   color: var(--color-text-muted);
@@ -101,7 +104,20 @@
 
   // —— Sous-groupe : un cran en dessous, et légèrement décalé ——
   &--group {
-    padding: 01rem 0.9rem;
+    padding: 1rem 0 1rem 1rem;
     font-size: 0.9rem;
+  }
+
+  // —— Ligne de la grille virtualisée ————————————————————————
+  // Placée par le virtualiseur, qui lui donne sa hauteur en style inline. Les
+  // mêmes en-têtes servent aussi hors virtualisation (objets perdus, coffre) :
+  // le positionnement est donc porté par ce modificateur, pas par la base.
+  &--virtual {
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+  &--section.item-group--virtual {
+    padding-left: 0.5rem;
   }
 }
