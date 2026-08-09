@@ -15,11 +15,7 @@
   // Exigé par dnd-kit sur tactile : sans ça le navigateur interprète le geste
   // comme un défilement et le déplacement ne démarre jamais.
   touch-action: none;
-  transition: border-color 120ms ease;
-
-  &:hover {
-    border-color: var(--color-text-muted);
-  }
+  transition: width 300ms ease, height 300ms ease;
 
   // Le contenu (icône + habillages) est fourni par .item-thumb
 

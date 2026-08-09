@@ -80,6 +80,15 @@ export const EQUIPMENT_BUCKETS: ReadonlySet<number> = new Set([
   ...ARMOR_COLUMN,
 ]);
 
+/**
+ * Rang d'affichage d'un emplacement, celui des deux colonnes d'équipement —
+ * lui-même issu du `bucketOrder` du manifeste. Sert à ordonner les sections du
+ * coffre ; un emplacement absent d'ici passe en dernier.
+ */
+export const BUCKET_ORDER: ReadonlyMap<number, number> = new Map(
+  [...WEAPON_COLUMN, ...ARMOR_COLUMN].map((hash, index) => [hash, index]),
+);
+
 /** Côté vers lequel le panneau d'inventaire d'un emplacement se déplie. */
 export type SlotSide = "left" | "right";
 

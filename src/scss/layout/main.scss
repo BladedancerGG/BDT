@@ -13,6 +13,11 @@
   // redéfinit --item-size pour tout son sous-arbre.
   --vault-item-size: #{v.$item-size};
   --item-gap: 8px;
+  // Hauteur des en-têtes de groupe du coffre (voir components/item-group.scss).
+  // Lues elles aussi par la virtualisation : les en-têtes sont des lignes de la
+  // grille au même titre que les objets, il leur faut une hauteur connue.
+  --group-section-height: 28px;
+  --group-header-height: 42px;
 
   // —— Géométrie des colonnes d'équipement ————————————————————
   //

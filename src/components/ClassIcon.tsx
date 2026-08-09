@@ -1,7 +1,7 @@
 "use client";
 
 import type { CSSProperties } from "react";
-import { classIconPath } from "@/lib/destiny/use-character-names";
+import { classIconPath } from "@/lib/destiny/icons";
 
 /**
  * Symbole de classe (Titan, Chasseur, Arcaniste), teinté par la couleur de

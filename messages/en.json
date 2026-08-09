@@ -41,6 +41,21 @@
       "vaultIconSizeHint": "Vault and postmaster"
     },
     "inventory": {
+      "weaponGrouping": "Weapon grouping",
+      "armorGrouping": "Armor grouping",
+      "groupingHint": "The vault is always split by slot; this setting picks the sub-group, one at a time.",
+      "weaponGroupings": {
+        "none": "None",
+        "ammoType": "Ammo type",
+        "weaponType": "Weapon type",
+        "damageType": "Damage type"
+      },
+      "armorGroupings": {
+        "none": "None",
+        "class": "Class",
+        "setBonus": "Set bonus",
+        "armorArchetype": "Armor archetype"
+      },
       "sort": "Item sorting",
       "sortHint": "The topmost criterion breaks ties first; the others only apply when it is equal. Drag the handle to reorder.",
       "sortReset": "Reset sorting",
@@ -48,7 +63,6 @@
       "sortReverse": "Reverse “{name}”, currently {direction}",
       "sortEnable": "Enable sorting by “{name}”",
       "sortCriteria": {
-        "bucket": "Slot",
         "rarity": "Rarity",
         "power": "Power level",
         "type": "Type",
@@ -151,7 +165,13 @@
     "vault": "Vault",
     "equipment": "Equipment",
     "expand": "Expand",
-    "collapse": "Collapse"
+    "collapse": "Collapse",
+    "otherGroup": "Other",
+    "ammo": {
+      "primary": "Primary ammo",
+      "special": "Special ammo",
+      "heavy": "Heavy ammo"
+    }
   },
   "subclass": {
     "abilities": "Abilities",

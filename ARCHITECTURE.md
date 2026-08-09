@@ -256,6 +256,31 @@ changes.
 The "Equipped" and "Inventory" sections stay on a plain grid — a few dozen items,
 virtualisation would buy nothing.
 
+### Grouping
+
+The vault is **always** split into sections by origin slot (kinetic, helmet…) —
+`item.bucketHash` is "Vault" for everything there, so the slot is read from
+`definition.inventory.bucketTypeHash`. Within a section, one sub-group at a time,
+chosen in the settings: ammo type (default), weapon type or damage type for
+weapons; class (default), set bonus or armor archetype for armour.
+
+`lib/destiny/grouping.ts` is pure, like `sort.ts`: it receives already-resolved
+definitions and labels and returns sections. The two mechanisms compose —
+sorting applies to the whole list first, grouping only redistributes it. This is
+why "slot" is no longer a sort criterion: sections already carry it.
+
+Group headers are **rows of the same virtualiser** as the items — the only way
+to have them scroll with the content without mounting the thousand thumbnails
+virtualisation exists to avoid. Their heights therefore come from the CSS too
+(`--group-section-height`, `--group-header-height`), read by `useGridMetrics()`.
+Headers collapse, but that state is deliberately **not** persisted: the
+preferences cookie is capped at 4 KB and shared.
+
+Header icons take two forms: monochrome symbols (weapon type, class) are CSS
+masks so they inherit the text colour — an SVG loaded through `<img>` is an
+isolated document where `currentColor` never sees the page — while already
+coloured artwork (ammo pips, manifest icons) is a plain `<img>`.
+
 > The scroll container does not clip tooltips: they render in a portal, outside
 > that DOM tree.
 >
@@ -782,6 +807,35 @@ colonne, et un `ResizeObserver` suit les changements de largeur.
 
 Les sections « Équipé » et « Inventaire » restent en grille simple : quelques
 dizaines d'objets, la virtualisation n'y apporterait rien.
+
+### Regroupement
+
+Le coffre est **toujours** découpé en sections par emplacement d'origine
+(cinétique, casque…) — `item.bucketHash` y vaut « Coffre » pour tout le monde,
+l'emplacement se lit donc dans `definition.inventory.bucketTypeHash`. Dans une
+section, un seul sous-groupe à la fois, choisi dans les paramètres : type de
+munitions (par défaut), type d'arme ou type de dégâts pour les armes ; classe
+(par défaut), bonus d'ensemble ou archétype pour les armures.
+
+`lib/destiny/grouping.ts` est pur, comme `sort.ts` : il reçoit des définitions et
+des libellés déjà résolus et renvoie des sections. Les deux mécanismes se
+composent — le tri s'applique d'abord à toute la liste, le regroupement ne fait
+que la redistribuer. C'est pourquoi « Emplacement » n'est plus un critère de
+tri : les sections le portent déjà.
+
+Les en-têtes de groupe sont des **lignes du même virtualiseur** que les objets :
+c'est la seule façon de les faire défiler avec le contenu sans monter les
+milliers de vignettes que la virtualisation sert précisément à éviter. Leur
+hauteur vient donc du CSS elle aussi (`--group-section-height`,
+`--group-header-height`), lue par `useGridMetrics()`. Les en-têtes se replient,
+mais cet état n'est délibérément **pas** mémorisé : le cookie de préférences est
+plafonné à 4 Ko et partagé.
+
+Les icônes d'en-tête ont deux formes : les symboles monochromes (type d'arme,
+classe) passent en masque CSS pour hériter de la couleur du texte — un SVG chargé
+par `<img>` est un document isolé, où `currentColor` ne voit jamais la page —
+tandis que les illustrations déjà colorées (pastilles de munitions, icônes du
+manifeste) restent de simples `<img>`.
 
 > Le conteneur de défilement ne rogne pas les infobulles : elles sont rendues
 > dans un portail, hors de cet arbre DOM.

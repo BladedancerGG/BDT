@@ -12,7 +12,6 @@ import type { DestinyItemComponent } from "@/lib/bungie/profile";
 import type { ItemDetail } from "@/lib/bungie/item-components";
 import type { InventoryItemDefinition } from "./types";
 import { isCrafted, isEnhanced, isMasterwork } from "./overlays";
-import { WEAPON_COLUMN, ARMOR_COLUMN } from "./buckets";
 import type { ItemSortTraits } from "./sort-traits";
 
 /**
@@ -20,7 +19,6 @@ import type { ItemSortTraits } from "./sort-traits";
  * l'ordre réel est celui choisi par le joueur (voir `SortRule`).
  */
 export const SORT_IDS = [
-  "bucket",
   "rarity",
   "power",
   "type",
@@ -49,12 +47,15 @@ export interface SortRule {
 }
 
 /**
- * Réglage par défaut : le regroupement le plus courant en jeu — par emplacement,
- * puis rareté décroissante, puis puissance décroissante. Les autres critères
- * sont présents mais inactifs, pour que le joueur n'ait qu'à les activer.
+ * Réglage par défaut : rareté décroissante, puis puissance décroissante. Les
+ * autres critères sont présents mais inactifs, pour que le joueur n'ait qu'à les
+ * activer.
+ *
+ * L'emplacement n'y figure pas : le coffre est désormais toujours découpé en
+ * sections par emplacement (voir `grouping.ts`), le tri n'opère qu'à l'intérieur
+ * de l'une d'elles.
  */
 export const DEFAULT_SORT_RULES: readonly SortRule[] = [
-  { id: "bucket", enabled: true, desc: false },
   { id: "rarity", enabled: true, desc: true },
   { id: "power", enabled: true, desc: true },
   { id: "type", enabled: false, desc: false },
@@ -76,7 +77,6 @@ export const DEFAULT_SORT_RULES: readonly SortRule[] = [
 export type SortKind = "text" | "number" | "flag";
 
 export const SORT_KIND: Record<SortId, SortKind> = {
-  bucket: "number",
   rarity: "number",
   power: "number",
   type: "text",
@@ -99,14 +99,6 @@ export interface SortContext {
   /** Armature, archétype et bonus d'ensemble, résolus par `loadSortTraits` */
   traits: Map<string, ItemSortTraits>;
 }
-
-/**
- * Ordre d'affichage des emplacements, celui des deux colonnes d'équipement —
- * lui-même issu du `bucketOrder` du manifeste.
- */
-const BUCKET_ORDER = new Map<number, number>(
-  [...WEAPON_COLUMN, ...ARMOR_COLUMN].map((hash, index) => [hash, index]),
-);
 
 /**
  * Types de munitions (DestinyAmmunitionType) dépourvus de sens pour un tri.
@@ -146,11 +138,6 @@ function sortKey(
 
     case "type":
       return def?.itemTypeDisplayName || undefined;
-
-    case "bucket":
-      // L'emplacement d'ORIGINE de l'objet, et non celui où il se trouve :
-      // au coffre, `item.bucketHash` vaut « Coffre » pour tout le monde.
-      return BUCKET_ORDER.get(def?.inventory?.bucketTypeHash ?? -1);
 
     case "rarity":
       return def?.inventory?.tierType;

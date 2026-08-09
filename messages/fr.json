@@ -41,6 +41,21 @@
       "vaultIconSizeHint": "Coffre et objets perdus"
     },
     "inventory": {
+      "weaponGrouping": "Regroupement des armes",
+      "armorGrouping": "Regroupement des armures",
+      "groupingHint": "Le coffre est toujours séparé par emplacement ; ce réglage choisit le sous-groupe, un seul à la fois.",
+      "weaponGroupings": {
+        "none": "Aucun",
+        "ammoType": "Type de munitions",
+        "weaponType": "Type d'arme",
+        "damageType": "Type de dégâts"
+      },
+      "armorGroupings": {
+        "none": "Aucun",
+        "class": "Classe",
+        "setBonus": "Bonus d'ensemble",
+        "armorArchetype": "Archétype d'armure"
+      },
       "sort": "Tri des objets",
       "sortHint": "Le critère du haut départage en premier ; les suivants ne servent qu'en cas d'égalité. Glissez la poignée pour changer l'ordre.",
       "sortReset": "Réinitialiser le tri",
@@ -48,7 +63,6 @@
       "sortReverse": "Inverser « {name} », actuellement {direction}",
       "sortEnable": "Activer le tri par « {name} »",
       "sortCriteria": {
-        "bucket": "Emplacement",
         "rarity": "Rareté",
         "power": "Niveau de puissance",
         "type": "Type",
@@ -151,7 +165,13 @@
     "vault": "Coffre",
     "equipment": "Équipement",
     "expand": "Déplier",
-    "collapse": "Replier"
+    "collapse": "Replier",
+    "otherGroup": "Autres",
+    "ammo": {
+      "primary": "Munitions principales",
+      "special": "Munitions spéciales",
+      "heavy": "Munitions lourdes"
+    }
   },
   "subclass": {
     "abilities": "Compétences",

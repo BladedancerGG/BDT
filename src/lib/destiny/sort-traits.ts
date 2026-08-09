@@ -31,6 +31,8 @@ export interface ItemSortTraits {
   frame?: string;
   /** Nom de l'archétype (« Rempart », « Grenadier ») — armures uniquement */
   archetype?: string;
+  /** Icône de ce même archétype, pour l'en-tête de son groupe */
+  archetypeIcon?: string;
   /** Nom de l'ensemble conférant des bonus — armures uniquement */
   setBonus?: string;
 }
@@ -184,6 +186,7 @@ export async function loadSortTraits(
         !entry.archetype
       ) {
         entry.archetype = name;
+        entry.archetypeIcon = plugDef?.displayProperties?.icon;
       }
     }
 

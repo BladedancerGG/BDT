@@ -41,17 +41,3 @@ export function useCharacterNames(
     }, [key]) ?? EMPTY
   );
 }
-
-/** Fichier d'icône de classe (DestinyClass : 0 Titan, 1 Chasseur, 2 Arcaniste). */
-export function classIconPath(classType: number | undefined): string | null {
-  switch (classType) {
-    case 0:
-      return "/icons/class_titan.svg";
-    case 1:
-      return "/icons/class_hunter.svg";
-    case 2:
-      return "/icons/class_warlock.svg";
-    default:
-      return null;
-  }
-}

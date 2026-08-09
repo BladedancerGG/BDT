@@ -9,6 +9,12 @@ import {SettingRow, Toggle, Select} from "@/components/ui/SettingRow";
 import {IconSizeControl} from "./IconSizeControl";
 import {SortRuleList} from "./SortRuleList";
 import {useSettings, type ThemePreference} from "@/lib/settings/store";
+import {
+    ARMOR_GROUPINGS,
+    WEAPON_GROUPINGS,
+    type ArmorGrouping,
+    type WeaponGrouping,
+} from "@/lib/destiny/grouping";
 import {APP_VERSION, SUPPORT_EMAIL, BUNGIE_PROFILE_URL} from "@/lib/app-info";
 
 type Category = "account" | "appearance" | "inventory" | "about";
@@ -219,9 +225,46 @@ function AppearancePanel() {
 function InventoryPanel() {
     const t = useTranslations("settings.inventory");
     const resetSorts = useSettings((s) => s.resetSorts);
+    const weaponGrouping = useSettings((s) => s.weaponGrouping);
+    const setWeaponGrouping = useSettings((s) => s.setWeaponGrouping);
+    const armorGrouping = useSettings((s) => s.armorGrouping);
+    const setArmorGrouping = useSettings((s) => s.setArmorGrouping);
 
     return (
         <div className="settings__group">
+            {/* Regroupement : le coffre est toujours découpé par emplacement,
+                seul le sous-groupe se règle — et un seul à la fois. */}
+            <SettingRow
+                label={t("weaponGrouping")}
+                hint={t("groupingHint")}
+                htmlFor="setting-weapon-grouping"
+            >
+                <Select<WeaponGrouping>
+                    id="setting-weapon-grouping"
+                    value={weaponGrouping}
+                    onChange={setWeaponGrouping}
+                    options={WEAPON_GROUPINGS.map((value) => ({
+                        value,
+                        label: t(`weaponGroupings.${value}`),
+                    }))}
+                />
+            </SettingRow>
+
+            <SettingRow
+                label={t("armorGrouping")}
+                htmlFor="setting-armor-grouping"
+            >
+                <Select<ArmorGrouping>
+                    id="setting-armor-grouping"
+                    value={armorGrouping}
+                    onChange={setArmorGrouping}
+                    options={ARMOR_GROUPINGS.map((value) => ({
+                        value,
+                        label: t(`armorGroupings.${value}`),
+                    }))}
+                />
+            </SettingRow>
+
             {/* Le tri occupe toute la largeur : la liste ordonnée ne tiendrait
                 pas dans la colonne de droite d'une SettingRow. */}
             <div className="settings__block">

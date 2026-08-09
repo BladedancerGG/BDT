@@ -1,0 +1,107 @@
+// En-têtes de groupe du coffre : emplacement (« Armes cinétiques ») et
+// sous-groupe (« Munitions spéciales », « Titans »…).
+//
+// Ces en-têtes sont positionnés par la virtualisation, exactement comme les
+// lignes d'objets : ils sont donc en position absolue et reçoivent leur hauteur
+// en style inline, gouttière comprise. Cette hauteur est dérivée de
+// `--group-section-height` / `--group-header-height` (layout/main.scss), lues
+// par `useGridMetrics` : une seule valeur gouverne la mise en page et le calcul
+// de virtualisation.
+
+.item-group {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-text-muted);
+  text-align: left;
+  cursor: pointer;
+
+  &__chevron {
+    flex-shrink: 0;
+    width: 0.875rem;
+    height: 0.875rem;
+    transition: transform 125ms ease;
+  }
+
+  // Replié : le chevron pointe vers la droite
+  &[aria-expanded="false"] &__chevron {
+    transform: rotate(-90deg);
+  }
+
+  &__icon {
+    flex-shrink: 0;
+    width: 1.5rem;
+    height: 1.5rem;
+    object-fit: contain;
+
+    // Symbole monochrome : le fichier sert de masque et la couleur du texte
+    // devient l'encre (même mécanisme que `.class-icon`, voir class-icon.scss).
+    &--mask {
+      background-color: currentColor;
+
+      mask-image: var(--group-icon);
+      mask-repeat: no-repeat;
+      mask-position: center;
+      mask-size: contain;
+
+      -webkit-mask-image: var(--group-icon);
+      -webkit-mask-repeat: no-repeat;
+      -webkit-mask-position: center;
+      -webkit-mask-size: contain;
+    }
+  }
+
+  &__label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  // Le compteur reste collé au libellé plutôt que rejeté au bout de la ligne :
+  // celle-ci fait toute la largeur du coffre, il y serait illisible.
+  &__count {
+    flex-shrink: 0;
+    font-variant-numeric: tabular-nums;
+    opacity: 0.65;
+  }
+
+  // Un filet part du texte jusqu'au bord, pour matérialiser la coupure
+  &::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--color-border);
+  }
+
+  &:hover {
+    color: var(--color-text);
+  }
+
+  // —— Emplacement : le niveau supérieur ————————————————————
+  &--section {
+    color: var(--color-text);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+
+    &::after {
+      background: var(--color-border-strong);
+    }
+  }
+
+  // —— Sous-groupe : un cran en dessous, et légèrement décalé ——
+  &--group {
+    padding: 01rem 0.9rem;
+    font-size: 0.9rem;
+  }
+}

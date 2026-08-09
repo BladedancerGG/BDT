@@ -113,7 +113,7 @@ $slot-columns: 3;
   width: calc(var(--grid-width) * var(--slot-reduced));
   // La hauteur suit celle de la ligne : l'agrandissement débordera par-dessus
   // les lignes voisines, ce qui est voulu.
-  height: calc(var(--item-size) * var(--slot-reduced) * 2);
+  height: calc(var(--item-size) * var(--slot-reduced) * 3);
 
   &__grid {
     position: absolute;

@@ -7,9 +7,18 @@ export interface GridMetrics {
     columns: number;
     /** Hauteur d'une ligne, gouttière incluse */
     rowHeight: number;
+    /** Hauteur d'un en-tête d'emplacement, gouttière incluse */
+    sectionHeight: number;
+    /** Hauteur d'un en-tête de sous-groupe, gouttière incluse */
+    groupHeight: number;
 }
 
-const FALLBACK: GridMetrics = {columns: 1, rowHeight: 83};
+const FALLBACK: GridMetrics = {
+    columns: 1,
+    rowHeight: 83,
+    sectionHeight: 36,
+    groupHeight: 50,
+};
 
 /**
  * Mesure une grille d'objets pour la virtualisation.
@@ -39,16 +48,33 @@ export function useGridMetrics(
             const styles = getComputedStyle(element);
             const size = parseFloat(styles.getPropertyValue("--item-size")) || 75;
             const gap = parseFloat(styles.getPropertyValue("--item-gap")) || 8;
+            // Les en-têtes de groupe entrent dans la même virtualisation que les
+            // objets : leur hauteur vient donc du CSS elle aussi, pour ne pas
+            // dupliquer une valeur de mise en page en JavaScript.
+            const section =
+                parseFloat(styles.getPropertyValue("--group-section-height")) || 28;
+            const group =
+                parseFloat(styles.getPropertyValue("--group-header-height")) || 42;
 
             // n objets et (n-1) gouttières doivent tenir dans la largeur :
             // n * size + (n - 1) * gap <= width  →  n <= (width + gap) / (size + gap)
             const width = element.clientWidth;
             const columns = Math.max(1, Math.floor((width + gap) / (size + gap)));
 
+            const next: GridMetrics = {
+                columns,
+                rowHeight: size + gap,
+                sectionHeight: section + gap,
+                groupHeight: group + gap,
+            };
+
             setMetrics((previous) =>
-                previous.columns === columns && previous.rowHeight === size + gap
+                previous.columns === next.columns &&
+                previous.rowHeight === next.rowHeight &&
+                previous.sectionHeight === next.sectionHeight &&
+                previous.groupHeight === next.groupHeight
                     ? previous // évite un rendu inutile
-                    : {columns, rowHeight: size + gap},
+                    : next,
             );
         };
 
