@@ -31,9 +31,10 @@ export default async function Home() {
                             {user.displayName === "Alyx#4951" && " (final god of Last Wish farms)"}
                             {user.displayName === "Eclipse#4170" && " (sedge farmer 👩‍🌾)"}
                             {user.displayName === "Boog Sloogus#6012" && " (goog...)"}
-                            {user.displayName === "Imbaer#4829" && " (aha feet)"}
+                            {user.displayName === "Imbaer#4829" && " (haha, feet)"}
+                            {user.displayName === "☞〠♡FLANNEL♡〠☜#1570" && " ()"}
 
-                            {user.displayName === "bog on my dog#7426" ? " (god of sleep schedule)" : ""}
+                            {user.displayName === "Bog on my dog#7426" ? " (Welcome, final god of sleep schedule)" : ""}
 
                         </p>
                         {/* Déconnexion déplacée dans les paramètres (onglet Compte) */}
@@ -42,7 +43,7 @@ export default async function Home() {
                 )}
             </header>
 
-            {(user && user.displayName !== "") ? (
+            {user ? (
                 <Dashboard/>
             ) : (
                 <div className="login-screen">

@@ -4,7 +4,7 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 0.75rem;
+  font-size: 0.85rem;
 
   &__name {
     width: 7rem;
@@ -24,7 +24,8 @@
 
   &__track {
     flex: 1;
-    height: 12px;
+    height: 15px;
+    width: 200px;
     overflow: hidden;
     background-color: var(--color-panel-alt);
   }

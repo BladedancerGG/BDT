@@ -307,25 +307,6 @@ export function ItemTooltip({
                     />
                 ) : (
                     <>
-                        {/* Archétype (arme) : intrinsèque + cadence / impact */}
-                        {isWeapon && archetypeHash && (
-                            <div className="item-tooltip__archetype">
-                                <PlugIcon hash={archetypeHash} square={true}/>
-                                <div>
-                                    <div className="item-tooltip__archetype-name">
-                                        <ArchetypeName hash={archetypeHash}/>
-                                    </div>
-                                    {(rpm != null || impact != null) && (
-                                        <div className="item-tooltip__archetype-detail">
-                                            {rpm != null && `${rpm} rpm`}
-                                            {rpm != null && impact != null && " / "}
-                                            {impact != null && `${impact} impact`}
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        )}
-
                         {/* Statistiques */}
                         {showStats && statEntries.length > 0 && (
                             <div className="item-tooltip__stats">
@@ -350,9 +331,9 @@ export function ItemTooltip({
                         {/* Capacité d'énergie (armure) */}
                         {isArmor && energy && energy.energyCapacity > 0 && (
                             <div className="item-tooltip__energy">
-                <span className="item-tooltip__energy-title">
-                  {energy.energyCapacity} {t("energy")}
-                </span>
+                                <span className="item-tooltip__energy-title">
+                                  {energy.energyCapacity} {t("energy")}
+                                </span>
                                 <div className="item-tooltip__energy-pips">
                                     {Array.from({length: energy.energyCapacity}).map((_, i) => (
                                         <span
@@ -364,6 +345,25 @@ export function ItemTooltip({
                                             }`}
                                         />
                                     ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Archétype (arme) : intrinsèque + cadence / impact */}
+                        {isWeapon && archetypeHash && (
+                            <div className="item-tooltip__archetype">
+                                <PlugIcon hash={archetypeHash} square={true}/>
+                                <div>
+                                    <div className="item-tooltip__archetype-name">
+                                        <ArchetypeName hash={archetypeHash}/>
+                                    </div>
+                                    {(rpm != null || impact != null) && (
+                                        <div className="item-tooltip__archetype-detail">
+                                            {rpm != null && `${rpm} rpm`}
+                                            {rpm != null && impact != null && " / "}
+                                            {impact != null && `${impact} impact`}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         )}

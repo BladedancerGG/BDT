@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import type { ProfileData } from "@/lib/bungie/use-profile";
+import { markLocalMoves } from "@/lib/bungie/profile-freshness";
 import { useItemDefs } from "@/lib/destiny/item-defs";
 import { useBucketCapacities } from "@/lib/destiny/use-bucket-capacities";
 import { applyStep, planMove } from "@/lib/destiny/moves";
@@ -39,6 +40,9 @@ export function useActionRunner() {
     // L'état de la file se lit toujours par getState() : la boucle survit à
     // plusieurs rendus, une valeur capturée serait périmée dès la 2ᵉ étape.
     const queue = useActionQueue.getState;
+
+    /** Objets effectivement déplacés, à confronter au rechargement final. */
+    const moved = new Set<string>();
 
     const runAction = async (action: QueuedAction) => {
       const { setSteps, setActionStatus, setStepStatus } = queue();
@@ -102,6 +106,8 @@ export function useActionRunner() {
         }
 
         setStepStatus(action.id, step.id, "done");
+        // Objet dont le rechargement final devra confirmer la nouvelle place
+        moved.add(step.itemInstanceId);
         // Le profil complet pèse ~1,6 Mo : on rejoue l'effet sur le cache
         // plutôt que de le recharger entre deux étapes.
         queryClient.setQueryData<ProfileData>(PROFILE_KEY, (current) =>
@@ -136,6 +142,13 @@ export function useActionRunner() {
 
       // File vidée : on resynchronise avec la vérité du serveur. Les mises à
       // jour locales sont fidèles, mais le jeu a pu bouger en parallèle.
+      //
+      // Le cache de Bungie retarde toutefois de quelques secondes sur nos
+      // écritures : on note où nos déplacements ont laissé les objets pour que
+      // `useProfile` puisse écarter une réponse qui les ignore encore.
+      const local = queryClient.getQueryData<ProfileData>(PROFILE_KEY);
+      if (local && moved.size > 0) markLocalMoves(local, moved);
+
       void queryClient.invalidateQueries({ queryKey: PROFILE_KEY });
     })();
   }, [actions, queryClient, defs, capacities]);
