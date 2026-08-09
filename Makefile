@@ -67,14 +67,19 @@ lint: ## Lance le linter
 
 COMPOSE_PROD = docker compose -f docker-compose.prod.yml
 
-prod-up: ## Construit et démarre la production (migrations incluses)
-	$(COMPOSE_PROD) up -d --build
+prod-up: ## Démarre le conteneur de production
+	$(COMPOSE_PROD) up
 
 prod-down: ## Arrête la production (conserve données et certificats)
 	$(COMPOSE_PROD) down
 
-prod-build: ## Construit les conteneurs de production
+prod-up-full: ## Build et démarre la production (migrations incluses)
+	$(COMPOSE_PROD) up -d --build
+
+prod-build: ## Build les conteneurs de production
 	$(COMPOSE_PROD) build
+
+prod-build-restart: prod-build prod-down prod-up ## Build et redémarre les conteneurs (idéal pour envoyer des mises à jour sur l'application en minimisant le downtime)
 
 prod-logs: ## Suit les logs de l'application en production
 	$(COMPOSE_PROD) logs -f app
