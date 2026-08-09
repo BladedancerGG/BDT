@@ -1,7 +1,6 @@
-# D2 API APP (NAME NOT FINAL)
+# Bladedancer's Destiny Tools
 
-Web app to manage Destiny 2 loadouts — browse characters, inventory and vault,
-inspect gear, and save loadout snapshots beyond the game's 20-per-character limit.
+![Butter dog](public/images/butter-dog.gif "Butter dog")
 
 - [English](#english)
 - [Français](#français)
