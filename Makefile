@@ -73,6 +73,9 @@ prod-up: ## Construit et démarre la production (migrations incluses)
 prod-down: ## Arrête la production (conserve données et certificats)
 	$(COMPOSE_PROD) down
 
+prod-build: ## Construit les conteneurs de production
+	$(COMPOSE_PROD) build
+
 prod-logs: ## Suit les logs de l'application en production
 	$(COMPOSE_PROD) logs -f app
 
