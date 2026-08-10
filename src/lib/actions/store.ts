@@ -181,6 +181,37 @@ export const useActionQueue = create<ActionQueueState>()((set) => ({
     })),
 }));
 
+// —— Objets en cours de déplacement ——————————————————————————
+
+/**
+ * `true` tant qu'une action non aboutie porte sur cet objet — le temps que
+ * Bungie réponde, sa vignette est grisée et coiffée d'une animation d'attente.
+ *
+ * On regarde aussi les étapes : un déplacement en coûte souvent plusieurs, et
+ * certaines touchent un *autre* objet (déséquiper celui qui occupe la place).
+ * Lui aussi bouge, il doit donc l'annoncer.
+ *
+ * Le sélecteur renvoie un booléen, pas un ensemble : les centaines de vignettes
+ * montées y sont abonnées, et seules celles dont la réponse change re-rendent.
+ */
+export function useItemBusy(itemInstanceId?: string): boolean {
+  return useActionQueue((state) =>
+    itemInstanceId
+      ? state.actions.some(
+          (action) =>
+            (action.status === "pending" || action.status === "running") &&
+            (action.itemInstanceId === itemInstanceId ||
+              action.steps.some(
+                (step) =>
+                  step.itemInstanceId === itemInstanceId &&
+                  step.status !== "done" &&
+                  step.status !== "error",
+              )),
+        )
+      : false,
+  );
+}
+
 // —— Compteurs affichés dans l'en-tête ————————————————————————
 
 export interface ActionCounts {

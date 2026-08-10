@@ -15,6 +15,7 @@ import {
 import { useDraggable } from "@dnd-kit/core";
 import { useSharedDefinition } from "@/lib/destiny/item-defs";
 import { useSearchMiss } from "@/lib/search/provider";
+import { useItemBusy } from "@/lib/actions/store";
 import { subclassKind } from "@/lib/destiny/subclass";
 import { useMoveActions, type DraggedItem } from "./dnd/MoveDnd";
 import { ItemThumb, type ItemThumbProps } from "./ItemThumb";
@@ -52,6 +53,12 @@ export function ItemIcon({
   // l'inventaire d'un personnage ne disparaissent jamais — seuls le coffre et
   // les objets perdus peuvent être filtrés, et cela se décide plus haut.
   const searchMiss = useSearchMiss(itemHash, itemInstanceId);
+
+  // Déplacement en attente de Bungie : la vignette est grisée le temps de la
+  // réponse. Le cache local n'est rejoué qu'une fois l'étape acquittée, donc
+  // l'objet reste visuellement à son ancienne place jusque-là — sans ce
+  // retour, rien ne distinguerait un ordre parti d'un ordre ignoré.
+  const busy = useItemBusy(itemInstanceId);
 
   // Seules les actions transitent par le contexte : l'objet en cours de
   // déplacement en est volontairement absent, il re-rendrait toutes les
@@ -129,9 +136,11 @@ export function ItemIcon({
           open ? "item--pinned" : null,
           isDragging ? "item--dragging" : null,
           searchMiss ? "item--search-miss" : null,
+          busy ? "item--busy" : null,
         ]
           .filter(Boolean)
           .join(" ")}
+        aria-busy={busy || undefined}
       >
         <ItemThumb
           itemHash={itemHash}
@@ -140,6 +149,12 @@ export function ItemIcon({
           versionNumber={versionNumber}
           gearTier={gearTier}
         />
+        {busy && (
+          // Même animation que le panneau d'actions : elle vit dans le SVG
+          // lui-même, aucune règle CSS d'ici ne l'atteint.
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src="/icons/loading.svg" alt="" className="item__spinner" />
+        )}
       </div>
 
       {shown && (
