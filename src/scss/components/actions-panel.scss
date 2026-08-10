@@ -4,8 +4,37 @@
 // Panneau latéral des actions : file des déplacements demandés.
 //
 // Il flotte au-dessus de la vue plutôt que de s'y insérer : l'inventaire ne se
-// réorganise pas quand on l'ouvre, et il peut rester ouvert pendant qu'on
-// continue à glisser des objets.
+// réorganise pas quand on l'ouvre.
+//
+// L'animation se joue sur l'attribut `data-status` posé par Floating UI, qui
+// vaut `initial` à l'arrivée, `open` une image plus tard, puis `close` au
+// départ. Les règles hors état décrivent donc l'état d'ENTRÉE et de SORTIE,
+// celles de `[data-status="open"]` l'état visible.
+
+// Doit rester égale à TRANSITION_MS dans components/actions/ActionsPanel.tsx,
+// qui décide du moment du démontage.
+$duration: 350ms;
+$ease: cubic-bezier(0.16, 1, 0.3, 1); // décélération franche, sans rebond
+
+// Voile d'assombrissement : il porte aussi le clic au-dehors, capté par
+// Floating UI.
+.actions-panel-overlay {
+  z-index: 40;
+  background-color: var(--color-overlay);
+
+  opacity: 0;
+  transition: opacity $duration $ease;
+
+  &[data-status="open"] {
+    opacity: 1;
+  }
+
+  // Pendant la fermeture le panneau est encore monté : on le rend inerte, pour
+  // qu'un clic ne puisse pas atteindre ce qui est en train de disparaître.
+  &[data-status="close"] {
+    pointer-events: none;
+  }
+}
 
 .actions-panel {
   position: fixed;
@@ -19,6 +48,19 @@
   background-color: var(--color-panel);
   border-left: 1px solid var(--color-border);
   box-shadow: var(--shadow-panel);
+
+  // Le glissement part de la droite ; l'opacité l'accompagne pour que la sortie
+  // ne laisse pas voir le bord du panneau franchir le voile.
+  translate: 100% 0;
+  opacity: 0;
+  transition:
+    translate $duration $ease,
+    opacity $duration $ease;
+
+  &[data-status="open"] {
+    translate: 0 0;
+    opacity: 1;
+  }
 
   &__header {
     display: flex;
@@ -41,6 +83,33 @@
     border: 1px solid var(--color-border);
     border-radius: var(--radius);
     padding: 0.125rem 0.25rem;
+  }
+
+  &__clear {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    width: 1.5rem;
+    height: 1.5rem;
+    border: 0;
+    background: none;
+    cursor: pointer;
+    color: var(--color-text-muted);
+
+    svg {
+      width: 1rem;
+      height: 1rem;
+    }
+
+    &:hover:not(:disabled) {
+      color: var(--color-danger);
+    }
+
+    &:disabled {
+      opacity: 0.35;
+      cursor: default;
+    }
   }
 
   &__close {
@@ -79,9 +148,26 @@
     color: var(--color-text-muted);
   }
 
-  &__footer {
-    padding: 0.5rem 0.75rem;
-    border-top: 1px solid var(--color-border);
+}
+
+// Préférence système : le panneau apparaît et disparaît d'un coup.
+//
+// On neutralise aussi l'état d'entrée, et non seulement la transition : sans ça
+// le décalage et l'opacité nulle resteraient figés, faute d'animation pour en
+// sortir.
+@media (prefers-reduced-motion: reduce) {
+  .actions-panel-overlay,
+  .actions-panel {
+    transition: none;
+  }
+
+  .actions-panel-overlay {
+    opacity: 1;
+  }
+
+  .actions-panel {
+    translate: 0 0;
+    opacity: 1;
   }
 }
 
@@ -304,12 +390,14 @@
     font-variant-numeric: tabular-nums;
   }
 
+  // L'attente n'est pas un avertissement : elle se lit en encre normale, et
+  // c'est l'aboutissement qui se colore.
   &__pending {
-    color: var(--color-accent);
+    color: var(--color-text);
   }
 
   &__done {
-    color: var(--color-text-muted);
+    color: var(--color-success);
   }
 
   &__failed {
