@@ -11,7 +11,7 @@ export default async function Home() {
     return (
         <main className="app-main">
             <header className="app-header">
-                <h1 className="app-header__title">Bladedancer's Destiny Tools</h1>
+                <h1 className="app-header__title">BDT</h1>
 
                 {/* La barre s'étire entre le titre et la barre de compte */}
                 {user && <SearchBar/>}

@@ -36,6 +36,8 @@
       "languageHint": "Changing language will completely reload the application",
       "ornaments": "Show ornaments",
       "ornamentsHint": "Use the equipped ornament instead of the base icon",
+      "originalOnHover": "Original look on hover",
+      "originalOnHoverHint": "Hovering an ornamented armor reveals its base icon",
       "iconSize": "Icon size",
       "iconSizeHint": "Equipped items and character inventory",
       "vaultIconSize": "Vault icon size",

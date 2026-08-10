@@ -44,6 +44,18 @@ const EMPTY: ItemDefsValue = {
 
 const ItemDefsContext = createContext<ItemDefsValue>(EMPTY);
 
+// Réglage « montrer l'apparence d'origine au survol ». Il vit dans son propre
+// contexte plutôt que dans la valeur ci-dessus : rangé là, le basculer ferait
+// rejouer toute la requête groupée du manifeste, alors qu'il ne change qu'un
+// calque CSS. Il ne passe pas non plus par une lecture du store dans chaque
+// vignette — ce serait un millier de souscriptions pour un booléen.
+const OriginalOnHoverContext = createContext(false);
+
+/** Vrai si les vignettes ornementées doivent révéler l'icône de base au survol. */
+export function useOriginalOnHover(): boolean {
+  return useContext(OriginalOnHoverContext);
+}
+
 export interface ItemRef {
   itemHash: number;
   itemInstanceId?: string;
@@ -53,6 +65,7 @@ export function ItemDefsProvider({
   items,
   details,
   withOrnaments,
+  withOriginalOnHover = false,
   children,
 }: {
   /** Tous les objets susceptibles d'être affichés dans cet arbre */
@@ -61,6 +74,8 @@ export function ItemDefsProvider({
   details: Record<string, ItemDetail>;
   /** Résoudre les ornements (coûte une lecture supplémentaire) */
   withOrnaments: boolean;
+  /** Révéler l'apparence d'origine des armures ornementées au survol */
+  withOriginalOnHover?: boolean;
   children: ReactNode;
 }) {
   const value = useLiveQuery(
@@ -207,7 +222,11 @@ export function ItemDefsProvider({
 
   return (
     <ItemDefsContext.Provider value={value ?? EMPTY}>
-      {children}
+      <OriginalOnHoverContext.Provider
+        value={withOrnaments && withOriginalOnHover}
+      >
+        {children}
+      </OriginalOnHoverContext.Provider>
     </ItemDefsContext.Provider>
   );
 }

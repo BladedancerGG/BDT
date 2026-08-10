@@ -262,6 +262,7 @@ export function InventoryView() {
     const {data, isLoading, isError} = useProfile();
 
     const showOrnaments = useSettings((s) => s.showOrnaments);
+    const showOriginalOnHover = useSettings((s) => s.showOriginalOnHover);
 
     // Tous les objets de l'arbre, pour une unique requête groupée de définitions
     const allItems = useMemo(() => {
@@ -289,6 +290,7 @@ export function InventoryView() {
             items={allItems}
             details={data.items}
             withOrnaments={showOrnaments}
+            withOriginalOnHover={showOriginalOnHover}
         >
             <Inventory data={data}/>
         </ItemDefsProvider>

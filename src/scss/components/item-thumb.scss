@@ -43,6 +43,7 @@
 
   &__background,
   &__img,
+  &__original,
   &__overlay {
     position: absolute;
     inset: 0;
@@ -54,8 +55,49 @@
   // Fond des objets ornementés : dessiné avant l'icône, donc en dessous
   // (l'ordre du DOM détermine l'empilement de ces calques absolus).
   &__background,
+  &__original,
   &__overlay {
     pointer-events: none;
+  }
+
+  // —— Apparence d'origine sous l'ornement ————————————————————
+  // Le calque est là en permanence mais transparent ; au survol il prend la
+  // place de l'ornement, dont on efface l'icône ET le fond détouré. Le fond de
+  // rareté, lui, vient de la couleur de fond ci-dessus : l'icône de base est un
+  // PNG détouré, elle a besoin qu'il reste visible.
+  &__original {
+    opacity: 0;
+  }
+
+  // Fondu croisé entre l'ornement et l'apparence d'origine. Seule l'opacité est
+  // nommée : les autres calques ne doivent rien interpoler.
+  &--ornamented &__img,
+  &--ornamented &__background,
+  &--ornamented &__original {
+    transition: opacity 200ms ease;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &--ornamented &__img,
+    &--ornamented &__background,
+    &--ornamented &__original {
+      transition: none;
+    }
+  }
+
+  // Sur écran tactile il n'y a pas de survol à proprement parler : la règle y
+  // resterait collée après un appui.
+  @media (hover: hover) {
+    &--ornamented:hover {
+      .item-thumb__img,
+      .item-thumb__background {
+        opacity: 0;
+      }
+
+      .item-thumb__original {
+        opacity: 1;
+      }
+    }
   }
 
   // —— Cadre des objets ordinaires ————————————————————————————

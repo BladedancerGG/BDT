@@ -6,6 +6,7 @@ import {
   useSharedIconDefinition,
   useSharedItemConstants,
   useOrnamentIcon,
+  useOriginalOnHover,
 } from "@/lib/destiny/item-defs";
 import {
   isMasterwork,
@@ -14,7 +15,7 @@ import {
 } from "@/lib/destiny/overlays";
 import { bestIconPath, tierClassName } from "@/lib/destiny/icons";
 import { isSubclass } from "@/lib/destiny/subclass";
-import { BUNGIE_ROOT } from "@/lib/destiny/display";
+import { BUNGIE_ROOT, ITEM_TYPE } from "@/lib/destiny/display";
 
 export interface ItemThumbProps {
   itemHash: number;
@@ -50,11 +51,27 @@ export function ItemThumb({
   const constants = useSharedItemConstants();
   // Vide si l'option « afficher les ornements » est désactivée
   const ornamentIcon = useOrnamentIcon(itemInstanceId);
+  const originalOnHover = useOriginalOnHover();
 
   // PNG détouré quand le manifeste en fournit un, sinon repli sur le JPEG
   // (qui, lui, a le fond de rareté incrusté dans l'image).
-  const icon = ornamentIcon ?? bestIconPath(def, iconDef);
+  const baseIcon = bestIconPath(def, iconDef);
+  const icon = ornamentIcon ?? baseIcon;
   const name = def?.displayProperties?.name ?? "";
+
+  // Un ornement masque l'apparence d'origine : on la rétablit au survol, en
+  // superposant l'icône de base. Elle est montée en permanence (et non au
+  // survol) pour que le navigateur l'ait déjà chargée quand le curseur arrive.
+  // Réservé aux armures : sur une arme, l'ornement ne change que l'apparence
+  // d'un modèle qu'on reconnaît déjà à son nom, l'échange n'apprend rien.
+  const originalIcon =
+    originalOnHover &&
+    def?.itemType === ITEM_TYPE.Armor &&
+    ornamentIcon &&
+    baseIcon &&
+    baseIcon !== ornamentIcon
+      ? baseIcon
+      : undefined;
 
   // Le fond de rareté n'est utile que pour les icônes détourées : le JPEG le
   // porte déjà. Il est fourni par le SCSS via une classe de rareté, sauf pour
@@ -93,6 +110,7 @@ export function ItemThumb({
     // Les doctrines ont leur propre cadre : pas de fond de rareté
     subclass ? null : `item-thumb--tier-${tierClassName(tierType)}`,
     holofoil ? "item-thumb--holofoil" : null,
+    originalIcon ? "item-thumb--ornamented" : null,
     regularBorder ? "item-thumb--regular-border" : null,
     className,
   ]
@@ -125,6 +143,15 @@ export function ItemThumb({
           src={`${BUNGIE_ROOT}${icon}`}
           alt={name}
           className="item-thumb__img"
+          loading="lazy"
+        />
+      )}
+      {originalIcon && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={`${BUNGIE_ROOT}${originalIcon}`}
+          alt=""
+          className="item-thumb__original"
           loading="lazy"
         />
       )}

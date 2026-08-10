@@ -41,6 +41,12 @@ export interface SettingsState {
     vaultIconSize: number;
     /** Afficher l'ornement équipé plutôt que l'icône de base */
     showOrnaments: boolean;
+    /**
+     * Révéler l'apparence d'origine d'une armure ornementée au survol.
+     * Sans ornement affiché, le réglage n'a pas d'objet — il est alors masqué
+     * dans les paramètres, mais conservé tel quel pour le retour en arrière.
+     */
+    showOriginalOnHover: boolean;
     /** Critères de tri du coffre, du plus important au moins important */
     sortRules: SortRule[];
     /** Sous-groupe des sections d'armes du coffre — un seul critère à la fois */
@@ -56,6 +62,7 @@ export interface SettingsState {
     setIconSize: (size: number) => void;
     setVaultIconSize: (size: number) => void;
     setShowOrnaments: (show: boolean) => void;
+    setShowOriginalOnHover: (show: boolean) => void;
     setWeaponGrouping: (grouping: WeaponGrouping) => void;
     setArmorGrouping: (grouping: ArmorGrouping) => void;
     setSearchHistorySize: (size: number) => void;
@@ -76,7 +83,8 @@ export const useSettings = create<SettingsState>()(
             theme: "system",
             iconSize: ICON_SIZE.default,
             vaultIconSize: ICON_SIZE.default,
-            showOrnaments: false,
+            showOrnaments: true,
+            showOriginalOnHover: true,
             sortRules: [...DEFAULT_SORT_RULES],
             weaponGrouping: DEFAULT_WEAPON_GROUPING,
             armorGrouping: DEFAULT_ARMOR_GROUPING,
@@ -87,6 +95,8 @@ export const useSettings = create<SettingsState>()(
             setIconSize: (size) => set({iconSize: clampIconSize(size)}),
             setVaultIconSize: (size) => set({vaultIconSize: clampIconSize(size)}),
             setShowOrnaments: (showOrnaments) => set({showOrnaments}),
+            setShowOriginalOnHover: (showOriginalOnHover) =>
+                set({showOriginalOnHover}),
             setWeaponGrouping: (weaponGrouping) => set({weaponGrouping}),
             setArmorGrouping: (armorGrouping) => set({armorGrouping}),
             setSearchHistorySize: (size) =>
@@ -127,6 +137,7 @@ export const useSettings = create<SettingsState>()(
                 iconSize: state.iconSize,
                 vaultIconSize: state.vaultIconSize,
                 showOrnaments: state.showOrnaments,
+                showOriginalOnHover: state.showOriginalOnHover,
                 sorts: serializeSortRules(state.sortRules),
                 weaponGrouping: state.weaponGrouping,
                 armorGrouping: state.armorGrouping,

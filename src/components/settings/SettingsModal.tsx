@@ -153,6 +153,8 @@ function AppearancePanel() {
     const setVaultIconSize = useSettings((s) => s.setVaultIconSize);
     const showOrnaments = useSettings((s) => s.showOrnaments);
     const setShowOrnaments = useSettings((s) => s.setShowOrnaments);
+    const showOriginalOnHover = useSettings((s) => s.showOriginalOnHover);
+    const setShowOriginalOnHover = useSettings((s) => s.setShowOriginalOnHover);
 
     const changeLocale = (next: Locale) => {
         // Conserve le chemin courant en changeant seulement la langue
@@ -199,6 +201,24 @@ function AppearancePanel() {
                     label={t("ornaments")}
                 />
             </SettingRow>
+
+            {/* Sans ornement affiché, il n'y a pas d'apparence à masquer : la
+                ligne n'aurait aucun effet observable, on la retire plutôt que
+                de la désactiver. */}
+            {showOrnaments && (
+                <SettingRow
+                    label={t("originalOnHover")}
+                    hint={t("originalOnHoverHint")}
+                    htmlFor="setting-original-on-hover"
+                >
+                    <Toggle
+                        id="setting-original-on-hover"
+                        checked={showOriginalOnHover}
+                        onChange={setShowOriginalOnHover}
+                        label={t("originalOnHover")}
+                    />
+                </SettingRow>
+            )}
 
             <SettingRow
                 label={t("iconSize")}

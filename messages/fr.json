@@ -36,6 +36,8 @@
       "languageHint": "Changer la langue d'affichage rechargera complètement l'application",
       "ornaments": "Afficher les ornements",
       "ornamentsHint": "Utilise l'ornement équipé au lieu de l'icône de base",
+      "originalOnHover": "Apparence d'origine au survol",
+      "originalOnHoverHint": "Survoler une armure ornementée révèle son icône de base",
       "iconSize": "Taille des icônes",
       "iconSizeHint": "Objets équipés et inventaire du personnage",
       "vaultIconSize": "Taille des icônes du coffre",
