@@ -7,6 +7,8 @@ export interface GridMetrics {
     columns: number;
     /** Hauteur d'une ligne, gouttière incluse */
     rowHeight: number;
+    /** Hauteur d'un en-tête de premier niveau (objets perdus, coffre), gouttière incluse */
+    rootHeight: number;
     /** Hauteur d'un en-tête d'emplacement, gouttière incluse */
     sectionHeight: number;
     /** Hauteur d'un en-tête de sous-groupe, gouttière incluse */
@@ -16,6 +18,7 @@ export interface GridMetrics {
 const FALLBACK: GridMetrics = {
     columns: 1,
     rowHeight: 83,
+    rootHeight: 58,
     sectionHeight: 36,
     groupHeight: 50,
 };
@@ -51,6 +54,8 @@ export function useGridMetrics(
             // Les en-têtes de groupe entrent dans la même virtualisation que les
             // objets : leur hauteur vient donc du CSS elle aussi, pour ne pas
             // dupliquer une valeur de mise en page en JavaScript.
+            const root =
+                parseFloat(styles.getPropertyValue("--inventory-header-height")) || 50;
             const section =
                 parseFloat(styles.getPropertyValue("--group-section-height")) || 28;
             const group =
@@ -64,6 +69,7 @@ export function useGridMetrics(
             const next: GridMetrics = {
                 columns,
                 rowHeight: size + gap,
+                rootHeight: root + gap,
                 sectionHeight: section + gap,
                 groupHeight: group + gap,
             };
@@ -71,6 +77,7 @@ export function useGridMetrics(
             setMetrics((previous) =>
                 previous.columns === next.columns &&
                 previous.rowHeight === next.rowHeight &&
+                previous.rootHeight === next.rootHeight &&
                 previous.sectionHeight === next.sectionHeight &&
                 previous.groupHeight === next.groupHeight
                     ? previous // évite un rendu inutile

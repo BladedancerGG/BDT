@@ -256,6 +256,12 @@ changes.
 The "Equipped" and "Inventory" sections stay on a plain grid — a few dozen items,
 virtualisation would buy nothing.
 
+The Postmaster shares that scroll area: `VirtualItemGrid` takes a `lead` section
+(built by `usePostmasterSection`) rendered **before** the vault, at the same
+level, so the storage column has a single scrollbar and the vault gets the whole
+height. Its items are neither sorted nor grouped — a handful of items, in
+Postmaster order. It disappears when a search retains none of them.
+
 ### Grouping
 
 The vault is **always** split into sections by origin slot (kinetic, helmet…) —
@@ -269,10 +275,13 @@ definitions and labels and returns sections. The two mechanisms compose —
 sorting applies to the whole list first, grouping only redistributes it. This is
 why "slot" is no longer a sort criterion: sections already carry it.
 
-Group headers are **rows of the same virtualiser** as the items — the only way
-to have them scroll with the content without mounting the thousand thumbnails
-virtualisation exists to avoid. Their heights therefore come from the CSS too
-(`--group-section-height`, `--group-header-height`), read by `useGridMetrics()`.
+Headers are **rows of the same virtualiser** as the items — the only way to have
+them scroll with the content without mounting the thousand thumbnails
+virtualisation exists to avoid. Three levels, all rendered by `GroupHeader`:
+`root` (Postmaster, Vault), `section` (origin slot), `group` (sub-group); the
+indent grows with the depth. Their heights therefore come from the CSS too
+(`--inventory-header-height`, `--group-section-height`,
+`--group-header-height`), read by `useGridMetrics()`.
 Headers collapse, but that state is deliberately **not** persisted: the
 preferences cookie is capped at 4 KB and shared.
 
@@ -874,6 +883,13 @@ colonne, et un `ResizeObserver` suit les changements de largeur.
 Les sections « Équipé » et « Inventaire » restent en grille simple : quelques
 dizaines d'objets, la virtualisation n'y apporterait rien.
 
+Les Objets perdus partagent cette zone de défilement : `VirtualItemGrid` reçoit
+une section `lead` (construite par `usePostmasterSection`) rendue **avant** le
+coffre et au même rang que lui, pour que la colonne de stockage n'ait qu'un seul
+ascenseur et que le coffre prenne toute la hauteur. Ses objets ne sont ni triés
+ni regroupés — ils sont peu nombreux, et leur ordre est celui du Courrier. La
+section disparaît quand une recherche n'en retient aucun.
+
 ### Regroupement
 
 Le coffre est **toujours** découpé en sections par emplacement d'origine
@@ -889,10 +905,13 @@ composent — le tri s'applique d'abord à toute la liste, le regroupement ne fa
 que la redistribuer. C'est pourquoi « Emplacement » n'est plus un critère de
 tri : les sections le portent déjà.
 
-Les en-têtes de groupe sont des **lignes du même virtualiseur** que les objets :
-c'est la seule façon de les faire défiler avec le contenu sans monter les
-milliers de vignettes que la virtualisation sert précisément à éviter. Leur
-hauteur vient donc du CSS elle aussi (`--group-section-height`,
+Les en-têtes sont des **lignes du même virtualiseur** que les objets : c'est la
+seule façon de les faire défiler avec le contenu sans monter les milliers de
+vignettes que la virtualisation sert précisément à éviter. Trois niveaux, tous
+rendus par `GroupHeader` : `root` (Objets perdus, Coffre), `section`
+(emplacement d'origine), `group` (sous-groupe) ; le retrait croît avec la
+profondeur. Leur hauteur vient donc du CSS elle aussi
+(`--inventory-header-height`, `--group-section-height`,
 `--group-header-height`), lue par `useGridMetrics()`. Les en-têtes se replient,
 mais cet état n'est délibérément **pas** mémorisé : le cookie de préférences est
 plafonné à 4 Ko et partagé.

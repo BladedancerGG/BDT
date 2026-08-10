@@ -21,6 +21,16 @@ import {GroupHeader} from "./GroupHeader";
  */
 type GridRow =
     | {
+    kind: "root";
+    key: string;
+    label: string;
+    icon?: string;
+    iconKind?: GroupIconKind;
+    count: number;
+    collapsed: boolean;
+    height: number;
+}
+    | {
     kind: "section";
     key: string;
     label: string;
@@ -46,6 +56,25 @@ type GridRow =
 };
 
 /**
+ * Section posée avant le coffre, dans le même défilement — en pratique les
+ * objets perdus. Ses objets ne sont ni triés ni regroupés : ils sont peu
+ * nombreux, et leur ordre est celui du Courrier.
+ */
+export interface LeadSection {
+    key: string;
+    label: string;
+    icon?: string;
+    iconKind?: GroupIconKind;
+    items: DestinyItemComponent[];
+}
+
+// Référence stable : `useSearchFiltered` mémorise sur l'identité de sa liste
+const NO_ITEMS: DestinyItemComponent[] = [];
+
+/** Clé de repli de la section du coffre. Aucun emplacement ne peut la heurter. */
+const VAULT_KEY = "root:vault";
+
+/**
  * Grille d'objets virtualisée, pour les listes longues (le coffre en compte
  * environ un millier).
  *
@@ -56,6 +85,9 @@ type GridRow =
  *
  * Le contenu est découpé en sections d'emplacement, elles-mêmes découpées en
  * sous-groupes selon le réglage du joueur (voir `lib/destiny/grouping.ts`).
+ * Le tout est coiffé d'un niveau supérieur — objets perdus, puis coffre — qui
+ * fait partie de la virtualisation lui aussi : le titre du coffre défile avec
+ * son contenu, seule façon de faire cohabiter les deux dans un même ascenseur.
  * Chaque en-tête se replie, mais cet état n'est **pas** mémorisé : le cookie de
  * préférences est plafonné à 4 Ko et partagé, une liste de groupes repliés y
  * grandirait sans limite.
@@ -67,15 +99,18 @@ export function VirtualItemGrid({
                                     title,
                                     items,
                                     details,
+                                    lead,
                                 }: {
     title: string;
     items: DestinyItemComponent[];
     details: Record<string, ItemDetail>;
+    lead?: LeadSection;
 }) {
     const t = useTranslations("inventory");
     // La recherche s'applique avant le regroupement : les compteurs des
     // sections comptent alors ce qui est réellement affiché.
     const found = useSearchFiltered(items);
+    const leadFound = useSearchFiltered(lead?.items ?? NO_ITEMS);
     // Filtrés, triés selon les critères réglés dans les paramètres, puis groupés
     const sections = useGroupedItems(found, details);
     const viewportRef = useRef<HTMLDivElement>(null);
@@ -83,13 +118,11 @@ export function VirtualItemGrid({
     // largeur : on la passe pour forcer une re-mesure. C'est le réglage dédié au
     // coffre, celui dont --item-size hérite ici (voir inventory-view.scss).
     const vaultIconSize = useSettings((s) => s.vaultIconSize);
-    const {columns, rowHeight, sectionHeight, groupHeight} = useGridMetrics(
+    const {columns, rowHeight, rootHeight, sectionHeight, groupHeight} = useGridMetrics(
         viewportRef,
         vaultIconSize,
     );
 
-    // Repli de la section entière, comme les objets perdus juste au-dessus
-    const [headerCollapsed, setHeaderCollapsed] = useState(false);
     const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(
         () => new Set(),
     );
@@ -108,6 +141,48 @@ export function VirtualItemGrid({
 
     const rows = useMemo(() => {
         const out: GridRow[] = [];
+
+        // Découpe une liste en lignes de `columns` objets
+        const pushItems = (prefix: string, list: DestinyItemComponent[]) => {
+            for (let start = 0; start < list.length; start += columns) {
+                out.push({
+                    kind: "items",
+                    key: `${prefix}#${start}`,
+                    items: list.slice(start, start + columns),
+                    height: rowHeight,
+                });
+            }
+        };
+
+        // Les objets perdus, avant le coffre et au même rang que lui. Absents
+        // quand la recherche n'en retient aucun : une section vide n'apprend rien.
+        if (lead && leadFound.length > 0) {
+            const leadCollapsed = collapsed.has(lead.key);
+            out.push({
+                kind: "root",
+                key: lead.key,
+                label: lead.label,
+                icon: lead.icon,
+                iconKind: lead.iconKind,
+                count: leadFound.length,
+                collapsed: leadCollapsed,
+                height: rootHeight,
+            });
+            if (!leadCollapsed) pushItems(lead.key, leadFound);
+        }
+
+        const vaultCollapsed = collapsed.has(VAULT_KEY);
+        out.push({
+            kind: "root",
+            key: VAULT_KEY,
+            label: title,
+            icon: "/icons/vault.svg",
+            iconKind: "mask",
+            count: total,
+            collapsed: vaultCollapsed,
+            height: rootHeight,
+        });
+        if (vaultCollapsed) return out;
 
         for (const section of sections) {
             const sectionCollapsed = collapsed.has(section.key);
@@ -142,19 +217,24 @@ export function VirtualItemGrid({
                 }
                 if (groupCollapsed) continue;
 
-                for (let start = 0; start < group.items.length; start += columns) {
-                    out.push({
-                        kind: "items",
-                        key: `${groupKey}#${start}`,
-                        items: group.items.slice(start, start + columns),
-                        height: rowHeight,
-                    });
-                }
+                pushItems(groupKey, group.items);
             }
         }
 
         return out;
-    }, [sections, collapsed, columns, rowHeight, sectionHeight, groupHeight]);
+    }, [
+        sections,
+        lead,
+        leadFound,
+        title,
+        total,
+        collapsed,
+        columns,
+        rowHeight,
+        rootHeight,
+        sectionHeight,
+        groupHeight,
+    ]);
 
     const virtualizer = useVirtualizer({
         count: rows.length,
@@ -176,24 +256,8 @@ export function VirtualItemGrid({
 
     return (
         // --fill : occupe la hauteur restante, pour être le seul élément à défiler
-        <section className="item-grid item-grid--fill">
-            <GroupHeader
-                kind="section"
-                label={title}
-                count={total}
-                icon="/icons/vault.svg"
-                iconKind="mask"
-                collapsed={headerCollapsed}
-                onToggle={() => setHeaderCollapsed((c) => !c)}
-                expandLabel={t("expand")}
-                collapseLabel={t("collapse")}
-            />
-
-            <div
-                ref={viewportRef}
-                className="item-grid__viewport"
-                hidden={headerCollapsed}
-            >
+        <section className="item-grid">
+            <div ref={viewportRef} className="item-grid__viewport">
                 <div
                     className="item-grid__canvas"
                     style={{height: virtualizer.getTotalSize()}}
@@ -235,8 +299,8 @@ export function VirtualItemGrid({
                                 kind={row.kind}
                                 label={row.label}
                                 count={row.count}
-                                icon={row.kind === "group" ? row.icon : undefined}
-                                iconKind={row.kind === "group" ? row.iconKind : undefined}
+                                icon={row.kind === "section" ? undefined : row.icon}
+                                iconKind={row.kind === "section" ? undefined : row.iconKind}
                                 collapsed={row.collapsed}
                                 onToggle={() => toggle(row.key)}
                                 expandLabel={t("expand")}

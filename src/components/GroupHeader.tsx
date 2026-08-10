@@ -7,10 +7,10 @@ import type {GroupIconKind} from "@/lib/destiny/grouping";
  * En-tête repliable d'un ensemble d'objets : bouton pleine largeur, pour que la
  * cible de repli couvre toute la ligne.
  *
- * Partagé par le coffre virtualisé (emplacements et sous-groupes) et par les
- * sections statiques de l'inventaire (objets perdus, coffre) : c'est la même
- * structure et le même style, seul `virtual` change — les en-têtes du coffre
- * sont des lignes de la virtualisation, donc positionnés en absolu.
+ * Trois niveaux, tous rendus par ce composant : `root` (objets perdus, coffre),
+ * `section` (emplacement d'origine) et `group` (sous-groupe au choix du joueur).
+ * `virtual` distingue les en-têtes qui sont des lignes de la virtualisation,
+ * donc positionnés en absolu, de ceux posés dans un flux normal.
  */
 export function GroupHeader({
                                 kind,
@@ -25,7 +25,7 @@ export function GroupHeader({
                                 style,
                                 virtual = false,
                             }: {
-    kind: "section" | "group";
+    kind: "root" | "section" | "group";
     label: string;
     count: number;
     icon?: string;

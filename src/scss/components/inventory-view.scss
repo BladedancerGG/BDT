@@ -8,6 +8,7 @@
   flex-direction: column;
   justify-content: flex-end;
   gap: 1.5rem;
+  padding-left: 1rem;
 
   // Maillon de la chaîne de hauteurs (voir .app-main)
   @include m.from(v.$bp-lg) {
@@ -50,7 +51,7 @@
     }
   }
 
-  // Colonne de droite : Courrier puis coffre, empilés
+  // Colonne de droite : le stockage, Courrier et coffre dans un seul défilement
   &__storage {
     // Le coffre et les objets perdus suivent leur propre réglage de taille :
     // redéfinir --item-size ici suffit, tout le sous-arbre (vignettes comme
@@ -77,28 +78,17 @@
   }
 }
 
+// Grille du stockage : objets perdus et coffre, entièrement virtualisée — tous
+// ses en-têtes sont des lignes de la grille (voir components/item-group.scss).
+// Occupe toute la hauteur restante de la colonne, pour être le seul élément à
+// défiler sur grand écran.
 .item-grid {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
 
-  // Les en-têtes (objets perdus, coffre) sont ceux des groupes du coffre :
-  // même structure, même style — voir components/item-group.scss.
-
-  &__items {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--item-gap);
-  }
-
-  // —— Variante virtualisée (coffre) ————————————————————————
-  // Occupe toute la hauteur restante de la colonne, pour être le seul élément
-  // à défiler sur grand écran.
-  &--fill {
-    @include m.from(v.$bp-lg) {
-      flex: 1;
-      min-height: 0;
-    }
+  @include m.from(v.$bp-lg) {
+    flex: 1;
+    min-height: 0;
   }
 
   // Zone de défilement dédiée : seules les lignes visibles sont montées.

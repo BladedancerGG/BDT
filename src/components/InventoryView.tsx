@@ -23,14 +23,12 @@ import {
 } from "@/lib/manifest/use-definition";
 import {useSettings} from "@/lib/settings/store";
 import {useDisplayableItems} from "@/lib/destiny/use-displayable-items";
-import {SearchProvider, useSearchFiltered} from "@/lib/search/provider";
+import {SearchProvider} from "@/lib/search/provider";
 import {SearchActionsBridge} from "./search/SearchActionsBridge";
 import {useActionRunner} from "@/lib/actions/use-action-runner";
 import {CharacterTab} from "./CharacterTab";
 import {EquipmentSlot} from "./EquipmentSlot";
-import {GroupHeader} from "./GroupHeader";
-import {ItemIcon} from "./ItemIcon";
-import {VirtualItemGrid} from "./VirtualItemGrid";
+import {VirtualItemGrid, type LeadSection} from "./VirtualItemGrid";
 import {ActionsPanel} from "./actions/ActionsPanel";
 import {DropZones} from "./dnd/DropZones";
 import {MoveDnd} from "./dnd/MoveDnd";
@@ -81,60 +79,29 @@ function SlotColumn({
 }
 
 /**
- * Objets du Courrier, qui ne relèvent d'aucun emplacement d'équipement.
+ * Objets du Courrier, à passer au coffre virtualisé, qui les affiche en tête de
+ * son défilement.
  *
  * Sans cette section ils disparaîtraient : ils vivent dans l'inventaire du
  * personnage, mais dans le bucket « Objets perdus ». Le libellé vient du
  * manifeste, donc traduit.
  */
-function PostmasterGrid(
-    {items, details,}: { items: DestinyItemComponent[]; details: ProfileData["items"]; }
-) {
-    const t = useTranslations("inventory");
-    const [collapsed, setCollapsed] = useState(false);
+function usePostmasterSection(items: DestinyItemComponent[]): LeadSection {
     const bucket = useDefinition<{ displayProperties: DisplayProperties }>(
         "DestinyInventoryBucketDefinition",
         BUCKET.Postmaster,
     );
-    // Comme le coffre : selon le réglage, les objets écartés par la recherche
-    // disparaissent d'ici, ou n'y sont qu'estompés.
-    const shown = useSearchFiltered(items);
+    const label = bucket?.displayProperties?.name ?? "";
 
-    if (shown.length === 0) return null;
-
-    return (
-        <section className="item-grid">
-            <GroupHeader
-                kind="section"
-                label={bucket?.displayProperties?.name ?? ""}
-                count={shown.length}
-                icon="/icons/postmaster.svg"
-                iconKind="mask"
-                collapsed={collapsed}
-                onToggle={() => setCollapsed((c) => !c)}
-                expandLabel={t("expand")}
-                collapseLabel={t("collapse")}
-            />
-            {!collapsed && (
-                <div className="item-grid__items">
-                    {shown.map((item, i) => {
-                        const detail = item.itemInstanceId
-                            ? details[item.itemInstanceId]
-                            : undefined;
-                        return (
-                            <ItemIcon
-                                key={item.itemInstanceId ?? `${item.itemHash}-${i}`}
-                                itemHash={item.itemHash}
-                                itemInstanceId={item.itemInstanceId}
-                                state={item.state}
-                                versionNumber={item.versionNumber}
-                                gearTier={detail?.instance?.gearTier}
-                            />
-                        );
-                    })}
-                </div>
-            )}
-        </section>
+    return useMemo(
+        () => ({
+            key: "root:postmaster",
+            label,
+            icon: "/icons/postmaster.svg",
+            iconKind: "mask",
+            items,
+        }),
+        [label, items],
     );
 }
 
@@ -173,6 +140,7 @@ function Inventory({data}: { data: ProfileData }) {
         () => displayedInventory.filter((i) => !EQUIPMENT_BUCKETS.has(i.bucketHash)),
         [displayedInventory],
     );
+    const postmaster = usePostmasterSection(leftovers);
 
     // Pièces équipées par ensemble d'armures : sert à savoir quels bonus
     // d'ensemble sont actifs. Dépend du personnage affiché, d'où le calcul ici.
@@ -225,16 +193,15 @@ function Inventory({data}: { data: ProfileData }) {
                         </div>
                     </section>
 
-                    {/* Colonne de droite : le Courrier au-dessus du coffre */}
+                    {/* Colonne de droite : le Courrier et le coffre, dans un
+                        seul défilement virtualisé. Le coffre est commun à tous
+                        les personnages et contient environ un millier d'objets. */}
                     <div className="inventory-view__storage">
-                        <PostmasterGrid items={leftovers} details={data.items}/>
-
-                        {/* Le coffre est commun à tous les personnages.
-                            Virtualisé : il contient environ un millier d'objets. */}
                         <VirtualItemGrid
                             title={t("vault")}
                             items={data.vault}
                             details={data.items}
+                            lead={postmaster}
                         />
                     </div>
 

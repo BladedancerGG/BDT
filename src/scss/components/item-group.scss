@@ -1,13 +1,15 @@
-// En-têtes de groupe du coffre : emplacement (« Armes cinétiques ») et
-// sous-groupe (« Munitions spéciales », « Titans »…). Les sections statiques de
-// l'inventaire (objets perdus, coffre) réutilisent la même structure.
+// En-têtes du stockage, sur trois niveaux : racine (« Objets perdus »,
+// « Coffre »), emplacement (« Armes cinétiques ») et sous-groupe
+// (« Munitions spéciales », « Titans »…).
 //
 // Trois variables de hauteur, toutes dans layout/main.scss :
-//   `--inventory-header-height` — les en-têtes statiques, appliquée ici en CSS ;
-//   `--group-section-height` / `--group-header-height` — les en-têtes du coffre,
-//   lues par `useGridMetrics` et posées en style inline, gouttière comprise
-//   (ils sont des lignes de la virtualisation, donc en position absolue). Le
-//   style inline l'emporte sur la hauteur de base, aucune règle à dupliquer.
+//   `--inventory-header-height` — les en-têtes de racine ;
+//   `--group-section-height` / `--group-header-height` — emplacements et
+//   sous-groupes.
+// Toutes sont lues par `useGridMetrics` et posées en style inline, gouttière
+// comprise : ces en-têtes sont des lignes de la virtualisation, donc en position
+// absolue. Le style inline l'emporte sur la hauteur de base, aucune règle à
+// dupliquer.
 
 .item-group {
   width: 100%;
@@ -89,11 +91,11 @@
     color: var(--color-text);
   }
 
-  // —— Emplacement : le niveau supérieur ————————————————————
-  &--section {
+  // —— Racine : objets perdus, coffre ————————————————————————
+  &--root {
     color: var(--color-text);
-    font-size: 0.8125rem;
-    font-weight: 600;
+    font-size: 0.9375rem;
+    font-weight: 700;
     letter-spacing: 0.04em;
     text-transform: uppercase;
 
@@ -102,22 +104,36 @@
     }
   }
 
-  // —— Sous-groupe : un cran en dessous, et légèrement décalé ——
+  // —— Emplacement : un cran en dessous de la racine ————————
+  &--section {
+    color: var(--color-text);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  // —— Sous-groupe : le niveau le plus fin ————————————————————
   &--group {
-    padding: 1rem 0 1rem 1rem;
     font-size: 0.9rem;
   }
 
   // —— Ligne de la grille virtualisée ————————————————————————
-  // Placée par le virtualiseur, qui lui donne sa hauteur en style inline. Les
-  // mêmes en-têtes servent aussi hors virtualisation (objets perdus, coffre) :
-  // le positionnement est donc porté par ce modificateur, pas par la base.
+  // Placée par le virtualiseur, qui lui donne sa hauteur en style inline. Le
+  // retrait croît avec la profondeur : c'est lui, plus que la taille de police,
+  // qui donne à lire les trois niveaux.
   &--virtual {
     position: absolute;
     top: 0;
     left: 0;
   }
-  &--section.item-group--virtual {
+  &--root.item-group--virtual {
     padding-left: 0.5rem;
+  }
+  &--section.item-group--virtual {
+    padding-left: 1.25rem;
+  }
+  &--group.item-group--virtual {
+    padding-left: 2.25rem;
   }
 }

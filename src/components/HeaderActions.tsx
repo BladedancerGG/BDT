@@ -34,20 +34,16 @@ export function HeaderActions({
 
                 <button
                     type="button"
-                    className="btn btn--small"
+                    className="header-actions__refresh btn btn--small"
                     onClick={refresh}
                     disabled={refreshing}
                     title={t("refreshHint")}
                 >
-                <span
-                    className={`header-actions__spin${
-                        refreshing ? " header-actions__spin--active" : ""
-                    }`}
-                    aria-hidden
-                >
-                  ⟳
-                </span>
-                    {refreshing ? t("refreshing") : t("refresh")}
+                    {/* eslint-disable-next-line @next/next/no-img-element*/}
+                    {refreshing && <img src="/icons/loading.svg" alt="" />}
+                    <span>
+                        {refreshing ? t("refreshing") : t("refresh")}
+                    </span>
                 </button>
 
                 <button
