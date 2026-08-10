@@ -72,6 +72,14 @@ export interface PlannedStep extends MoveStepRequest {
   role: "move" | "unequip" | "evict";
   /** Emplacement d'équipement concerné (pas celui du coffre) */
   bucketHash: number;
+  /**
+   * Objet que cet équipement va chasser de l'emplacement, s'il y en a un.
+   *
+   * Il n'apparaît dans aucune requête — l'API n'a pas de « déséquiper », c'est
+   * l'équipement du nouvel objet qui le renvoie dans l'inventaire — mais il
+   * bouge tout autant, et l'interface doit pouvoir le signaler.
+   */
+  displaced?: string;
 }
 
 export type MovePlan =
@@ -216,6 +224,18 @@ export function planMove(
     // déplacé — c'est le cas du déséquipement d'un exotique concurrent.
     inBucket: number = bucketHash,
   ) => {
+    // L'occupant actuel de l'emplacement visé, lu sur l'instantané de profil :
+    // le plan ne l'a pas encore modifié, et aucune étape antérieure ne touche
+    // deux fois le même emplacement.
+    const displaced =
+      kind === "equip"
+        ? (ctx.profile.equipment[characterId] ?? []).find(
+            (equipped) =>
+              equipped.bucketHash === inBucket &&
+              equipped.itemInstanceId !== subject.itemInstanceId,
+          )?.itemInstanceId
+        : undefined;
+
     steps.push({
       kind,
       role,
@@ -223,6 +243,7 @@ export function planMove(
       characterId,
       itemHash: subject.itemHash,
       itemInstanceId: subject.itemInstanceId!,
+      displaced,
     });
   };
 

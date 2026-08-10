@@ -187,7 +187,6 @@ export function ItemTooltip({
         "DestinyInventoryItemDefinition",
         itemHash,
     );
-    console.log(def)
     // Servi depuis le préchargement du profil dans le cas normal — donc sans
     // attente. Le squelette ne s'affiche que pour un objet absent du profil,
     // qu'il faut alors aller chercher à l'unité.

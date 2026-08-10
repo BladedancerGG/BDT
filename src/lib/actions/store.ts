@@ -189,7 +189,9 @@ export const useActionQueue = create<ActionQueueState>()((set) => ({
  *
  * On regarde aussi les étapes : un déplacement en coûte souvent plusieurs, et
  * certaines touchent un *autre* objet (déséquiper celui qui occupe la place).
- * Lui aussi bouge, il doit donc l'annoncer.
+ * Lui aussi bouge, il doit donc l'annoncer — y compris l'objet chassé de son
+ * emplacement par un équipement (`displaced`), qui ne figure dans aucune
+ * requête mais quitte bel et bien l'équipement.
  *
  * Le sélecteur renvoie un booléen, pas un ensemble : les centaines de vignettes
  * montées y sont abonnées, et seules celles dont la réponse change re-rendent.
@@ -203,7 +205,8 @@ export function useItemBusy(itemInstanceId?: string): boolean {
             (action.itemInstanceId === itemInstanceId ||
               action.steps.some(
                 (step) =>
-                  step.itemInstanceId === itemInstanceId &&
+                  (step.itemInstanceId === itemInstanceId ||
+                    step.displaced === itemInstanceId) &&
                   step.status !== "done" &&
                   step.status !== "error",
               )),
