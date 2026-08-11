@@ -10,6 +10,8 @@
 
   border-bottom: 1px solid var(--color-border);
 
+  padding-bottom: 0.5rem;
+
   // —— Puissance et munitions ————————————————————————————————
   &__top {
     display: flex;
@@ -18,7 +20,7 @@
     // La marge horizontale reprend celle du corps de l'infobulle : les bandeaux
     // la débordent (voir item-tooltip.scss), leurs textes doivent malgré tout
     // rester alignés sur les statistiques.
-    padding: 0.125rem var(--tooltip-pad, 0.75rem) 0.375rem;
+    padding: 0 var(--tooltip-pad) ;
   }
 
   &__power {
@@ -78,7 +80,7 @@
     align-items: center;
     gap: 0.375rem;
     overflow: hidden;
-    padding: 0.25rem var(--tooltip-pad, 0.75rem);
+    padding: 0.25rem var(--tooltip-pad);
     font-size: 1rem;
     &--level {
       background-color: var(--color-panel-alt);

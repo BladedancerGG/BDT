@@ -9,12 +9,10 @@
 
   padding: 5px;
 
-  overflow: hidden;
-  // Support sombre dans les deux thèmes : les icônes de perks sont des
-  // dessins clairs, invisibles sur un fond blanc.
   border: 1px solid var(--color-icon-border);
   border-radius: var(--radius-full);
   background-color: var(--color-icon-surface);
+  border-color: #fff;
 
   &__img {
     width: 100%;
@@ -32,7 +30,6 @@
 
   // Perk actuellement équipé : mis en avant
   &--equipped {
-    border-color: var(--color-accent);
     background-color: #4887ba;
   }
 
@@ -69,9 +66,9 @@
     &::before {
       content: "";
       position: absolute;
-      top: 12%;
+      top: -24%;
       bottom: 12%;
-      left: 2px;
+      left: -3.5px;
       width: 0.5rem;
       pointer-events: none;
       background-image: url("/icons/enhanced-arrow.svg");

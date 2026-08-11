@@ -6,6 +6,7 @@
 //   components/ un fichier par composant React
 
 // —— Mise en page générale ————————————————————————————————
+@use "layout/fonts"; // @font-face et --font-sans (avant tout usage)
 @use "layout/theme"; // palettes clair / sombre (avant le reste)
 @use "layout/main";
 @use "layout/header";

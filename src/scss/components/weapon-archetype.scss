@@ -6,7 +6,8 @@
   align-items: center;
   gap: 0.5rem;
   // Alignée sur les statistiques : le bandeau déborde la marge du corps
-  padding: 0.25rem var(--tooltip-pad, 0.75rem);
+  padding: var(--tooltip-pad);
+  margin-bottom: var(--tooltip-pad);
   font-size: 0.75rem;
   background-color: var(--color-panel-alt);
 
