@@ -185,7 +185,10 @@
     "ammo": {
       "primary": "Primary ammo",
       "special": "Special ammo",
-      "heavy": "Heavy ammo"
+      "heavy": "Heavy ammo",
+      "primaryShort": "Primary",
+      "specialShort": "Special",
+      "heavyShort": "Heavy"
     }
   },
   "subclass": {

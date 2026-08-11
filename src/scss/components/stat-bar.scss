@@ -10,7 +10,7 @@
   font-size: 0.85rem;
 
   &__name {
-    width: 7rem;
+    width: 8rem;
     text-align: right;
     color: var(--color-text-muted);
     overflow: hidden;
@@ -19,8 +19,8 @@
   }
 
   &__value {
-    width: 2rem;
-    text-align: right;
+    width: 1.5rem;
+    text-align: left;
     font-weight: 600;
     font-variant-numeric: tabular-nums;
   }

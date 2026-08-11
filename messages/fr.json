@@ -185,7 +185,10 @@
     "ammo": {
       "primary": "Munitions principales",
       "special": "Munitions spéciales",
-      "heavy": "Munitions lourdes"
+      "heavy": "Munitions lourdes",
+      "primaryShort": "Principale",
+      "specialShort": "Spéciale",
+      "heavyShort": "Lourde"
     }
   },
   "subclass": {

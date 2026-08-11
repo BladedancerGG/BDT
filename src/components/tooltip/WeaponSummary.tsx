@@ -5,8 +5,6 @@ import {useTranslations} from "next-intl";
 import {ammoIconPath, ammoLabelKey} from "@/lib/destiny/grouping";
 import {BUNGIE_ROOT, damageColor} from "@/lib/destiny/display";
 import {useDamageTypeDefinition} from "@/lib/destiny/use-damage-type";
-import type {ItemProgress} from "@/lib/destiny/use-item-progress";
-
 /**
  * Première section du corps de l'infobulle : puissance et élément, type de
  * munitions, niveau de l'arme façonnée, compte-frags.
@@ -41,6 +39,21 @@ export function WeaponSummary({
     const ammoIcon = ammoIconPath(ammoType);
     const ammoKey = ammoLabelKey(ammoType);
 
+    let shortAmmoKey = ""
+
+    switch (ammoKey){
+        case "ammo.primary":
+            shortAmmoKey = "ammo.primaryShort";
+            break;
+        case "ammo.special":
+            shortAmmoKey = "ammo.specialShort";
+            break;
+        case "ammo.heavy":
+            shortAmmoKey = "ammo.heavyShort";
+            break;
+    }
+
+
     const {weaponLevel, weaponLevelProgress, tracker} = progress;
 
     const nothingToShow =
@@ -72,19 +85,15 @@ export function WeaponSummary({
                         </div>
                     )}
 
-                    {ammoIcon && ammoKey && (
+                    {ammoIcon && shortAmmoKey && (
                         <div className="weapon-summary__ammo">
                             {/* Glyphe local monochrome (le manifeste n'en a aucun) : posé
                                 en masque, il prend la couleur du texte et reste donc
                                 lisible dans les deux thèmes — même mécanisme que les
                                 en-têtes de groupes du coffre. */}
-                            <span
-                                className="weapon-summary__ammo-icon"
-                                style={{"--ammo-icon": `url(${ammoIcon})`} as CSSProperties}
-                                aria-hidden
-                            />
+                            <img src={ammoIcon} className="weapon-summary__ammo-icon" />
                             <span className="weapon-summary__ammo-name">
-                                {tInventory(ammoKey)}
+                                {tInventory(shortAmmoKey)}
                             </span>
                         </div>
                     )}
@@ -116,7 +125,7 @@ export function WeaponSummary({
             )}
 
             {tracker && (
-                <div className="weapon-summary__row">
+                <div className="weapon-summary__row weapon-summary__tracker">
                     {tracker.icon && (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
@@ -134,3 +143,5 @@ export function WeaponSummary({
         </div>
     );
 }
+
+import type {ItemProgress} from "@/lib/destiny/use-item-progress";
