@@ -23,14 +23,13 @@
     color: var(--color-text-muted);
   }
 
-  // Icône anti-champion (bloqueur, surchargé, implacable) : dessin blanc du
-  // manifeste, à garder discret — il double une information déjà présente dans
-  // les attributs de l'arme.
+  // Icône anti-champion (bloqueur, surchargé, implacable), dessin blanc du
+  // manifeste. Le nom est en `title` : l'icône seule ne dit pas de quel Champion
+  // il s'agit, et le libellé n'aurait pas la place sur cette ligne.
   &__breaker {
     flex-shrink: 0;
     width: 1.75rem;
     height: 1.75rem;
     object-fit: contain;
-    opacity: 0.85;
   }
 }

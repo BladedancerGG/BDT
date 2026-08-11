@@ -68,11 +68,11 @@ export interface InventoryItemDefinition {
   };
   defaultDamageType?: number;
   /**
-   * Type anti-champion de l'arme (bloqueur / surchargé / implacable), à
-   * résoudre dans DestinyBreakerTypeDefinition. Vaut 0 quand l'arme n'en a pas
-   * — `breakerType` porte la même information sous forme d'énumération.
+   * Type anti-champion de l'arme, en énumération DestinyBreakerType (1 bloqueur,
+   * 2 surchargé, 3 implacable). Vaut 0 hors de 17 exotiques : pour toutes les
+   * autres, l'effet vit dans les perks de leur armature — voir breaker.ts.
    */
-  breakerTypeHash?: number;
+  breakerType?: number;
   /**
    * Présent sur les doctrines : `hudDamageType` porte leur élément
    * (`defaultDamageType` vaut toujours 0), `buildName` le couple élément/classe.

@@ -337,8 +337,9 @@ export function ItemTooltip({
                             anti-champion à droite */}
                         {isWeapon && archetypeHash && (
                             <WeaponArchetype
+                                itemHash={itemHash}
                                 archetypeHash={archetypeHash}
-                                breakerTypeHash={def.breakerTypeHash}
+                                breakerType={def.breakerType}
                                 rpm={rpm}
                                 impact={impact}
                             />
