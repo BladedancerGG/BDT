@@ -1,6 +1,7 @@
 // Helpers génériques sur les sockets, indépendants de leur usage.
 
 import type {InventoryItemDefinition} from "./types";
+import {TIER} from "./display";
 
 /**
  * Catégories de sockets des artéfacts. Elles n'ont **aucun nom** dans le
@@ -26,3 +27,33 @@ export function isPlugApplied(
         def?.sockets?.socketEntries?.[socketIndex]?.singleInitialItemHash;
     return equippedPlugHash !== initial;
 }
+
+/**
+ * Ce plug est-il la version **améliorée** d'un attribut d'arme ?
+ *
+ * Rien ne le signale explicitement dans le manifeste : les deux versions d'un
+ * même attribut partagent leurs `itemCategoryHashes`, leur `plugStyle` et leur
+ * `plugCategoryIdentifier`. La seule différence indépendante de la langue est la
+ * rareté — relevée sur les 628 plugs de la catégorie `frames` : 357 en Ordinaire
+ * (attributs de base) contre 226 en Peu commun (« Attribut amélioré »). Les
+ * autres familles améliorables suivent la même règle (canons, chargeurs,
+ * particularités d'origine…).
+ *
+ * Deux plugs échappent à la règle côté Bungie — Déconstruction et Osmose sont en
+ * Peu commun sans être des versions améliorées. Ils seront donc signalés à tort ;
+ * c'est le prix de l'absence de marqueur, et le comportement de DIM également.
+ */
+export function isEnhancedPlug(
+    def: InventoryItemDefinition | undefined,
+): boolean {
+    const category = def?.plug?.plugCategoryIdentifier;
+    if (!category) return false;
+    // Les cosmétiques ont eux aussi des variantes en Peu commun (ornements
+    // « magnifiques », revêtements, interactions) sans rien d'amélioré.
+    if (COSMETIC_PLUG_CATEGORY.test(category)) return false;
+    return def?.inventory?.tierType === TIER.Common;
+}
+
+/** Familles de plugs purement cosmétiques — voir isEnhancedPlug. */
+const COSMETIC_PLUG_CATEGORY =
+    /^(?:armor_skins|v\d+_plugs_armor_skins|shader|emote|events\.)/;

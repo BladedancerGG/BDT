@@ -16,6 +16,7 @@ import {
 import {useDefinition} from "@/lib/manifest/use-definition";
 import type {InventoryItemDefinition} from "@/lib/destiny/types";
 import {BUNGIE_ROOT} from "@/lib/destiny/display";
+import {isEnhancedPlug} from "@/lib/destiny/sockets";
 import {PlugTooltip} from "./PlugTooltip";
 
 /**
@@ -26,6 +27,8 @@ import {PlugTooltip} from "./PlugTooltip";
  *                 dans DestinySandboxPerkDefinition, pas dans les objets
  * - `typeLabel` : remplace le type affiché dans l'infobulle, quand le manifeste
  *                 n'en fournit pas
+ * - `markEnhanced` : signale les versions améliorées d'attributs. Réservé aux
+ *                 colonnes d'attributs d'arme, seules à en contenir.
  *
  * Au survol, une infobulle détaille le plug. Elle est rendue dans un portail :
  * elle n'est donc pas rognée par l'infobulle d'objet qui la contient.
@@ -36,12 +39,14 @@ export function PlugIcon({
                              state,
                              table = "DestinyInventoryItemDefinition",
                              typeLabel,
+                             markEnhanced = false,
                          }: {
     hash: number;
     square?: boolean;
     state?: "equipped" | "available";
     table?: string;
     typeLabel?: string;
+    markEnhanced?: boolean;
 }) {
     const def = useDefinition<InventoryItemDefinition>(table, hash);
     const icon = def?.displayProperties?.icon;
@@ -68,10 +73,13 @@ export function PlugIcon({
         role,
     ]);
 
+    const enhanced = markEnhanced && isEnhancedPlug(def);
+
     const classes = [
         "plug-icon",
         square ? "plug-icon--square" : null,
         state ? `plug-icon--${state}` : null,
+        enhanced ? "plug-icon--enhanced" : null,
     ]
         .filter(Boolean)
         .join(" ");

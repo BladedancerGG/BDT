@@ -19,7 +19,6 @@ export default async function Home() {
                 {user && (
                     <div className="auth-bar">
                         <p>
-                            {t("signedInAs")}{" "}
                             <span className="auth-bar__name">
                                 {user.displayName}
                             </span>
@@ -36,9 +35,9 @@ export default async function Home() {
                             {user.displayName === "Eclipse#4170" && " (sedge farmer 👩‍🌾)"}
                             {user.displayName === "Boog Sloogus#6012" && " (goog...)"}
                             {user.displayName === "Imbaer#4829" && " (haha, feet)"}
-                            {user.displayName === "☞〠♡FLANNEL♡〠☜#1570" && " ()"}
+                            {user.displayName === "☞〠♡FLANNEL♡〠☜#1570" && " (bane of homeowners)"}
 
-                            {user.displayName === "Bog on my dog#7426" ? " (Welcome, final god of sleep schedule)" : ""}
+                            {user.displayName === "Bog on my dog#7426" && " (Welcome, final god of sleep schedule)"}
 
                         </p>
                         {/* Déconnexion déplacée dans les paramètres (onglet Compte) */}

@@ -1,0 +1,131 @@
+@use "../abstracts/mixins" as m;
+
+// Première section du corps de l'infobulle d'une arme : puissance et élément,
+// type de munitions, niveau de l'arme façonnée, compte-frags.
+
+.weapon-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+
+  // —— Puissance et munitions ————————————————————————————————
+  &__top {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    // La marge horizontale reprend celle du corps de l'infobulle : les bandeaux
+    // la débordent (voir item-tooltip.scss), leurs textes doivent malgré tout
+    // rester alignés sur les statistiques.
+    padding: 0.125rem var(--tooltip-pad, 0.75rem) 0.375rem;
+  }
+
+  &__power {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    // Séparateur vertical entre puissance et munitions, comme en jeu
+    padding-right: 0.75rem;
+    border-right: 1px solid var(--color-border);
+  }
+
+  // Icône d'élément : PNG détouré clair du manifeste, lisible tel quel
+  &__element {
+    width: 1.5rem;
+    height: 1.5rem;
+    object-fit: contain;
+  }
+
+  // La couleur suit l'élément de l'arme (--damage-color, posée en inline)
+  &__power-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    color: var(--damage-color, var(--color-text));
+  }
+
+  &__ammo {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    min-width: 0;
+  }
+
+  // Glyphe monochrome : le fichier sert de masque et la couleur du texte
+  // devient l'encre (même mécanisme que `.item-group__icon--mask`). Un `<img>`
+  // blanc disparaîtrait sur le thème clair.
+  &__ammo-icon {
+    flex-shrink: 0;
+    width: 1.375rem;
+    height: 1.375rem;
+    background-color: currentColor;
+
+    mask-image: var(--ammo-icon);
+    mask-repeat: no-repeat;
+    mask-position: center;
+    mask-size: contain;
+
+    -webkit-mask-image: var(--ammo-icon);
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    -webkit-mask-size: contain;
+  }
+
+  &__ammo-name {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--color-text);
+  }
+
+  // —— Lignes niveau d'arme / compte-frags ————————————————————
+  &__row {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    overflow: hidden;
+    padding: 0.25rem var(--tooltip-pad, 0.75rem);
+    font-size: 0.8125rem;
+    background-color: var(--color-panel-alt);
+  }
+
+  &__label {
+    position: relative;
+    flex: 1;
+    @include m.truncate;
+  }
+
+  &__value {
+    position: relative;
+    flex-shrink: 0;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+
+    // Le compteur de frags est doré, comme le compteur du jeu
+    &--tracker {
+      color: var(--color-accent);
+    }
+  }
+
+  // Barre de progression du niveau : elle remplit le fond de la ligne, sous le
+  // libellé et la valeur (tous deux en position: relative).
+  &__level-fill {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: var(--level-pct, 0%);
+    background-color: color-mix(
+      in srgb,
+      var(--color-accent) 35%,
+      transparent
+    );
+  }
+
+  &__tracker-icon {
+    flex-shrink: 0;
+    width: 1.125rem;
+    height: 1.125rem;
+    object-fit: contain;
+  }
+}

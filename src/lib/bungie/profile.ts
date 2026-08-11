@@ -9,13 +9,13 @@ import {
 //  102 = ProfileInventory (le coffre, partagé entre tous les personnages)
 //  200 = Characters, 201 = CharacterInventories, 205 = CharacterEquipment
 //  300 = ItemInstances, 304 = ItemStats, 305 = ItemSockets,
-//  310 = ItemReusablePlugs
+//  309 = ItemPlugObjectives, 310 = ItemReusablePlugs
 //
 // Les composants 300–310 sont demandés au niveau du PROFIL : Bungie renvoie
 // alors stats / sockets / plugs pour TOUS les objets du compte en une seule
 // requête. Cela remplace un appel par objet au survol : la navigation est
 // instantanée, au prix d'un chargement initial un peu plus long.
-const COMPONENTS = "102,200,201,205,300,304,305,310";
+const COMPONENTS = "102,200,201,205,300,304,305,309,310";
 
 export interface DestinyItemComponent {
   itemHash: number;

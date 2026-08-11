@@ -1,0 +1,36 @@
+// Troisième section du corps de l'infobulle d'une arme : attribut intrinsèque
+// (« archétype »), cadence et impact, type anti-champion à droite.
+
+.weapon-archetype {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  // Alignée sur les statistiques : le bandeau déborde la marge du corps
+  padding: 0.25rem var(--tooltip-pad, 0.75rem);
+  font-size: 0.75rem;
+  background-color: var(--color-panel-alt);
+
+  &__text {
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__name {
+    font-weight: 600;
+  }
+
+  &__detail {
+    color: var(--color-text-muted);
+  }
+
+  // Icône anti-champion (bloqueur, surchargé, implacable) : dessin blanc du
+  // manifeste, à garder discret — il double une information déjà présente dans
+  // les attributs de l'arme.
+  &__breaker {
+    flex-shrink: 0;
+    width: 1.75rem;
+    height: 1.75rem;
+    object-fit: contain;
+    opacity: 0.85;
+  }
+}

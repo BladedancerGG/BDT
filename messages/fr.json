@@ -198,12 +198,10 @@
     "loading": "Chargement…",
     "loadingDetail": "Chargement des attributs et mods…",
     "energy": "énergie",
-    "gearTier": "Palier",
     "artifactPerks": "Attributs",
     "setBonus": "Bonus d'ensemble",
     "setPieces": "{count} pièces",
-    "crafted": "Façonnée",
-    "enhanced": "Améliorée"
+    "weaponLevel": "Niv. d'arme {level}"
   },
   "search": {
     "label": "Rechercher des objets",

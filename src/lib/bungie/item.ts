@@ -5,6 +5,7 @@ import {
   trimSockets,
   trimDisabledSockets,
   trimReusablePlugs,
+  trimPlugObjectives,
   type ItemDetail,
 } from "./item-components";
 
@@ -12,14 +13,16 @@ import {
 //  300 = ItemInstances (puissance, élément, énergie, palier)
 //  304 = ItemStats (bloc de statistiques)
 //  305 = ItemSockets (perks/mods actuellement équipés)
+//  309 = ItemPlugObjectives (compte-frags, niveau d'arme façonnée)
 //  310 = ItemReusablePlugs (tous les plugs disponibles par socket)
-const COMPONENTS = "300,304,305,310";
+const COMPONENTS = "300,304,305,309,310";
 
 interface ItemResponse {
   instance?: { data?: Parameters<typeof trimInstance>[0] };
   stats?: { data?: Parameters<typeof trimStats>[0] };
   sockets?: { data?: Parameters<typeof trimSockets>[0] };
   reusablePlugs?: { data?: Parameters<typeof trimReusablePlugs>[0] };
+  plugObjectives?: { data?: Parameters<typeof trimPlugObjectives>[0] };
 }
 
 /**
@@ -46,6 +49,10 @@ export async function getItemDetail(
     sockets: trimSockets(data.sockets?.data),
     disabledSockets: trimDisabledSockets(data.sockets?.data),
     reusablePlugs: trimReusablePlugs(data.reusablePlugs?.data),
+    plugObjectives: trimPlugObjectives(
+      data.plugObjectives?.data,
+      data.sockets?.data,
+    ),
   };
 }
 

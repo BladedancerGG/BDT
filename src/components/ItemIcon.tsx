@@ -44,6 +44,7 @@ export function ItemIcon({
   state,
   versionNumber,
   gearTier,
+  equipped,
 }: ItemThumbProps & { itemInstanceId?: string }) {
   const def = useSharedDefinition(itemHash);
   const shape = subclassKind(def);
@@ -148,6 +149,7 @@ export function ItemIcon({
           state={state}
           versionNumber={versionNumber}
           gearTier={gearTier}
+          equipped={equipped}
         />
         {busy && (
           // Même animation que le panneau d'actions : elle vit dans le SVG

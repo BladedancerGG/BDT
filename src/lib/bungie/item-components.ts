@@ -26,6 +26,28 @@ export type SocketSnapshot = (number | null)[];
 /** Plugs équipables par numéro de socket : { "3": [hash, hash] } */
 export type PlugSnapshot = Record<string, number[]>;
 
+/**
+ * Avancement d'un objectif porté par un plug équipé.
+ *
+ * Deux usages : le compte-frags d'une arme (« Ennemis vaincus ») et le niveau
+ * d'une arme façonnée. Le libellé et l'icône vivent dans
+ * DestinyObjectiveDefinition ; `uiLabel` y distingue le niveau (`crafting_
+ * weapon_level`) de sa progression (`crafting_weapon_level_progress`).
+ */
+export interface PlugObjective {
+  objectiveHash: number;
+  progress: number;
+  /** Palier de complétion — la progression du niveau d'arme est sur 1000 */
+  completionValue: number;
+  /**
+   * Objectif montré en jeu. Les conditions de déblocage des ornements du
+   * Solstice arrivent à `false` : on ne les affiche pas. Le drapeau est
+   * transmis plutôt que filtré ici, la décision dépendant de l'objectif —
+   * niveau d'arme et compte-frags ne se traitent pas de la même façon.
+   */
+  visible: boolean;
+}
+
 export interface ItemDetail {
   instance?: ItemInstanceSummary;
   stats: StatSnapshot;
@@ -40,6 +62,14 @@ export interface ItemDetail {
    */
   disabledSockets?: number[];
   reusablePlugs: PlugSnapshot;
+  /**
+   * Objectifs des plugs **équipés**, indexés par hash de plug. Le plug porteur
+   * est conservé : c'est lui qui identifie le compte-frags (sa catégorie de
+   * plug), là où le niveau d'arme se reconnaît à l'`uiLabel` de son objectif.
+   *
+   * Absent quand l'objet n'en a aucun — voir `trimPlugObjectives`.
+   */
+  plugObjectives?: Record<string, PlugObjective[]>;
 }
 
 // —— Formes brutes renvoyées par l'API ————————————————————————
@@ -58,6 +88,17 @@ interface RawSockets {
 }
 interface RawReusablePlugs {
   plugs: Record<string, { plugItemHash: number }[]>;
+}
+interface RawPlugObjectives {
+  objectivesPerPlug: Record<
+    string,
+    {
+      objectiveHash: number;
+      progress?: number;
+      completionValue: number;
+      visible: boolean;
+    }[]
+  >;
 }
 
 // —— Élagage ————————————————————————————————————————————————
@@ -105,12 +146,49 @@ export function trimReusablePlugs(
   return out;
 }
 
+/**
+ * Objectifs des plugs — voir ItemDetail.plugObjectives.
+ *
+ * **Seuls les plugs équipés sont conservés**, et c'est essentiel : l'API renvoie
+ * les objectifs de TOUTES les options du socket. Une arme façonnée porte ainsi
+ * trois compte-frags (celui en place et ses variantes à 0) et une quinzaine de
+ * Mémentos — de quoi afficher le mauvais compteur, et de quoi alourdir la
+ * réponse pour rien. Mesuré sur un compte : 923 objets concernés, l'essentiel
+ * étant des options jamais équipées.
+ */
+export function trimPlugObjectives(
+  raw: RawPlugObjectives | undefined,
+  sockets: RawSockets | undefined,
+): Record<string, PlugObjective[]> {
+  const equipped = new Set(
+    (sockets?.sockets ?? [])
+      .map((socket) => socket.plugHash)
+      .filter((hash): hash is number => Boolean(hash)),
+  );
+
+  const out: Record<string, PlugObjective[]> = {};
+  for (const [plugHash, objectives] of Object.entries(
+    raw?.objectivesPerPlug ?? {},
+  )) {
+    if (objectives.length === 0) continue;
+    if (!equipped.has(Number(plugHash))) continue;
+    out[plugHash] = objectives.map((objective) => ({
+      objectiveHash: objective.objectiveHash,
+      progress: objective.progress ?? 0,
+      completionValue: objective.completionValue,
+      visible: objective.visible,
+    }));
+  }
+  return out;
+}
+
 /** Jeu de composants renvoyé par GetProfile pour l'ensemble des objets. */
 export interface RawItemComponentSet {
   instances?: { data?: Record<string, RawInstance> };
   stats?: { data?: Record<string, RawStats> };
   sockets?: { data?: Record<string, RawSockets> };
   reusablePlugs?: { data?: Record<string, RawReusablePlugs> };
+  plugObjectives?: { data?: Record<string, RawPlugObjectives> };
 }
 
 /**
@@ -125,17 +203,20 @@ export function buildItemDetails(
   const stats = raw?.stats?.data ?? {};
   const sockets = raw?.sockets?.data ?? {};
   const plugs = raw?.reusablePlugs?.data ?? {};
+  const objectives = raw?.plugObjectives?.data ?? {};
 
   const ids = new Set([
     ...Object.keys(instances),
     ...Object.keys(stats),
     ...Object.keys(sockets),
     ...Object.keys(plugs),
+    ...Object.keys(objectives),
   ]);
 
   const out: Record<string, ItemDetail> = {};
   for (const id of ids) {
     const disabledSockets = trimDisabledSockets(sockets[id]);
+    const plugObjectives = trimPlugObjectives(objectives[id], sockets[id]);
     out[id] = {
       instance: trimInstance(instances[id]),
       stats: trimStats(stats[id]),
@@ -143,6 +224,7 @@ export function buildItemDetails(
       // Omis quand vide, pour ne pas alourdir la réponse
       ...(disabledSockets.length > 0 ? { disabledSockets } : {}),
       reusablePlugs: trimReusablePlugs(plugs[id]),
+      ...(Object.keys(plugObjectives).length > 0 ? { plugObjectives } : {}),
     };
   }
   return out;

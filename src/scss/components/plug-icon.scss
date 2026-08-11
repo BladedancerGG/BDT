@@ -33,7 +33,7 @@
   // Perk actuellement équipé : mis en avant
   &--equipped {
     border-color: var(--color-accent);
-    background-color: #74a8cc;
+    background-color: #4887ba;
   }
 
   // Option disponible mais non équipée : atténuée
@@ -42,6 +42,44 @@
 
     &:hover {
       opacity: 1;
+    }
+  }
+
+  // —— Attribut amélioré ————————————————————————————————————
+  // Deux marquages, comme en jeu : un dégradé doré qui monte du bas de l'icône,
+  // et une flèche dorée le long du bord gauche. `position: relative` n'est posé
+  // qu'ici : les autres plugs n'ont aucun pseudo-élément à ancrer.
+  &--enhanced {
+    position: relative;
+
+    // Dégradé PAR-DESSUS l'icône : elle reste lisible, il ne couvre que le bas.
+    &::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      pointer-events: none;
+      background-image: linear-gradient(
+        to top,
+        rgba(232, 207, 122, 0.75),
+        rgba(232, 207, 122, 0) 60%
+      );
+    }
+
+    &::before {
+      content: "";
+      position: absolute;
+      top: 12%;
+      bottom: 12%;
+      left: 2px;
+      width: 0.5rem;
+      pointer-events: none;
+      background-image: url("/icons/enhanced-arrow.svg");
+      background-repeat: no-repeat;
+      background-position: center;
+      background-size: contain;
+      // Au-dessus du dégradé, qui l'affadirait
+      z-index: 1;
     }
   }
 }

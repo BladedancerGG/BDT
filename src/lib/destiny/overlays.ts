@@ -24,7 +24,13 @@ export const ITEM_CONSTANTS_HASH = 1;
 export interface ItemConstantsDefinition {
     /** Overlays de palier, index 0 → palier 1, … index 4 → palier 5 */
     gearTierOverlayImagePaths: string[];
-    /** Dégradé posé sous le marquage façonné / amélioré pour le faire ressortir */
+    /**
+     * Dégradé posé sous le marquage façonné / amélioré pour le faire ressortir.
+     *
+     * Plus utilisé : le marquage est renvoyé en bas à DROITE de la vignette (voir
+     * `itemOverlays`), où cette image — ancrée à gauche — n'a plus sa place. Le
+     * dégradé est refait en CSS, à la couleur de la maquette.
+     */
     craftedBackgroundPath: string;
     /** Marquage des objets façonnés (marteau) */
     craftedOverlayPath: string;
@@ -147,11 +153,26 @@ export function masterworkBorderPath(
 }
 
 /**
+ * Un calque de vignette. `kind` dit comment le poser :
+ *  - `plain`  : l'image porte déjà son positionnement, elle se pose telle quelle ;
+ *  - `marker` : marquage façonné / amélioré, à renvoyer en miroir (voir plus bas).
+ */
+export interface ItemOverlay {
+    path: string;
+    kind: "plain" | "marker";
+}
+
+/**
  * Calques à superposer à l'icône d'un objet, du fond vers le dessus.
  *
  * Tous les chemins proviennent du manifeste : les filigranes de la définition
  * de l'objet, les overlays de la table DestinyInventoryItemConstantsDefinition.
  * Aucune URL n'est codée en dur.
+ *
+ * Le marquage façonné / amélioré est le seul calque que l'on retouche : Bungie
+ * l'ancre en bas à GAUCHE, où il se superpose aux pastilles de palier
+ * d'équipement. Il est donc renvoyé en miroir vers le bas à droite — d'où le
+ * `kind`, le CSS ne pouvant pas deviner lequel des calques est concerné.
  */
 export function itemOverlays({
                                  def,
@@ -165,37 +186,41 @@ export function itemOverlays({
     state?: number;
     versionNumber?: number;
     gearTier?: number;
-}): string[] {
+}): ItemOverlay[] {
     const tierType = def?.inventory?.tierType;
     const masterwork = isMasterwork(state);
 
-    const layers: (string | undefined)[] = [
+    const layers: (ItemOverlay | undefined)[] = [
         // Le halo passe sous le filigrane : sinon il le délaverait.
         // masterwork ? masterworkGlowPath(constants, tierType) : undefined,
-        watermarkPath(def, versionNumber),
-        gearTierPath(constants, gearTier),
+        plain(watermarkPath(def, versionNumber)),
+        plain(gearTierPath(constants, gearTier)),
     ];
 
     const crafted = isCrafted(state);
     const enhanced = isEnhanced(state);
 
+    // Le dégradé qui faisait ressortir le marquage (`craftedBackgroundPath`) est
+    // laissé de côté : ancré à gauche, il ne suivrait pas le marquage en miroir.
+    // Le CSS le refait à droite.
+
+    if (masterwork) {
+        layers.push(plain(masterworkBorderPath(constants, tierType)));
+    }
+
     if (crafted || enhanced) {
-        // Fond commun aux deux marquages, dessiné juste en dessous
-        layers.push(constants?.craftedBackgroundPath);
         // Une arme façonnée PUIS améliorée porte le marquage « amélioré » :
         // l'amélioration prime donc sur le façonnage.
-        layers.push(
-            enhanced
-                ? constants?.enhancedItemOverlayPath
-                : constants?.craftedOverlayPath,
-        );
+        const path = enhanced
+            ? constants?.enhancedItemOverlayPath
+            : constants?.craftedOverlayPath;
+        if (path) layers.push({path, kind: "marker"});
     }
 
-    // Le cadre ferme la pile : il doit cerner tout ce qui précède, marquage
-    // façonné/amélioré compris.
-    if (masterwork) {
-        layers.push(masterworkBorderPath(constants, tierType));
-    }
 
-    return layers.filter((path): path is string => Boolean(path));
+    return layers.filter((layer): layer is ItemOverlay => Boolean(layer));
+}
+
+function plain(path: string | undefined): ItemOverlay | undefined {
+    return path ? {path, kind: "plain"} : undefined;
 }

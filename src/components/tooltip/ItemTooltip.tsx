@@ -24,18 +24,21 @@ import {
     SWORD_STAT_ORDER,
     ARMOR_STAT_ORDER,
 } from "@/lib/destiny/stat-order";
-import {isCrafted, isEnhanced} from "@/lib/destiny/overlays";
 import {
     ARTIFACT_SOCKET_CATEGORIES,
     isPlugApplied,
 } from "@/lib/destiny/sockets";
 import {subclassDamageType, isSubclass} from "@/lib/destiny/subclass";
-import {ItemThumb} from "../ItemThumb";
+import {useItemProgress} from "@/lib/destiny/use-item-progress";
+import {useStatBonuses} from "@/lib/destiny/use-stat-bonuses";
 import {PlugIcon} from "./PlugIcon";
 import {StatBar} from "./StatBar";
 import {TooltipSkeleton} from "./TooltipSkeleton";
 import {SubclassSockets} from "./SubclassSockets";
 import {SetBonus} from "./SetBonus";
+import {TooltipHeader} from "./TooltipHeader";
+import {WeaponSummary} from "./WeaponSummary";
+import {WeaponArchetype} from "./WeaponArchetype";
 
 /**
  * Attributs d'un artéfact.
@@ -119,6 +122,9 @@ function PerkColumns({
                                 key={hash}
                                 hash={hash}
                                 state={hash === column.equippedHash ? "equipped" : "available"}
+                                // Seules ces colonnes contiennent des attributs
+                                // améliorés ; ailleurs le marquage n'a pas de sens.
+                                markEnhanced
                             />
                         ))}
                     </div>
@@ -161,14 +167,6 @@ function PlugRow({
     );
 }
 
-function ArchetypeName({hash}: { hash: number }) {
-    const def = useDefinition<InventoryItemDefinition>(
-        "DestinyInventoryItemDefinition",
-        hash,
-    );
-    return <>{def?.displayProperties?.name ?? ""}</>;
-}
-
 export function ItemTooltip({
                                 itemHash,
                                 itemInstanceId,
@@ -192,6 +190,11 @@ export function ItemTooltip({
     // qu'il faut alors aller chercher à l'unité.
     const {detail, pending: awaitingDetail} = useItemData(itemInstanceId);
     const intrinsic = useSocketColumns(def, detail, SOCKET_CATEGORY.INTRINSIC);
+    // Niveau d'arme façonnée et compte-frags (composant 309)
+    const progress = useItemProgress(detail);
+    // Part des statistiques due à la pièce maîtresse et à l'archétype, pour la
+    // détacher en fin de barre
+    const statBonuses = useStatBonuses(detail);
 
     if (!def) {
         return (
@@ -243,10 +246,6 @@ export function ItemTooltip({
     const impact = detail?.stats?.[WEAPON_STAT.IMPACT];
     const energy = detail?.instance?.energy;
 
-    // Marquages doublés en texte sous le type (le calque est discret)
-    const crafted = isCrafted(state);
-    const enhanced = isEnhanced(state);
-
     return (
         <div
             className="item-tooltip"
@@ -262,42 +261,15 @@ export function ItemTooltip({
                 } as CSSProperties
             }
         >
-            <div className="item-tooltip__tier"/>
-
-            <div className="item-tooltip__header">
-                {/* Vignette reprenant icône + filigrane + palier + façonné / amélioré */}
-                <ItemThumb
-                    itemHash={itemHash}
-                    itemInstanceId={itemInstanceId}
-                    state={state}
-                    versionNumber={versionNumber}
-                    gearTier={gearTier}
-                    className="item-thumb--sm"
-                />
-                <div className="item-tooltip__identity">
-                    <h3 className="item-tooltip__name">{def.displayProperties.name}</h3>
-                    <p className="item-tooltip__type">{def.itemTypeDisplayName}</p>
-                    {/* Le calque de palier étant très discret, on le double en texte */}
-                    {(gearTier || crafted || enhanced) && (
-                        <p className="item-tooltip__tags">
-                            {gearTier ? `${t("gearTier")} ${gearTier}` : null}
-                            {gearTier && (crafted || enhanced) ? " · " : null}
-                            {crafted ? t("crafted") : null}
-                            {crafted && enhanced ? " · " : null}
-                            {enhanced ? t("enhanced") : null}
-                        </p>
-                    )}
-                </div>
-                <div className="item-tooltip__meta">
-                    {awaitingDetail ? (
-                        <span className="skeleton skeleton--line skeleton--line-sm"/>
-                    ) : (
-                        power != null && (
-                            <span className="item-tooltip__power">{power}</span>
-                        )
-                    )}
-                </div>
-            </div>
+            {/* Nom, type et rareté, avec filigrane et palier d'équipement à droite.
+                La vignette n'y figure plus : l'infobulle est ancrée à l'icône de
+                l'objet, qui reste sous les yeux. */}
+            <TooltipHeader
+                def={def}
+                state={state}
+                versionNumber={versionNumber}
+                gearTier={gearTier}
+            />
 
             <div className="item-tooltip__body">
                 {awaitingDetail ? (
@@ -306,6 +278,21 @@ export function ItemTooltip({
                     />
                 ) : (
                     <>
+                        {/* Puissance et élément, munitions, niveau d'arme, compte-frags */}
+                        {isWeapon && (
+                            <WeaponSummary
+                                damageType={damage}
+                                power={power}
+                                ammoType={def.equippingBlock?.ammoType}
+                                progress={progress}
+                            />
+                        )}
+
+                        {/* Une armure n'a ni élément ni munitions : sa puissance suffit */}
+                        {!isWeapon && power != null && (
+                            <div className="item-tooltip__power">{power}</div>
+                        )}
+
                         {/* Statistiques */}
                         {showStats && statEntries.length > 0 && (
                             <div className="item-tooltip__stats">
@@ -319,9 +306,7 @@ export function ItemTooltip({
                                         withBar={stat.withBar && !isSubclassItem}
                                         signed={isSubclassItem}
                                         max={statMax}
-                                        color={
-                                            isWeapon ? damageColor(damage) : "var(--color-energy)"
-                                        }
+                                        bonus={statBonuses[stat.statHash]}
                                     />
                                 ))}
                             </div>
@@ -348,23 +333,15 @@ export function ItemTooltip({
                             </div>
                         )}
 
-                        {/* Archétype (arme) : intrinsèque + cadence / impact */}
+                        {/* Archétype (arme) : intrinsèque, cadence / impact, et type
+                            anti-champion à droite */}
                         {isWeapon && archetypeHash && (
-                            <div className="item-tooltip__archetype">
-                                <PlugIcon hash={archetypeHash} square={true}/>
-                                <div>
-                                    <div className="item-tooltip__archetype-name">
-                                        <ArchetypeName hash={archetypeHash}/>
-                                    </div>
-                                    {(rpm != null || impact != null) && (
-                                        <div className="item-tooltip__archetype-detail">
-                                            {rpm != null && `${rpm} rpm`}
-                                            {rpm != null && impact != null && " / "}
-                                            {impact != null && `${impact} impact`}
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
+                            <WeaponArchetype
+                                archetypeHash={archetypeHash}
+                                breakerTypeHash={def.breakerTypeHash}
+                                rpm={rpm}
+                                impact={impact}
+                            />
                         )}
 
                         {/* Perks : toutes les options équipables, en colonnes */}

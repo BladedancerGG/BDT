@@ -15,6 +15,7 @@ import {
 } from "@/lib/destiny/overlays";
 import { bestIconPath, tierClassName } from "@/lib/destiny/icons";
 import { isSubclass } from "@/lib/destiny/subclass";
+import { ammoIconPath } from "@/lib/destiny/grouping";
 import { BUNGIE_ROOT, ITEM_TYPE } from "@/lib/destiny/display";
 
 export interface ItemThumbProps {
@@ -27,6 +28,12 @@ export interface ItemThumbProps {
   versionNumber?: number;
   /** Palier d'équipement (1–5) */
   gearTier?: number;
+  /**
+   * L'objet est-il celui équipé de son emplacement ? Seules ces armes affichent
+   * leur type de munitions, comme le fait le jeu : sur toute une grille, le
+   * glyphe n'apprendrait rien (un emplacement n'accueille qu'un type).
+   */
+  equipped?: boolean;
 }
 
 /**
@@ -42,6 +49,7 @@ export function ItemThumb({
   state,
   versionNumber,
   gearTier,
+  equipped,
   className,
 }: ItemThumbProps & { className?: string }) {
   // Servies par ItemDefsProvider : une seule requête groupée pour tout
@@ -98,6 +106,15 @@ export function ItemThumb({
     gearTier,
   });
 
+  // Type de munitions de l'arme équipée. Il occupe le coin bas droit, celui où
+  // le marquage façonné / amélioré est désormais renvoyé : quand les deux sont
+  // là, le marquage se décale d'une case vers la gauche.
+  const ammoIcon =
+    equipped && def?.itemType === ITEM_TYPE.Weapon
+      ? ammoIconPath(def.equippingBlock?.ammoType)
+      : undefined;
+  const marker = overlays.some((overlay) => overlay.kind === "marker");
+
   // Une pièce maîtresse reçoit son cadre doré depuis le manifeste (dernier
   // calque de `overlays`) ; les autres objets prennent le cadre blanc du SCSS.
   // Les doctrines en sont exemptées : leur vignette est un losange ou un
@@ -112,6 +129,11 @@ export function ItemThumb({
     holofoil ? "item-thumb--holofoil" : null,
     originalIcon ? "item-thumb--ornamented" : null,
     regularBorder ? "item-thumb--regular-border" : null,
+    // Dégradé du coin bas droit : il accompagne le marquage façonné / amélioré,
+    // en remplacement de l'image de fond du manifeste (ancrée à gauche).
+    marker ? "item-thumb--marked" : null,
+    // Marquage décalé d'une case : l'icône de munitions occupe le coin
+    ammoIcon && marker ? "item-thumb--marker-shifted" : null,
     className,
   ]
     .filter(Boolean)
@@ -155,15 +177,29 @@ export function ItemThumb({
           loading="lazy"
         />
       )}
-      {overlays.map((path, i) => (
+      {marker && (
+        // Dégradé rouge du coin bas droit, sous le marquage façonné / amélioré.
+        // Sa place dans le DOM fait tout : au-dessus de l'icône, sous le cadre
+        // doré des pièces maîtresses qui ferme la pile.
+        <span className="item-thumb__marker-glow" aria-hidden />
+      )}
+      {overlays.map((overlay, i) => (
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          key={`${path}-${i}`}
-          src={`${BUNGIE_ROOT}${path}`}
+          key={`${overlay.path}-${i}`}
+          src={`${BUNGIE_ROOT}${overlay.path}`}
           alt=""
-          className="item-thumb__overlay"
+          className={`item-thumb__overlay${
+            overlay.kind === "marker" ? " item-thumb__overlay--marker" : ""
+          }`}
         />
       ))}
+      {ammoIcon && (
+        // Fichier local, contrairement à tous les calques ci-dessus : pas de
+        // préfixe bungie.net.
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={ammoIcon} alt="" className="item-thumb__ammo" />
+      )}
     </span>
   );
 }

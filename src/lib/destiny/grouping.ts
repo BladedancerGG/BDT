@@ -66,6 +66,35 @@ const AMMO_ICONS: Record<number, string> = {
 };
 
 /**
+ * Icône du type de munitions d'une arme — `undefined` hors des armes, où
+ * `ammoType` vaut 0 (None).
+ *
+ * Sert aussi aux infobulles et aux vignettes des armes équipées : le manifeste
+ * n'expose aucune de ces trois icônes, d'où les fichiers locaux.
+ */
+export function ammoIconPath(
+  ammoType: number | undefined,
+): string | undefined {
+  return ammoType ? AMMO_ICONS[ammoType] : undefined;
+}
+
+/** Clé de traduction du type de munitions, dans l'espace `inventory`. */
+export function ammoLabelKey(
+  ammoType: number | undefined,
+): "ammo.primary" | "ammo.special" | "ammo.heavy" | undefined {
+  switch (ammoType) {
+    case AMMO_TYPE.Primary:
+      return "ammo.primary";
+    case AMMO_TYPE.Special:
+      return "ammo.special";
+    case AMMO_TYPE.Heavy:
+      return "ammo.heavy";
+    default:
+      return undefined;
+  }
+}
+
+/**
  * Icône par type d'arme (DestinyItemSubType).
  *
  * Valeurs relevées sur le manifeste (version 244213) en recoupant `itemSubType`

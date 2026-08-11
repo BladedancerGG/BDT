@@ -22,9 +22,12 @@ interface BucketDefinition {
 function SlotItem({
                       item,
                       details,
+                      equipped,
                   }: {
     item: DestinyItemComponent;
     details: Record<string, ItemDetail>;
+    /** Objet équipé de l'emplacement : lui seul affiche son type de munitions */
+    equipped?: boolean;
 }) {
     const detail = item.itemInstanceId ? details[item.itemInstanceId] : undefined;
     return (
@@ -34,6 +37,7 @@ function SlotItem({
             state={item.state}
             versionNumber={item.versionNumber}
             gearTier={detail?.instance?.gearTier}
+            equipped={equipped}
         />
     );
 }
@@ -107,7 +111,7 @@ export function EquipmentSlot({
 
             <div className="equipment-slot__equipped">
                 {equipped ? (
-                    <SlotItem item={equipped} details={details} />
+                    <SlotItem item={equipped} details={details} equipped />
                 ) : (
                     <span className="slot-cell slot-cell--empty" aria-hidden />
                 )}

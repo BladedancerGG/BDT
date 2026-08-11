@@ -68,6 +68,12 @@ export interface InventoryItemDefinition {
   };
   defaultDamageType?: number;
   /**
+   * Type anti-champion de l'arme (bloqueur / surchargé / implacable), à
+   * résoudre dans DestinyBreakerTypeDefinition. Vaut 0 quand l'arme n'en a pas
+   * — `breakerType` porte la même information sous forme d'énumération.
+   */
+  breakerTypeHash?: number;
+  /**
    * Présent sur les doctrines : `hudDamageType` porte leur élément
    * (`defaultDamageType` vaut toujours 0), `buildName` le couple élément/classe.
    */
@@ -108,6 +114,34 @@ export interface SandboxPerkDefinition {
 export interface StatDefinition {
   displayProperties: DisplayProperties;
   statCategory?: number;
+}
+
+/** Type de dégâts : c'est lui qui porte l'icône d'élément d'une arme. */
+export interface DamageTypeDefinition {
+  displayProperties: DisplayProperties;
+  /** Variante détourée, celle que le jeu affiche sur fond sombre */
+  transparentIconPath?: string;
+}
+
+/** Type anti-champion d'une arme (bloqueur, surchargé, implacable). */
+export interface BreakerTypeDefinition {
+  displayProperties: DisplayProperties;
+  enumValue: number;
+}
+
+/**
+ * Objectif d'un plug : compte-frags d'arme, niveau d'arme façonnée…
+ *
+ * `progressDescription` porte le libellé affiché (« Ennemis vaincus ») —
+ * `displayProperties.name` est vide sur ces objectifs. `uiLabel` est la seule
+ * clé stable et indépendante de la langue pour les reconnaître : trois hashes
+ * différents partagent `crafting_weapon_level_progress`.
+ */
+export interface ObjectiveDefinition {
+  displayProperties: DisplayProperties;
+  progressDescription?: string;
+  completionValue: number;
+  uiLabel?: string;
 }
 
 export interface SocketCategoryDefinition {

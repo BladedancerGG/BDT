@@ -52,6 +52,56 @@
     object-fit: cover;
   }
 
+  // —— Marquage façonné / amélioré ————————————————————————————
+  // Bungie l'ancre en bas à GAUCHE de son PNG, là où se trouvent aussi les
+  // pastilles de palier d'équipement : les deux se chevauchaient. Le calque est
+  // donc renvoyé en miroir, ce qui l'envoie en bas à droite sans avoir à
+  // découper l'image.
+  &__overlay--marker {
+    transform: scaleX(-1) translateX(1%) translateY(-1%);
+  }
+
+  // Marquage décalé d'une case vers la gauche : l'icône de munitions de l'arme
+  // équipée occupe désormais le coin. Le décalage est exprimé en pourcentage de
+  // la vignette, la seule unité qui suive sa taille (réglable dans les options).
+  &--marker-shifted &__overlay--marker {
+    transform: scaleX(-1) translateX(28%) translateY(-1%);
+  }
+
+  // Dégradé rouge du coin bas droit, en remplacement de `craftedBackgroundPath`
+  // du manifeste : cette image est ancrée à gauche, elle ne suivrait pas le
+  // marquage renvoyé en miroir. La teinte est celle de la maquette.
+  //
+  // C'est un calque du DOM et non un `::before` : il doit passer AU-DESSUS de
+  // l'icône de l'objet mais SOUS le cadre doré des pièces maîtresses, ce que
+  // l'ordre du DOM donne gratuitement là où il faudrait sinon empiler des
+  // `z-index` sur tous les calques.
+  &__marker-glow {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image: radial-gradient(
+      circle at 100% 100%,
+      #da674d 0%,
+      rgba(218, 103, 77, 0.55) 20%,
+      transparent 40%
+    );
+  }
+
+  // Type de munitions de l'arme équipée : coin bas droit, comme en jeu.
+  // Le SVG est blanc, il tient sur toutes les couleurs de rareté.
+  &__ammo {
+    position: absolute;
+    right: 7%;
+    bottom: 5%;
+    width: 20%;
+    height: 20%;
+    object-fit: contain;
+    pointer-events: none;
+    // Le glyphe est un tracé fin : une ombre le décolle de l'icône de l'arme.
+    filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.9));
+  }
+
   // Fond des objets ornementés : dessiné avant l'icône, donc en dessous
   // (l'ordre du DOM détermine l'empilement de ces calques absolus).
   &__background,
@@ -115,13 +165,4 @@
     pointer-events: none;
   }
 
-  // Variante compacte, utilisée dans l'en-tête du tooltip.
-  // Pas de bordure propre : le cadre blanc ci-dessus (ou le cadre doré du
-  // manifeste) la ferait doubler.
-  &--sm {
-    flex-shrink: 0;
-    width: 2.5rem;
-    height: 2.5rem;
-    border-radius: var(--radius-sm);
-  }
 }
