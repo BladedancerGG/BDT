@@ -7,6 +7,7 @@ import type {
     InventoryItemDefinition,
     PlugSetDefinition,
 } from "@/lib/destiny/types";
+import {isTrackerPlug} from "@/lib/destiny/sockets";
 
 /** Une colonne de perks : le plug équipé + toutes les options possibles. */
 export interface SocketColumn {
@@ -14,6 +15,41 @@ export interface SocketColumn {
     equippedHash?: number;
     /** Tous les plugs équipables sur ce socket (inclut l'équipé) */
     options: number[];
+}
+
+/**
+ * Repère les compte-frags parmi une liste de plugs.
+ *
+ * Le tri ne peut pas se faire dans `useSocketColumns` : le type d'un plug n'est
+ * connu qu'après lecture de sa définition. Le compteur n'a d'ailleurs pas de
+ * catégorie de sockets à lui — il occupe une colonne de la catégorie « attributs
+ * d'arme », au milieu des perks.
+ *
+ * Renvoie un ensemble vide tant que la lecture n'a pas abouti : les appelants
+ * n'écartent donc rien avant de savoir, quitte à laisser l'icône une frame.
+ */
+export function useTrackerPlugs(hashes: number[]): Set<number> {
+    return (
+        useLiveQuery(
+            async () => {
+                if (hashes.length === 0) return new Set<number>();
+                const rows = await manifestDb.definitions.bulkGet(
+                    hashes.map(
+                        (h) => ["DestinyInventoryItemDefinition", h] as [string, number],
+                    ),
+                );
+                return new Set(
+                    hashes.filter((_, i) =>
+                        isTrackerPlug(rows[i]?.data as InventoryItemDefinition),
+                    ),
+                );
+            },
+            // Les hashes viennent d'un tableau recréé à chaque rendu : la clé de
+            // dépendance doit porter sur leur contenu, pas sur l'identité.
+            [hashes.join(",")],
+            new Set<number>(),
+        ) ?? new Set<number>()
+    );
 }
 
 /**

@@ -38,7 +38,7 @@ export function SetBonus({ def }: { def: InventoryItemDefinition }) {
   return (
     <div className="socket-section">
       <span className="socket-section__title">
-        {t("setBonus")} — {set.displayProperties?.name}
+        {set.displayProperties?.name}
       </span>
       <div className="socket-section__row">
         {perks.map((perk) => (

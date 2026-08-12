@@ -16,11 +16,6 @@
 // armes légendaires et exotiques du manifeste. Aucun nom d'armature à
 // reconnaître, donc rien qui dépende de la langue, et les valeurs suivent les
 // rééquilibrages de Bungie sans intervention.
-//
-// La table de l'article « Anti-Champion 2.0 » a servi à contrôler ce résultat :
-// les deux sources concordent partout, sauf sur un Rose légendaire à armature
-// adaptative que le manifeste donne surchargé là où la règle des armatures le
-// voudrait bloqueur. Le manifeste tranche.
 
 import type {InventoryItemDefinition} from "./types";
 

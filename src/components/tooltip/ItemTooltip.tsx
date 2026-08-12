@@ -4,7 +4,7 @@ import type {CSSProperties} from "react";
 import {useTranslations} from "next-intl";
 import {useDefinition} from "@/lib/manifest/use-definition";
 import {useItemData} from "@/lib/bungie/use-item-data";
-import {useSocketColumns} from "@/lib/destiny/use-sockets";
+import {useSocketColumns, useTrackerPlugs} from "@/lib/destiny/use-sockets";
 import type {
     InventoryItemDefinition,
     SocketCategoryDefinition,
@@ -74,7 +74,7 @@ function ArtifactPerks({
 
     return (
         <div className="socket-section">
-            <span className="socket-section__title">{t("artifactPerks")}</span>
+            {/*<span className="socket-section__title">{t("artifactPerks")}</span>*/}
             <div className="socket-section__row">
                 {equipped.map((hash, i) => (
                     <PlugIcon key={`${hash}-${i}`} hash={hash} square/>
@@ -106,14 +106,24 @@ function PerkColumns({
     detail: ItemDetail | undefined;
     categoryHash: number;
 }) {
-    const columns = useSocketColumns(def, detail, categoryHash);
+    const all = useSocketColumns(def, detail, categoryHash);
     const title = useCategoryName(categoryHash);
+
+    // Le compte-frags occupe une colonne de cette catégorie sans être un
+    // attribut : le compte est déjà repris dans le résumé de l'arme, l'icône
+    // n'ajoute rien.
+    const trackers = useTrackerPlugs(
+        all.map((c) => c.equippedHash ?? c.options[0]).filter(Boolean) as number[],
+    );
+    const columns = all.filter(
+        (c) => !trackers.has(c.equippedHash ?? c.options[0]),
+    );
 
     if (columns.length === 0) return null;
 
     return (
         <div className="socket-section">
-            <span className="socket-section__title">{title}</span>
+            {/*<span className="socket-section__title">{title}</span>*/}
             <div className="socket-section__columns">
                 {columns.map((column) => (
                     <div key={column.socketIndex} className="socket-column">
@@ -149,15 +159,19 @@ function PlugRow({
     const columns = useSocketColumns(def, detail, categoryHash);
     const title = useCategoryName(categoryHash);
 
-    const equipped = columns
+    const plugs = columns
         .map((c) => c.equippedHash)
         .filter((h): h is number => Boolean(h));
+    // Même écart que dans les colonnes d'attributs : certaines armes portent
+    // leur compteur dans une catégorie affichée en rangée.
+    const trackers = useTrackerPlugs(plugs);
+    const equipped = plugs.filter((h) => !trackers.has(h));
 
     if (equipped.length === 0) return null;
 
     return (
         <div className="socket-section">
-            <span className="socket-section__title">{title}</span>
+            {/*<span className="socket-section__title">{title}</span>*/}
             <div className="socket-section__row">
                 {equipped.map((hash, i) => (
                     <PlugIcon key={`${hash}-${i}`} hash={hash} square={square}/>

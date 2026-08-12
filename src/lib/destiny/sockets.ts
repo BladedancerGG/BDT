@@ -29,6 +29,22 @@ export function isPlugApplied(
 }
 
 /**
+ * Ce plug est-il un compte-frags (« kill tracker ») ?
+ *
+ * Le compte lui-même est déjà repris dans le résumé de l'arme : son icône dans
+ * la rangée de mods n'ajoute rien. Les deux familles concernées se distinguent
+ * par leur segment `trackers` (`v300.plugs.weapons.masterworks.trackers` pour
+ * les compteurs classiques, `crafting.plugs.weapons.mods.trackers` pour les
+ * armes façonnées), y compris l'emplacement vide.
+ */
+export function isTrackerPlug(
+    def: InventoryItemDefinition | undefined,
+): boolean {
+    const category = def?.plug?.plugCategoryIdentifier;
+    return Boolean(category?.split(".").includes("trackers"));
+}
+
+/**
  * Ce plug est-il la version **améliorée** d'un attribut d'arme ?
  *
  * Rien ne le signale explicitement dans le manifeste : les deux versions d'un

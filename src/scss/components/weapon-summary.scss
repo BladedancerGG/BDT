@@ -6,11 +6,12 @@
 .weapon-summary {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: var(--tooltip-pad);
 
   border-bottom: 1px solid var(--color-border);
 
-  padding-bottom: 0.5rem;
+  padding-bottom: var(--tooltip-pad);
+  margin-bottom: var(--tooltip-pad);
 
   // —— Puissance et munitions ————————————————————————————————
   &__top {
@@ -20,7 +21,7 @@
     // La marge horizontale reprend celle du corps de l'infobulle : les bandeaux
     // la débordent (voir item-tooltip.scss), leurs textes doivent malgré tout
     // rester alignés sur les statistiques.
-    padding: 0 var(--tooltip-pad) ;
+    padding-left: var(--tooltip-pad) ;
   }
 
   &__power {
@@ -34,14 +35,14 @@
 
   // Icône d'élément : PNG détouré clair du manifeste, lisible tel quel
   &__element {
-    width: 2.5rem;
-    height: 2.5rem;
+    width: 2rem;
+    height: 2rem;
     object-fit: contain;
   }
 
   // La couleur suit l'élément de l'arme (--damage-color, posée en inline)
   &__power-value {
-    font-size: 2.5rem;
+    font-size: 2rem;
     font-weight: 700;
     line-height: 1;
     font-variant-numeric: tabular-nums;
@@ -60,8 +61,8 @@
   // blanc disparaîtrait sur le thème clair.
   &__ammo-icon {
     flex-shrink: 0;
-    width: 4rem;
-    height: 4rem;
+    width: 2rem;
+    height: 2rem;
     background-color: var(--color-panel);
   }
 
@@ -80,8 +81,8 @@
     align-items: center;
     gap: 0.375rem;
     overflow: hidden;
-    padding: 0.25rem var(--tooltip-pad);
-    font-size: 1rem;
+    padding: 0 var(--tooltip-pad);
+    font-size: 0.85rem;
     &--level {
       background-color: var(--color-panel-alt);
     }

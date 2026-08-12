@@ -19,7 +19,7 @@ export const MANIFEST_TABLES = [
     // Icônes détourées (PNG transparent) + fonds, indexées par hash d'objet.
     // ~8,5 Mo, mais c'est la seule source des icônes sans fond de rareté incrusté.
     "DestinyIconDefinition",
-  "DestinyEquipableItemSetDefinition", // bonus d'ensemble des armures (2 / 4 pièces)
+    "DestinyEquipableItemSetDefinition", // bonus d'ensemble des armures (2 / 4 pièces)
     // Libellés et icônes des objectifs de plugs : compte-frags (« Ennemis
     // vaincus ») et niveau d'arme façonnée. ~7 Mo, la deuxième plus grosse.
     "DestinyObjectiveDefinition",
