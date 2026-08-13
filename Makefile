@@ -73,13 +73,11 @@ prod-up: ## Démarre le conteneur de production
 prod-down: ## Arrête la production (conserve données et certificats)
 	$(COMPOSE_PROD) down
 
-prod-up-full: ## Build et démarre la production (migrations incluses)
-	$(COMPOSE_PROD) up -d --build
+prod-restart: ## Redémarre les conteneurs de production
+	$(COMPOSE_PROD) restart
 
 prod-build: ## Build les conteneurs de production
 	$(COMPOSE_PROD) build
-
-prod-build-restart: prod-build prod-down prod-up ## Build et redémarre les conteneurs (idéal pour envoyer des mises à jour sur l'application en minimisant le downtime)
 
 prod-logs: ## Suit les logs de l'application en production
 	$(COMPOSE_PROD) logs -f app
@@ -95,12 +93,30 @@ prod-backup: ## Sauvegarde la base dans backup-<date>.sql.gz
 		| gzip > backup-$$(date +%Y%m%d-%H%M%S).sql.gz
 	@echo "Sauvegarde écrite."
 
+
+## -- Commandes de prod spécifiques
+
+prod-restart-next: ## Redémarre le conteneur next.js
+	$(COMPOSE_PROD) restart app
+
+
+prod-cold-start: pull prod-build prod-up ## Build et démarre la production (idéal lors du premier lancement du projet)
+
+prod-update-all: pull prod-build prod-down prod-up ## Récupère la dernière version du code, build et redémarre TOUT les conteneurs (idéal pour envoyer des mises à jour sur plusieurs conteneurs en même temps)
+
+prod-update-next: pull prod-build prod-restart-next ## Récupère la dernière version du code, build et redémarre uniquement le conteneur Next.js (idéal pour envoyer des mises à jours spécifiques à Next.js)
+
 ## —— Nettoyage —————————————————————————————————————————————
 
 clean: ## Arrête tout et SUPPRIME les données de la base (volume)
 	docker compose down -v
 
 reset: clean build up ## Remise à zéro complète : clean + rebuild + démarrage
+
+## -- Git ---------------------------------------------------
+
+pull: ## Récupère et met à jour le projet depuis le repo Git
+	git pull
 
 ## —— Aide ——————————————————————————————————————————————————
 
