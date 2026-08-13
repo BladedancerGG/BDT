@@ -42,7 +42,7 @@ export function ActionsButton() {
       title={t("openHint")}
     >
       <span aria-hidden>⇄</span>
-      {t("title")}
+      {/*{t("title")}*/}
 
       <span className="actions-button__counts">
         {(counts.pending > 0 || (counts.done === 0 && counts.failed === 0)) && (

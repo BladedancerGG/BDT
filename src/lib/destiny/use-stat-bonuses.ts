@@ -40,12 +40,15 @@ export function useStatBonuses(detail: ItemDetail | undefined): StatBonuses {
     return (
         useLiveQuery(
             async () => {
-                // Un socket vaut 0 (vide) ou null (masqué en jeu) — ni l'un ni l'autre
-                // ne porte de plug.
+                // Les sockets masqués en jeu sont écartés : l'un d'eux porte, sur une
+                // arme façonnée, un plug de la famille « masterwork » sans écart de
+                // statistique — le compter ne changerait rien aujourd'hui, mais rien
+                // ne garantit qu'il en restera ainsi.
+                const hidden = new Set(detail?.hiddenSockets ?? []);
                 const equipped = [
                     ...new Set(
                         (detail?.sockets ?? []).filter(
-                            (hash): hash is number => typeof hash === "number" && hash > 0,
+                            (hash, index) => hash > 0 && !hidden.has(index),
                         ),
                     ),
                 ];

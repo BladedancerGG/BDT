@@ -1,5 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="10" height="32" viewBox="0 0 10 32">
-    <!-- Flèche des attributs améliorés : elle longe le bord gauche de l'icône. -->
-    <path d="M5 31 V5 M1 9 L5 3 L9 9" fill="none" stroke="#e8cf7a" stroke-width="1.6"
-          stroke-linecap="round" stroke-linejoin="round"/>
-</svg>

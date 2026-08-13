@@ -27,7 +27,7 @@
 }
 
 .item-tooltip {
-  min-width: v.$tooltip-width;
+  width: v.$tooltip-width;
   overflow: hidden;
   border: 1px solid var(--color-border-strong);
   background-color: var(--color-panel);
@@ -36,15 +36,28 @@
 
   // Nom, type, rareté et marquages : voir components/tooltip-header.scss
 
-  // Puissance des objets sans élément (armures) — les armes ont la leur dans
-  // weapon-summary, accompagnée de son icône d'élément.
+  // Puissance des objets sans élément (armures, doctrines) et, pour une armure,
+  // son archétype à droite. Les armes ont leur propre rangée dans
+  // weapon-summary, où l'élément et les munitions tiennent ces deux places.
   &__power {
-    padding: 0 var(--tooltip-pad, 0.75rem);
-    font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  &__power-value {
+    font-size: 2rem;
     font-weight: 700;
     line-height: 1;
     font-variant-numeric: tabular-nums;
     color: var(--damage-color, var(--color-text));
+
+    // Séparateur vers l'archétype, comme entre puissance et munitions sur une
+    // arme. Rien à séparer quand la valeur est seule.
+    &:not(:last-child) {
+      padding-right: 0.75rem;
+      border-right: 1px solid var(--color-border);
+    }
   }
 
   &__body {
@@ -55,20 +68,23 @@
 
     display: flex;
     flex-direction: column;
-    padding-top: var(--tooltip-pad);
+    padding: var(--tooltip-pad) 0;
+    gap: var(--tooltip-pad);
     > * {
       padding-left: var(--tooltip-pad);
       padding-right: var(--tooltip-pad);
-      padding-bottom: var(--tooltip-pad);
+      &:not(:last-child) {
+      }
     }
   }
 
-  // Ligne archétype : voir components/weapon-archetype.scss
+  // Bandeau d'attribut intrinsèque : voir components/intrinsic-row.scss
 
   &__stats {
     display: flex;
     flex-direction: column;
     gap: 0rem;
+    border-bottom: none !important;
   }
 
   &__total {
@@ -118,6 +134,8 @@
   display: flex;
   flex-direction: column;
   gap: 0.375rem;
+
+  border-bottom: none !important;
 
   &__title {
     @include m.section-title;

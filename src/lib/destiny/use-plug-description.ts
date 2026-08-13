@@ -72,3 +72,52 @@ export function usePlugDescription(
 
   return direct || fromPerks;
 }
+
+/**
+ * Résumé d'un plug : la version **courte** de son effet.
+ *
+ * Priorité inverse de `usePlugDescription` : ici on veut d'abord le texte des
+ * `DestinySandboxPerkDefinition`, et jamais celui de `displayProperties`.
+ * L'attribut intrinsèque d'une armure exotique porte les deux — « Proximité
+ * suffisante » décrit son fonctionnement complet en trois phrases dans sa
+ * description directe, quand son perk se contente d'« Extension du chaos
+ * prolongée et plus fréquente. » C'est cette seconde forme qui tient sur une
+ * ligne d'infobulle.
+ *
+ * `undefined` quand le manifeste n'en fournit pas : l'appelant n'affiche alors
+ * rien, plutôt que de replier sur un pavé de texte.
+ */
+export function usePlugSummary(
+  def: InventoryItemDefinition | undefined,
+): string | undefined {
+  return useLiveQuery(
+    async () => {
+      if (!def?.perks?.length) return undefined;
+
+      const rows = await manifestDb.definitions.bulkGet(
+        def.perks.map(
+          (perk) =>
+            ["DestinySandboxPerkDefinition", perk.perkHash] as [string, number],
+        ),
+      );
+
+      // Seuls les perks visibles et présentables : les autres portent des
+      // mécaniques internes, sans texte.
+      const texts = def.perks
+        .map((perk, i) => ({
+          visibility: perk.perkVisibility ?? VISIBILITY.visible,
+          perk: rows[i]?.data as SandboxPerkDefinition | undefined,
+        }))
+        .filter(
+          (entry) =>
+            entry.visibility === VISIBILITY.visible &&
+            entry.perk?.isDisplayable !== false,
+        )
+        .map((entry) => entry.perk?.displayProperties?.description?.trim())
+        .filter((text): text is string => Boolean(text));
+
+      return texts.length > 0 ? texts.join(" ") : undefined;
+    },
+    [def],
+  );
+}

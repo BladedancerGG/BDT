@@ -13,10 +13,12 @@
 
 // —— Composants ————————————————————————————————————————————
 @use "components/actions-panel";
+@use "components/armor-archetype";
 @use "components/button";
 @use "components/dashboard";
 @use "components/drop-zones";
 @use "components/equipment";
+@use "components/intrinsic-row";
 @use "components/inventory-view";
 @use "components/character-tab";
 @use "components/class-icon";
@@ -33,5 +35,4 @@
 @use "components/skeleton";
 @use "components/stat-bar";
 @use "components/tooltip-header";
-@use "components/weapon-archetype";
 @use "components/weapon-summary";

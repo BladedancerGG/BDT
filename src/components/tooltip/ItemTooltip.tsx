@@ -31,6 +31,7 @@ import {
 import {subclassDamageType, isSubclass} from "@/lib/destiny/subclass";
 import {useItemProgress} from "@/lib/destiny/use-item-progress";
 import {useStatBonuses} from "@/lib/destiny/use-stat-bonuses";
+import {useArmorPerks} from "@/lib/destiny/use-armor-perks";
 import {PlugIcon} from "./PlugIcon";
 import {StatBar} from "./StatBar";
 import {TooltipSkeleton} from "./TooltipSkeleton";
@@ -39,6 +40,8 @@ import {SetBonus} from "./SetBonus";
 import {TooltipHeader} from "./TooltipHeader";
 import {WeaponSummary} from "./WeaponSummary";
 import {WeaponArchetype} from "./WeaponArchetype";
+import {ArmorArchetype} from "./ArmorArchetype";
+import {ArmorIntrinsic} from "./ArmorIntrinsic";
 
 /**
  * Attributs d'un artéfact.
@@ -55,6 +58,7 @@ function ArtifactPerks({
     detail: ItemDetail | undefined;
 }) {
     const t = useTranslations("item");
+    const hidden = new Set(detail?.hiddenSockets ?? []);
 
     const equipped = ARTIFACT_SOCKET_CATEGORIES.flatMap((categoryHash) => {
         const category = def.sockets?.socketCategories?.find(
@@ -63,6 +67,8 @@ function ArtifactPerks({
         if (!category) return [];
 
         return category.socketIndexes.flatMap((index) => {
+            // Un socket masqué en jeu n'a pas à apparaître ici non plus
+            if (hidden.has(index)) return [];
             const plugHash = detail?.sockets?.[index];
             if (!plugHash || plugHash <= 0) return [];
             if (!isPlugApplied(def, index, plugHash)) return [];
@@ -209,6 +215,8 @@ export function ItemTooltip({
     // Part des statistiques due à la pièce maîtresse et à l'archétype, pour la
     // détacher en fin de barre
     const statBonuses = useStatBonuses(detail);
+    // Archétype d'armure et, sur une exotique, l'attribut qui la définit
+    const armorPerks = useArmorPerks(detail);
 
     if (!def) {
         return (
@@ -302,9 +310,18 @@ export function ItemTooltip({
                             />
                         )}
 
-                        {/* Une armure n'a ni élément ni munitions : sa puissance suffit */}
-                        {!isWeapon && power != null && (
-                            <div className="item-tooltip__power">{power}</div>
+                        {/* Hors des armes : puissance, et pour une armure son
+                            archétype — à la place qu'occupent les munitions sur
+                            une arme. */}
+                        {!isWeapon && (power != null || armorPerks.archetypeHash) && (
+                            <div className="item-tooltip__power">
+                                {power != null && (
+                                    <span className="item-tooltip__power-value">{power}</span>
+                                )}
+                                {armorPerks.archetypeHash && (
+                                    <ArmorArchetype hash={armorPerks.archetypeHash}/>
+                                )}
+                            </div>
                         )}
 
                         {/* Statistiques */}
@@ -367,13 +384,16 @@ export function ItemTooltip({
                                 categoryHash={SOCKET_CATEGORY.WEAPON_PERKS}
                             />
                         )}
-                        {isArmor && (
-                            <PlugRow
-                                def={def}
-                                detail={detail}
-                                categoryHash={SOCKET_CATEGORY.ARMOR_PERKS}
-                                square={false}
-                            />
+                        {/* Armure exotique : son attribut intrinsèque, mis en page
+                            comme l'armature d'une arme.
+
+                            Il remplace la ligne d'icônes « Attributs de l'armure » :
+                            cette catégorie de sockets ne contient rien d'autre que
+                            l'archétype — remonté près de la puissance — et trois
+                            emplacements de statistiques que le manifeste laisse
+                            vides (180 plugs `armor_stats`, aucun avec nom ni icône). */}
+                        {isArmor && armorPerks.intrinsicHash && (
+                            <ArmorIntrinsic hash={armorPerks.intrinsicHash}/>
                         )}
 
                         {/* Bonus d'ensemble : au même niveau que les attributs

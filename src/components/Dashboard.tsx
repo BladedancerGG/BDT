@@ -31,6 +31,7 @@ export function Dashboard() {
                 <div className="manifest-loader__track">
                     <div className="manifest-loader__fill" style={{width: `${pct}%`}}/>
                 </div>
+                <img src={"/icons/loading.svg"} alt="loading" />
             </div>
         );
     }

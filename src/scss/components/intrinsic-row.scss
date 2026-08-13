@@ -1,15 +1,20 @@
-// Troisième section du corps de l'infobulle d'une arme : attribut intrinsèque
-// (« archétype »), cadence et impact, type anti-champion à droite.
+// Bandeau d'attribut intrinsèque, partagé par les armes et les armures :
+// icône du plug, son nom, un détail en dessous, et une icône facultative à
+// droite.
+//
+// Sur une arme c'est son armature — cadence et impact en détail, type
+// anti-champion à droite. Sur une armure exotique, l'attribut qui la définit et
+// le résumé de son effet.
 
-.weapon-archetype {
+.intrinsic-row {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   // Alignée sur les statistiques : le bandeau déborde la marge du corps
   padding: var(--tooltip-pad);
-  margin-bottom: var(--tooltip-pad);
   font-size: 0.75rem;
   background-color: var(--color-panel-alt);
+  border: none !important;
 
   &__text {
     flex: 1;
@@ -20,6 +25,8 @@
     font-weight: 600;
   }
 
+  // Cadence / impact d'une arme, résumé de l'effet d'une armure exotique :
+  // celui-ci peut faire une phrase, il passe donc à la ligne.
   &__detail {
     color: var(--color-text-muted);
   }
@@ -27,7 +34,7 @@
   // Icône anti-champion (bloqueur, surchargé, implacable), dessin blanc du
   // manifeste. Le nom est en `title` : l'icône seule ne dit pas de quel Champion
   // il s'agit, et le libellé n'aurait pas la place sur cette ligne.
-  &__breaker {
+  &__aside {
     flex-shrink: 0;
     width: 1.75rem;
     height: 1.75rem;

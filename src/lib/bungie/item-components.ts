@@ -18,10 +18,14 @@ export interface ItemInstanceSummary {
 export type StatSnapshot = Record<string, number>;
 
 /**
- * Plug équipé, indexé par numéro de socket.
- * `null` = socket masqué en jeu (à ne pas afficher), `0` = socket vide.
+ * Plug équipé, indexé par numéro de socket. `0` = socket vide.
+ *
+ * Les sockets masqués en jeu y figurent avec leur plug : leur indice est repris
+ * à part dans `ItemDetail.hiddenSockets`. Ils portaient auparavant `null`, ce
+ * qui confondait « rien à afficher » et « rien à lire » — or l'archétype d'une
+ * armure vit précisément dans un socket masqué.
  */
-export type SocketSnapshot = (number | null)[];
+export type SocketSnapshot = number[];
 
 /** Plugs équipables par numéro de socket : { "3": [hash, hash] } */
 export type PlugSnapshot = Record<string, number[]>;
@@ -61,6 +65,17 @@ export interface ItemDetail {
    * vide partout coûtait une trentaine de kilooctets pour rien.
    */
   disabledSockets?: number[];
+  /**
+   * Indices des sockets masqués en jeu (`isVisible: false`).
+   *
+   * Le jeu les cache de la liste des attributs parce qu'il les présente
+   * ailleurs : l'archétype d'une armure et ses emplacements de statistiques en
+   * font partie. Leur plug reste donc lisible dans `sockets`, mais l'affichage
+   * en rangées et en colonnes les écarte.
+   *
+   * Absent quand il n'y en a aucun, comme `disabledSockets`.
+   */
+  hiddenSockets?: number[];
   reusablePlugs: PlugSnapshot;
   /**
    * Objectifs des plugs **équipés**, indexés par hash de plug. Le plug porteur
@@ -122,9 +137,19 @@ export function trimStats(raw: RawStats | undefined): StatSnapshot {
 }
 
 export function trimSockets(raw: RawSockets | undefined): SocketSnapshot {
-  return (raw?.sockets ?? []).map((socket) =>
-    socket.isVisible ? (socket.plugHash ?? 0) : null,
-  );
+  return (raw?.sockets ?? []).map((socket) => socket.plugHash ?? 0);
+}
+
+/**
+ * Indices des sockets que le jeu ne montre pas dans la liste des attributs —
+ * voir ItemDetail.hiddenSockets.
+ */
+export function trimHiddenSockets(raw: RawSockets | undefined): number[] {
+  const hidden: number[] = [];
+  (raw?.sockets ?? []).forEach((socket, index) => {
+    if (!socket.isVisible) hidden.push(index);
+  });
+  return hidden;
 }
 
 /** Index des sockets verrouillés — voir ItemDetail.disabledSockets. */
@@ -216,13 +241,15 @@ export function buildItemDetails(
   const out: Record<string, ItemDetail> = {};
   for (const id of ids) {
     const disabledSockets = trimDisabledSockets(sockets[id]);
+    const hiddenSockets = trimHiddenSockets(sockets[id]);
     const plugObjectives = trimPlugObjectives(objectives[id], sockets[id]);
     out[id] = {
       instance: trimInstance(instances[id]),
       stats: trimStats(stats[id]),
       sockets: trimSockets(sockets[id]),
-      // Omis quand vide, pour ne pas alourdir la réponse
+      // Omis quand vides, pour ne pas alourdir la réponse
       ...(disabledSockets.length > 0 ? { disabledSockets } : {}),
+      ...(hiddenSockets.length > 0 ? { hiddenSockets } : {}),
       reusablePlugs: trimReusablePlugs(plugs[id]),
       ...(Object.keys(plugObjectives).length > 0 ? { plugObjectives } : {}),
     };

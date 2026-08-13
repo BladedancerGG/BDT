@@ -1,0 +1,40 @@
+// Archétype d'une armure, posé à côté de sa puissance : « Démolisseur »,
+// « Parangon »… Pendant du type de munitions sur une arme, et donc habillé de la
+// même façon.
+
+.armor-archetype {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-width: 0;
+
+  // Glyphe monochrome du manifeste : il sert de masque et la couleur du texte
+  // devient l'encre (même mécanisme que `.weapon-summary__ammo-icon`).
+  &__icon {
+    flex-shrink: 0;
+    width: 2rem;
+    height: 2rem;
+    background-color: currentColor;
+
+    mask-image: var(--archetype-icon);
+    mask-repeat: no-repeat;
+    mask-position: center;
+    mask-size: contain;
+
+    -webkit-mask-image: var(--archetype-icon);
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    -webkit-mask-size: contain;
+  }
+
+  &__name {
+    overflow: hidden;
+    font-size: 1rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding-bottom: 0.3rem;
+  }
+}

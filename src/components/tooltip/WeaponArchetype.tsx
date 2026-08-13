@@ -47,12 +47,12 @@ export function WeaponArchetype({
     const breakerIcon = breaker?.displayProperties?.icon;
 
     return (
-        <div className="weapon-archetype">
+        <div className="intrinsic-row">
             <PlugIcon hash={archetypeHash} square={true}/>
-            <div className="weapon-archetype__text">
-                <div className="weapon-archetype__name">{archetypeName}</div>
+            <div className="intrinsic-row__text">
+                <div className="intrinsic-row__name">{archetypeName}</div>
                 {(rpm != null || impact != null) && (
-                    <div className="weapon-archetype__detail">
+                    <div className="intrinsic-row__detail">
                         {rpm != null && `${rpm} rpm`}
                         {rpm != null && impact != null && " / "}
                         {impact != null && `${impact} impact`}
@@ -65,7 +65,7 @@ export function WeaponArchetype({
                     src={`${BUNGIE_ROOT}${breakerIcon}`}
                     alt={breaker?.displayProperties?.name ?? ""}
                     title={breaker?.displayProperties?.name}
-                    className="weapon-archetype__breaker"
+                    className="intrinsic-row__aside"
                 />
             )}
         </div>

@@ -77,7 +77,7 @@ export function PlugIcon({
 
     const classes = [
         "plug-icon",
-        square ? "plug-icon--square" : null,
+        square ? "plug-icon--square" : "plug-icon--circle",
         state ? `plug-icon--${state}` : null,
         enhanced ? "plug-icon--enhanced" : null,
     ]
@@ -88,12 +88,24 @@ export function PlugIcon({
         <>
             <div ref={refs.setReference} {...getReferenceProps()} className={classes}>
                 {icon && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                        src={`${BUNGIE_ROOT}${icon}`}
-                        alt={name}
-                        className="plug-icon__img"
-                    />
+                    <>
+                        {/*// eslint-disable-next-line @next/next/no-img-element*/}
+                        <img
+                            src={`${BUNGIE_ROOT}${icon}`}
+                            alt={name}
+                            className="plug-icon__img"
+                        />
+                        {enhanced && (
+                            <>
+                                {/*// eslint-disable-next-line @next/next/no-img-element*/}
+                                <img
+                                    src={"/icons/enhanced_perk.svg"}
+                                    className="plug-icon__img-enhanced"
+                                />
+                            </>
+
+                        )}
+                    </>
                 )}
             </div>
 

@@ -4,6 +4,7 @@ import {
   trimStats,
   trimSockets,
   trimDisabledSockets,
+  trimHiddenSockets,
   trimReusablePlugs,
   trimPlugObjectives,
   type ItemDetail,
@@ -48,6 +49,7 @@ export async function getItemDetail(
     stats: trimStats(data.stats?.data),
     sockets: trimSockets(data.sockets?.data),
     disabledSockets: trimDisabledSockets(data.sockets?.data),
+    hiddenSockets: trimHiddenSockets(data.sockets?.data),
     reusablePlugs: trimReusablePlugs(data.reusablePlugs?.data),
     plugObjectives: trimPlugObjectives(
       data.plugObjectives?.data,

@@ -97,13 +97,19 @@ export function useSocketColumns(
 
                 const columns: SocketColumn[] = [];
 
+                // Sockets que le jeu ne montre pas dans la liste des attributs :
+                // l'archétype d'une armure et ses emplacements de statistiques. Ils
+                // sont lisibles dans `sockets` — voir ItemDetail.hiddenSockets — mais
+                // n'ont pas leur place ici.
+                const hidden = new Set(detail?.hiddenSockets ?? []);
+
                 for (const socketIndex of category.socketIndexes) {
                     const entry = def.sockets.socketEntries[socketIndex];
                     if (!entry) continue;
+                    if (hidden.has(socketIndex)) continue;
 
-                    // number = plug équipé, 0 = socket vide, null = socket masqué en jeu
+                    // number = plug équipé, 0 = socket vide
                     const socket = detail?.sockets?.[socketIndex];
-                    if (socket === null) continue;
 
                     const equippedHash =
                         socket && socket > 0 ? socket : entry.singleInitialItemHash;
