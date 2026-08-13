@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useDefinition } from "@/lib/manifest/use-definition";
 import type {
   InventoryItemDefinition,
@@ -7,6 +8,7 @@ import type {
 } from "@/lib/destiny/types";
 import { plugStatModifiers } from "@/lib/destiny/plug-stats";
 import { usePlugDescription } from "@/lib/destiny/use-plug-description";
+import { DestinySymbol } from "@/components/DestinySymbol";
 
 /** Une ligne « +10 Stabilité » / « -5 Maniement ». */
 function StatLine({ statHash, value }: { statHash: number; value: number }) {
@@ -36,16 +38,24 @@ function StatLine({ statHash, value }: { statHash: number; value: number }) {
  * plus précis qu'une catégorisation maison (« Canon », « Mod d'arme amélioré »,
  * « Mod d'armure de jambes »…). `typeLabel` permet de le remplacer là où le
  * manifeste n'en fournit pas — c'est le cas des bonus d'ensemble.
+ *
+ * `equippable` ajoute en pied la marche à suivre pour équiper l'attribut. C'est
+ * une indication, pas un bouton : l'infobulle se ferme dès que le curseur
+ * quitte l'icône, elle n'est pas atteignable à la souris. Le clic se fait sur
+ * l'icône.
  */
 export function PlugTooltip({
   hash,
   table = "DestinyInventoryItemDefinition",
   typeLabel,
+  equippable = false,
 }: {
   hash: number;
   table?: string;
   typeLabel?: string;
+  equippable?: boolean;
 }) {
+  const t = useTranslations("item");
   const def = useDefinition<InventoryItemDefinition>(table, hash);
   const modifiers = plugStatModifiers(def);
   // Aspects, fragments et attributs d'artéfact ont une description vide :
@@ -81,6 +91,13 @@ export function PlugTooltip({
             </ul>
           )}
         </div>
+      )}
+
+      {equippable && (
+        <p className="plug-tooltip__action">
+          <DestinySymbol name="mouseLeft" className="plug-tooltip__action-key" />
+          {t("equipPerk")}
+        </p>
       )}
     </div>
   );

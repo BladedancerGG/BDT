@@ -204,7 +204,12 @@
     "artifactPerks": "Attributs",
     "setBonus": "Bonus d'ensemble",
     "setPieces": "{count} pièces",
-    "weaponLevel": "Niv. d'arme {level}"
+    "weaponLevel": "Niv. d'arme {level}",
+    "equipPerk": "Équiper",
+    "insert": {
+      "unknownItem": "Objet introuvable dans le profil.",
+      "inVault": "Sortez l’arme du coffre pour changer ses attributs."
+    }
   },
   "search": {
     "label": "Rechercher des objets",

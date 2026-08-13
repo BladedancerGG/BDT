@@ -75,6 +75,42 @@ export function equipItem({
 }
 
 /**
+ * Insère un plug (attribut, mod, ornement) dans un socket d'un objet.
+ *
+ * `InsertSocketPlugFree` est la seule des deux insertions accessible à une
+ * application ordinaire : l'autre, `InsertSocketPlug`, passe par les *advanced
+ * write actions* et exige un jeton délivré depuis le jeu lui-même. « Free » ne
+ * décrit pas un cadeau mais une contrainte : Bungie n'accepte que les
+ * changements qui ne coûtent rien au joueur — attributs déjà débloqués d'une
+ * arme, mods d'armure, fragments d'une doctrine. Tout le reste est refusé, avec
+ * un statut explicite qui remonte tel quel jusqu'à l'interface.
+ *
+ * `characterId` doit être celui qui **détient** l'objet : l'API n'agit pas sur
+ * un objet resté au coffre.
+ */
+export function insertSocketPlugFree({
+  accessToken,
+  membershipType,
+  itemId,
+  characterId,
+  socketIndex,
+  plugItemHash,
+}: Omit<ActionTarget, "itemReferenceHash"> & {
+  socketIndex: number;
+  plugItemHash: number;
+}) {
+  return post("/Destiny2/Actions/Items/InsertSocketPlugFree/", accessToken, {
+    // socketArrayType 0 = tableau `sockets` ordinaire (1 désigne les sockets
+    // intrinsèques, que cet endpoint ne touche pas). C'est le même index que
+    // celui de `ItemDetail.sockets`.
+    plug: { socketIndex, socketArrayType: 0, plugItemHash },
+    itemId,
+    characterId,
+    membershipType,
+  });
+}
+
+/**
  * Sort un objet des Objets perdus vers l'inventaire du personnage qui les
  * détient — la seule destination que l'endpoint accepte.
  */

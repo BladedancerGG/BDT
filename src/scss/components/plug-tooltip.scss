@@ -78,4 +78,25 @@
   &__stat-name {
     color: var(--color-text);
   }
+
+  // Pied : comment équiper l'attribut. Indication, pas bouton — l'infobulle se
+  // ferme dès que le curseur quitte l'icône (voir PlugTooltip).
+  &__action {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin: 0;
+    padding: 0.4rem 0.625rem;
+    border-top: 1px solid var(--color-border);
+    font-size: 0.75rem;
+    color: var(--color-text);
+  }
+
+  &__action-key {
+    // Le symbole du jeu est menu à la taille du texte : il porte l'information,
+    // il mérite d'être lu d'un coup d'œil.
+    font-size: 1.15rem;
+    // Le bouton pressé se détache du corps de la souris
+    --destiny-symbol-accent: var(--color-accent);
+  }
 }

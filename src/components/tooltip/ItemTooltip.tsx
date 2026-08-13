@@ -32,6 +32,7 @@ import {subclassDamageType, isSubclass} from "@/lib/destiny/subclass";
 import {useItemProgress} from "@/lib/destiny/use-item-progress";
 import {useStatBonuses} from "@/lib/destiny/use-stat-bonuses";
 import {useArmorPerks} from "@/lib/destiny/use-armor-perks";
+import {useInsertPlug} from "@/lib/destiny/use-insert-plug";
 import {PlugIcon} from "./PlugIcon";
 import {StatBar} from "./StatBar";
 import {TooltipSkeleton} from "./TooltipSkeleton";
@@ -102,18 +103,27 @@ function useCategoryName(categoryHash: number): string {
 /**
  * Perks affichés en colonnes : une colonne par socket, avec TOUTES les options
  * équipables ; celle en place est mise en avant.
+ *
+ * Une colonne qui n'offre qu'un seul choix ne se clique pas : il n'y a rien à
+ * changer. Les sockets verrouillés non plus.
  */
 function PerkColumns({
                          def,
                          detail,
+                         itemInstanceId,
                          categoryHash,
                      }: {
     def: InventoryItemDefinition;
     detail: ItemDetail | undefined;
+    itemInstanceId?: string;
     categoryHash: number;
 }) {
+    const t = useTranslations("item");
     const all = useSocketColumns(def, detail, categoryHash);
     const title = useCategoryName(categoryHash);
+    const {insert, pendingSocket, pendingPlug, error, failure} =
+        useInsertPlug(itemInstanceId);
+    const disabled = new Set(detail?.disabledSockets ?? []);
 
     // Le compte-frags occupe une colonne de cette catégorie sans être un
     // attribut : le compte est déjà repris dans le résumé de l'arme, l'icône
@@ -131,21 +141,49 @@ function PerkColumns({
         <div className="socket-section">
             {/*<span className="socket-section__title">{title}</span>*/}
             <div className="socket-section__columns">
-                {columns.map((column) => (
-                    <div key={column.socketIndex} className="socket-column">
-                        {column.options.map((hash) => (
-                            <PlugIcon
-                                key={hash}
-                                hash={hash}
-                                state={hash === column.equippedHash ? "equipped" : "available"}
-                                // Seules ces colonnes contiennent des attributs
-                                // améliorés ; ailleurs le marquage n'a pas de sens.
-                                markEnhanced
-                            />
-                        ))}
-                    </div>
-                ))}
+                {columns.map((column) => {
+                    // Toutes les colonnes sont figées le temps de la réponse :
+                    // le hook ne suit qu'une insertion, et Bungie limite de
+                    // toute façon le débit des écritures sur un même compte.
+                    const changeable =
+                        Boolean(itemInstanceId) &&
+                        column.options.length > 1 &&
+                        !disabled.has(column.socketIndex) &&
+                        pendingSocket === undefined;
+
+                    return (
+                        <div key={column.socketIndex} className="socket-column">
+                            {column.options.map((hash) => (
+                                <PlugIcon
+                                    key={hash}
+                                    hash={hash}
+                                    state={hash === column.equippedHash ? "equipped" : "available"}
+                                    // Seules ces colonnes contiennent des attributs
+                                    // améliorés ; ailleurs le marquage n'a pas de sens.
+                                    markEnhanced
+                                    onEquip={
+                                        changeable && hash !== column.equippedHash
+                                            ? () => void insert(column.socketIndex, hash)
+                                            : undefined
+                                    }
+                                    busy={
+                                        pendingSocket === column.socketIndex &&
+                                        pendingPlug === hash
+                                    }
+                                />
+                            ))}
+                        </div>
+                    );
+                })}
             </div>
+
+            {/* Refus de Bungie — le plus souvent « ce changement n'est pas
+                gratuit ». Le message vient de l'API et est déjà localisé. */}
+            {(error || failure) && (
+                <p className="socket-section__error">
+                    {failure ? t(`insert.${failure}`) : error}
+                </p>
+            )}
         </div>
     );
 }
@@ -381,6 +419,7 @@ export function ItemTooltip({
                             <PerkColumns
                                 def={def}
                                 detail={detail}
+                                itemInstanceId={itemInstanceId}
                                 categoryHash={SOCKET_CATEGORY.WEAPON_PERKS}
                             />
                         )}

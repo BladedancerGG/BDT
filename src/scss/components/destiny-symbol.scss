@@ -1,0 +1,45 @@
+// Symbole du jeu, rendu par la police de `public/fonts` — voir DestinySymbol.tsx.
+//
+// Le symbole suit la taille et la couleur du texte qui l'entoure : c'est un
+// caractère, pas une image. `--destiny-symbol-accent` teinte à part la couche
+// d'accent (le bouton pressé d'une souris) ; elle vaut la couleur du texte par
+// défaut, l'accent ne s'appliquant qu'où on le demande.
+
+.destiny-symbol {
+  position: relative;
+  display: inline-block;
+  // La police n'a pas de graisse ni d'italique : les hériter demanderait au
+  // navigateur de les simuler, ce qui épaissit et penche les symboles.
+  font: {
+    family: var(--font-destiny-symbols);
+    weight: 400;
+    style: normal;
+  }
+  line-height: 1;
+  // Alignement sur la ligne de base du texte voisin : les glyphes débordent
+  // au-dessus de la hauteur d'x, l'alignement par défaut les fait sauter.
+  vertical-align: -0.15em;
+  // Une police de symboles ne se coupe pas, ne se sélectionne pas, et ses
+  // « lettres » ne s'espacent pas.
+  white-space: nowrap;
+  letter-spacing: normal;
+  user-select: none;
+
+  &__layer {
+    // Les couches sont toutes positionnées : leur ordre de peinture suit donc
+    // l'ordre du DOM, sans avoir à empiler des z-index.
+    position: relative;
+  }
+
+  // Couche de chasse nulle : elle ne dimensionne rien et se pose à l'origine
+  // du symbole. La couche pleine donne seule sa largeur à l'ensemble.
+  &__layer--overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+
+  &__layer--accent {
+    color: var(--destiny-symbol-accent, currentcolor);
+  }
+}

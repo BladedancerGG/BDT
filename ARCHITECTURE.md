@@ -433,6 +433,59 @@ Double-clicking equips on the displayed character.
 > once at drag start — 0.13 ms with a thousand-item vault, measured — and never
 > recomputed while aiming.
 
+### Equipping a perk
+
+Changing a weapon perk is *not* a move: it does not go through the action queue.
+`POST /api/sockets` sends one request, `InsertSocketPlugFree`, and that is all
+(`src/lib/destiny/use-insert-plug.ts` on the browser side).
+
+Bungie exposes two socket writes and only one is reachable: `InsertSocketPlug`
+requires an *advanced write action* token, issued from the game itself.
+`InsertSocketPlugFree` needs nothing more than the `MoveEquipDestinyItems` scope
+already in use — but **"free" is a restriction, not a gift**: the API only
+accepts changes that cost the player nothing (perks already unlocked on the
+weapon, armor mods, subclass fragments). Anything else is refused, with a status
+that is passed straight through to the tooltip. The item must also be **held by
+a character**: a weapon in the vault is refused, and that refusal is raised
+locally rather than paid for with a round-trip.
+
+In the tooltip, clicking a perk equips it. The perk tooltip announces this with
+a left-click symbol, as a hint and not a button: it closes as soon as the cursor
+leaves the icon, so it could never be reached with the mouse.
+
+The profile cache is patched on the spot (`items[id].sockets[socketIndex]`) for
+the same reason moves are — reloading 1.6 MB for one plug is out of proportion,
+and the tooltip is still open under the user's eyes. The reload that follows is
+what brings the stats back in line: those we cannot recompute locally.
+
+## Game symbol fonts
+
+`public/fonts/destiny_symbols_common.otf` and `destiny_symbols_pc.otf` are the
+game's own symbol fonts — weapon types, elements, abilities, controller buttons,
+keyboard and mouse. Both declare the same CSS family (their code point ranges
+are disjoint), so a symbol is inserted by writing its character.
+
+Bungie never published the name ↔ code point table, but it is in the font, in
+the CFF charset. `scripts/extract-destiny-symbols.mjs` reads it and writes
+`src/lib/destiny/symbols.generated.ts` (389 glyphs) — run it again if the font
+files are ever replaced. It depends on nothing: fontTools cannot be installed in
+the container, and a npm package for one run would be disproportionate.
+
+**Some symbols only exist in pieces.** The left click is a mouse body
+(`mouse1`) with the lit button (`mouse1_button`) laid over it; a keyboard key is
+a backing (`standard_backing`) under a legend. The pieces are recognisable
+without any guesswork: their advance width is **zero**, which is how the
+extractor flags them (`DESTINY_OVERLAY_GLYPHS`).
+
+`src/lib/destiny/symbols.ts` names the useful compositions (`mouseLeft`,
+`wheelUp`, `keySymbol("E")`…) and `<DestinySymbol name="mouseLeft" />` draws
+them, one span per layer. The font could stack them on its own — a zero advance
+does exactly that — but the whole symbol would then take a single colour; with
+one span per layer the accent layer (a pressed button) can be tinted through
+`--destiny-symbol-accent`. `destinySymbolText()` makes the other choice, for
+plain strings such as an `aria-label`; there the zero-advance layers must be
+emitted **first**, since the pen does not move after them.
+
 ## Item search
 
 The query language is **Destiny Item Manager's**, minus what is specific to it
@@ -1074,6 +1127,62 @@ Le double-clic équipe sur le personnage affiché.
 > incompressible par geste, provoqué par le `active` de dnd-kit lui-même. Les
 > sept plans sont calculés une fois à la saisie — 0,13 ms sur un coffre de mille
 > objets, mesuré — et jamais recalculés pendant qu'on vise.
+
+### Équiper un attribut
+
+Changer l'attribut d'une arme n'est *pas* un déplacement : cela ne passe pas par
+la file d'actions. `POST /api/sockets` envoie une requête, `InsertSocketPlugFree`,
+et c'est tout (`src/lib/destiny/use-insert-plug.ts` côté navigateur).
+
+Bungie expose deux écritures sur les sockets, une seule est accessible :
+`InsertSocketPlug` exige un jeton d'*advanced write action*, délivré depuis le
+jeu lui-même. `InsertSocketPlugFree` ne demande rien de plus que la portée
+`MoveEquipDestinyItems` déjà utilisée — mais **« free » est une contrainte, pas
+un cadeau** : l'API n'accepte que les changements qui ne coûtent rien au joueur
+(attributs déjà débloqués sur l'arme, mods d'armure, fragments de doctrine).
+Tout le reste est refusé, avec un statut transmis tel quel jusqu'à l'infobulle.
+L'objet doit par ailleurs être **détenu par un personnage** : une arme au coffre
+est refusée, et ce refus-là est levé localement plutôt que payé d'un aller-retour.
+
+Dans l'infobulle, un clic sur un attribut l'équipe. L'infobulle de l'attribut
+l'annonce par un symbole de clic gauche — une indication, pas un bouton : elle
+se ferme dès que le curseur quitte l'icône, elle ne pourrait pas être atteinte à
+la souris.
+
+Le cache du profil est corrigé sur-le-champ (`items[id].sockets[socketIndex]`),
+pour la même raison que les déplacements : recharger 1,6 Mo pour un plug serait
+disproportionné, et l'infobulle est encore ouverte sous les yeux de
+l'utilisateur. C'est le rechargement qui suit qui remet les statistiques
+d'accord — elles, on ne sait pas les recalculer localement.
+
+## Polices de symboles du jeu
+
+`public/fonts/destiny_symbols_common.otf` et `destiny_symbols_pc.otf` sont les
+polices de symboles du jeu : types d'armes, éléments, capacités, boutons de
+manette, clavier et souris. Les deux déclarent la même famille CSS (leurs jeux
+de caractères sont disjoints), un symbole s'insère donc en écrivant son caractère.
+
+Bungie n'a jamais publié la table nom ↔ point de code, mais elle est dans la
+police, dans le charset CFF. `scripts/extract-destiny-symbols.mjs` la lit et
+écrit `src/lib/destiny/symbols.generated.ts` (389 glyphes) — à relancer si les
+fichiers de police sont un jour remplacés. Il ne dépend de rien : fontTools ne
+s'installe pas dans le conteneur, et un paquet npm pour une exécution ponctuelle
+serait disproportionné.
+
+**Certains symboles n'existent qu'en morceaux.** Le clic gauche est un corps de
+souris (`mouse1`) sur lequel se pose le bouton éclairé (`mouse1_button`) ; une
+touche du clavier est un fond (`standard_backing`) sous une légende. Les
+morceaux se reconnaissent sans deviner : leur chasse est **nulle**, et c'est
+ainsi que l'extracteur les marque (`DESTINY_OVERLAY_GLYPHS`).
+
+`src/lib/destiny/symbols.ts` nomme les compositions utiles (`mouseLeft`,
+`wheelUp`, `keySymbol("E")`…) et `<DestinySymbol name="mouseLeft" />` les dessine,
+une balise par couche. La police saurait les superposer seule — une chasse nulle
+fait exactement cela — mais tout le symbole prendrait alors une couleur unique ;
+avec une balise par couche, celle d'accent (un bouton pressé) se teinte à part
+via `--destiny-symbol-accent`. `destinySymbolText()` fait l'autre choix, pour les
+chaînes pures comme un `aria-label` ; là, les couches de chasse nulle doivent
+être émises **avant**, la plume ne bougeant pas après elles.
 
 ## Recherche d'objets
 

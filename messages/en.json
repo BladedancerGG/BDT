@@ -204,7 +204,12 @@
     "artifactPerks": "Perks",
     "setBonus": "Set bonus",
     "setPieces": "{count} pieces",
-    "weaponLevel": "Weapon Lv. {level}"
+    "weaponLevel": "Weapon Lv. {level}",
+    "equipPerk": "Equip",
+    "insert": {
+      "unknownItem": "Item not found in the profile.",
+      "inVault": "Move the weapon out of the vault to change its perks."
+    }
   },
   "search": {
     "label": "Search items",

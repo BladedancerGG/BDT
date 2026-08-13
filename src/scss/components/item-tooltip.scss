@@ -153,6 +153,15 @@
     flex-wrap: wrap;
     gap: 0.32rem;
   }
+
+  // Refus renvoyé par Bungie après un clic sur un attribut
+  &__error {
+    margin: 0;
+    padding: 0 0.3rem;
+    font-size: 0.6875rem;
+    line-height: 1.35;
+    color: var(--color-danger);
+  }
 }
 
 .socket-column {

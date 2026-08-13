@@ -168,8 +168,14 @@ $slot-columns: 3;
 
 // Au survol de la ligne entière : la grille reprend sa taille réelle et passe
 // au-dessus de ses voisines.
+//
+// Une infobulle ouverte l'y maintient (`.item--pinned`). Elle est rendue dans
+// un portail, donc hors de la ligne : sans cette règle, aller la lire — ou y
+// cliquer un attribut — replierait la grille sous son ancre, et l'infobulle
+// sauterait avec elle.
 .equipment-slot:hover .slot-inventory__grid,
-.equipment-slot:focus-within .slot-inventory__grid {
+.equipment-slot:focus-within .slot-inventory__grid,
+.slot-inventory__grid:has(.item--pinned) {
   transform: scale(1);
   z-index: 5;
   span, .item span {

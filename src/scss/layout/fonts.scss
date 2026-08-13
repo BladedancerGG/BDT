@@ -1,4 +1,29 @@
 :root {
   --font-sans:
     system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  // Symboles du jeu — voir lib/destiny/symbols.ts pour la table nom ↔ caractère
+  --font-destiny-symbols: "Destiny Symbols", var(--font-sans);
+}
+
+// Polices de symboles extraites du jeu. Les deux fichiers portent la même
+// famille : leurs jeux de caractères sont disjoints (E050–E156 et EEFA–EF53
+// pour l'un, E000–E049, E157–E254 et EE21–EEF9 pour l'autre), le navigateur
+// choisit donc le bon sans qu'on ait à les distinguer à l'appel.
+//
+// `unicode-range` n'est pas là pour départager les deux, mais pour éviter un
+// téléchargement inutile : sans elle, la simple présence de la famille dans une
+// pile de repli suffirait à déclencher le chargement des deux fichiers.
+@font-face {
+  font-family: "Destiny Symbols";
+  src: url("/fonts/destiny_symbols_common.otf") format("opentype");
+  font-display: block;
+  unicode-range: U+036C, U+1D49, U+E050-E156, U+EEFA-EF53, U+FFFD;
+}
+
+@font-face {
+  font-family: "Destiny Symbols";
+  src: url("/fonts/destiny_symbols_pc.otf") format("opentype");
+  font-display: block;
+  unicode-range: U+E000-E049, U+E157-E254, U+EE21-EEF9;
 }

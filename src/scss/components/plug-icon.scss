@@ -58,6 +58,34 @@
       opacity: 1;
     }
   }
+
+  // Attribut qu'un clic équipe : le curseur l'annonce, le contour le confirme
+  &--equippable {
+    cursor: pointer;
+
+    &:hover,
+    &:focus-visible {
+      border-color: var(--color-accent);
+      outline: none;
+    }
+  }
+
+  // Requête partie : l'icône s'efface le temps de la réponse, comme la vignette
+  // d'un objet en cours de déplacement.
+  &--busy {
+    cursor: progress;
+
+    .plug-icon__img {
+      opacity: 0.35;
+    }
+  }
+
+  &__spinner {
+    position: absolute;
+    width: 60%;
+    height: 60%;
+    pointer-events: none;
+  }
 }
 .plug-icon.plug-icon--equipped.plug-icon--square {
   background-color: unset;
