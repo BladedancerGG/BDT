@@ -13,6 +13,7 @@ import { parseQuery } from "@/lib/search/query";
 import { compileQuery } from "@/lib/search/filters";
 import { useSearchStore } from "@/lib/search/store";
 import { useHydrated } from "@/lib/search/use-hydrated";
+import {DestinySymbol} from "@/components/DestinySymbol";
 
 /** Contexte neutre : la validité d'une requête ne dépend d'aucune donnée. */
 const NO_CONTEXT = {
@@ -73,6 +74,32 @@ export function SearchBar() {
     return () => document.removeEventListener("pointerdown", close);
   }, [menu]);
 
+  // Frappe au clavier n'importe où dans la page : la recherche prend le focus.
+  // Le `keydown` n'est pas absorbé pour une lettre — le caractère atterrit donc
+  // dans le champ nouvellement focalisé, sans qu'on ait à l'y insérer nous-même.
+  useEffect(() => {
+    const onGlobalKeyDown = (event: globalThis.KeyboardEvent) => {
+      if (event.defaultPrevented) return;
+      if (event.ctrlKey || event.metaKey || event.altKey) return;
+      if (event.key !== "Enter" && !/^[a-z]$/i.test(event.key)) return;
+
+      const target = event.target as HTMLElement | null;
+      const input = inputRef.current;
+      if (!target || !input || target === input) return;
+      // Une autre saisie a la priorité, et une modale piège le focus : dans les
+      // deux cas la frappe ne nous appartient pas.
+      if (target.isContentEditable) return;
+      if (target.closest("input, textarea, select, [role='dialog']")) return;
+
+      input.focus();
+      // Sinon la touche déclencherait aussi la validation de la requête vide
+      if (event.key === "Enter") event.preventDefault();
+    };
+
+    document.addEventListener("keydown", onGlobalKeyDown);
+    return () => document.removeEventListener("keydown", onGlobalKeyDown);
+  }, []);
+
   const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
     if (event.key === "Enter") {
       remember(query);
@@ -123,6 +150,8 @@ export function SearchBar() {
             strokeLinecap="round"
           />
         </svg>
+
+        <DestinySymbol name={"num_enter"}/>
 
         <input
           ref={inputRef}
