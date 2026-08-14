@@ -3,12 +3,21 @@
 import { useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import type { ProfileData } from "@/lib/bungie/use-profile";
-import { markLocalMoves } from "@/lib/bungie/profile-freshness";
+import {
+  markLocalMoves,
+  markLocalPlugs,
+  socketKey,
+} from "@/lib/bungie/profile-freshness";
 import { useItemDefs } from "@/lib/destiny/item-defs";
 import { useBucketCapacities } from "@/lib/destiny/use-bucket-capacities";
 import { applyStep, planMove } from "@/lib/destiny/moves";
 import { sendStep } from "./api";
-import { useActionQueue, type QueuedAction } from "./store";
+import {
+  useActionQueue,
+  type ActionStep,
+  type QueuedInsertAction,
+  type QueuedMoveAction,
+} from "./store";
 import { PROFILE_KEY } from "./use-move-planner";
 
 /** Nombre de reprises après une limitation de débit imposée par Bungie. */
@@ -44,7 +53,69 @@ export function useActionRunner() {
     /** Objets effectivement déplacés, à confronter au rechargement final. */
     const moved = new Set<string>();
 
-    const runAction = async (action: QueuedAction) => {
+    /** Sockets effectivement remplis, à confronter de la même façon. */
+    const inserted = new Set<string>();
+
+    /** Envoi d'une étape, avec les reprises imposées par une limitation de débit. */
+    const send = async (step: ActionStep) => {
+      let error = await sendStep(step);
+      for (
+        let retry = 0;
+        error?.throttleSeconds && retry < THROTTLE_RETRIES;
+        retry += 1
+      ) {
+        await wait(error.throttleSeconds * 1000 + 250);
+        error = await sendStep(step);
+      }
+      return error;
+    };
+
+    /**
+     * Équiper un attribut : une requête, rien à planifier.
+     *
+     * Le cache du profil est corrigé sur-le-champ plutôt que rechargé, comme
+     * pour une étape de déplacement. Le rechargement final remet en revanche
+     * les statistiques d'accord avec le nouvel attribut — celles-là, on ne sait
+     * pas les recalculer localement.
+     */
+    const runInsert = async (action: QueuedInsertAction) => {
+      const { setActionStatus, setStepStatus } = queue();
+      const step = action.steps[0];
+      if (!step) {
+        setActionStatus(action.id, "done");
+        return;
+      }
+
+      setActionStatus(action.id, "running");
+      setStepStatus(action.id, step.id, "running");
+
+      const error = await send(step);
+      if (error) {
+        setStepStatus(action.id, step.id, "error", error.message);
+        setActionStatus(action.id, "error", error.message);
+        return;
+      }
+
+      setStepStatus(action.id, step.id, "done");
+      // Socket dont le rechargement final devra confirmer le nouvel attribut
+      inserted.add(socketKey(step.itemInstanceId, step.socketIndex));
+      queryClient.setQueryData<ProfileData>(PROFILE_KEY, (current) => {
+        const detail = current?.items?.[step.itemInstanceId];
+        if (!current || !detail) return current;
+        const sockets = [...detail.sockets];
+        sockets[step.socketIndex] = step.plugItemHash;
+        return {
+          ...current,
+          items: {
+            ...current.items,
+            [step.itemInstanceId]: { ...detail, sockets },
+          },
+        };
+      });
+      setActionStatus(action.id, "done");
+    };
+
+    const runMove = async (action: QueuedMoveAction) => {
       const { setSteps, setActionStatus, setStepStatus } = queue();
       const snapshot = queryClient.getQueryData<ProfileData>(PROFILE_KEY);
       if (!snapshot) {
@@ -64,7 +135,7 @@ export function useActionRunner() {
       if (!result.ok) {
         useActionQueue.setState((state) => ({
           actions: state.actions.map((a) =>
-            a.id === action.id
+            a.id === action.id && a.kind === "move"
               ? { ...a, status: "error", failure: result.failure }
               : a,
           ),
@@ -80,21 +151,13 @@ export function useActionRunner() {
       setActionStatus(action.id, "running");
 
       // setSteps a réattribué les identifiants d'étapes : on repart de l'état
-      const planned =
-        queue().actions.find((a) => a.id === action.id)?.steps ?? [];
+      const refreshed = queue().actions.find((a) => a.id === action.id);
+      const planned = refreshed?.kind === "move" ? refreshed.steps : [];
 
       for (const step of planned) {
         setStepStatus(action.id, step.id, "running");
 
-        let error = await sendStep(step);
-        for (
-          let retry = 0;
-          error?.throttleSeconds && retry < THROTTLE_RETRIES;
-          retry += 1
-        ) {
-          await wait(error.throttleSeconds * 1000 + 250);
-          error = await sendStep(step);
-        }
+        const error = await send(step);
 
         if (error) {
           // Le message de Bungie, pas son code symbolique : c'est lui qui est
@@ -122,7 +185,8 @@ export function useActionRunner() {
       for (;;) {
         const next = queue().actions.find((a) => a.status === "pending");
         if (!next) break;
-        await runAction(next);
+        if (next.kind === "insert") await runInsert(next);
+        else await runMove(next);
       }
     };
 
@@ -144,10 +208,12 @@ export function useActionRunner() {
       // jour locales sont fidèles, mais le jeu a pu bouger en parallèle.
       //
       // Le cache de Bungie retarde toutefois de quelques secondes sur nos
-      // écritures : on note où nos déplacements ont laissé les objets pour que
+      // écritures : on note ce qu'elles ont laissé derrière elles — la place
+      // des objets déplacés, l'attribut des sockets remplis — pour que
       // `useProfile` puisse écarter une réponse qui les ignore encore.
       const local = queryClient.getQueryData<ProfileData>(PROFILE_KEY);
       if (local && moved.size > 0) markLocalMoves(local, moved);
+      if (local && inserted.size > 0) markLocalPlugs(local, inserted);
 
       void queryClient.invalidateQueries({ queryKey: PROFILE_KEY });
     })();

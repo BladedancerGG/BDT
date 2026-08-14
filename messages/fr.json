@@ -115,7 +115,7 @@
   },
   "actions": {
     "title": "Actions",
-    "openHint": "Afficher les déplacements en attente, en cours et effectués",
+    "openHint": "Afficher les actions en attente, en cours et effectuées",
     "failedHint": "Actions en échec",
     "close": "Fermer le panneau",
     "expand": "Voir le détail",
@@ -138,7 +138,8 @@
     "target": {
       "vault": "Transfert vers le coffre",
       "inventory": "Transfert vers {character}",
-      "equip": "Équipement sur {character}"
+      "equip": "Équipement sur {character}",
+      "perk": "Attribut : {perk}"
     },
     "step": {
       "pull": "Retrait des objets perdus vers {character}",
@@ -146,7 +147,8 @@
       "fromVault": "Transfert vers {character}",
       "equip": "Équipement sur {character}",
       "unequip": "Déséquipement : « {item} » prend sa place",
-      "evict": "Rangement de « {item} » au coffre pour faire de la place"
+      "evict": "Rangement de « {item} » au coffre pour faire de la place",
+      "insert": "Équipement de l’attribut « {perk} »"
     },
     "zone": {
       "equipHere": "Équiper",
@@ -165,7 +167,8 @@
       "noExoticSwap": "Un autre exotique est équipé, et aucun objet non exotique ne peut prendre sa place.",
       "postmasterSideEffects": "Bungie refuse de sortir cet objet des objets perdus.",
       "vaultFull": "Le coffre est plein.",
-      "bucketFull": "L'emplacement de destination est plein."
+      "bucketFull": "L'emplacement de destination est plein.",
+      "noCharacter": "Aucun personnage sur ce compte."
     }
   },
   "manifest": {
@@ -205,11 +208,7 @@
     "setBonus": "Bonus d'ensemble",
     "setPieces": "{count} pièces",
     "weaponLevel": "Niv. d'arme {level}",
-    "equipPerk": "Équiper",
-    "insert": {
-      "unknownItem": "Objet introuvable dans le profil.",
-      "inVault": "Sortez l’arme du coffre pour changer ses attributs."
-    }
+    "equipPerk": "Équiper"
   },
   "search": {
     "label": "Rechercher des objets",

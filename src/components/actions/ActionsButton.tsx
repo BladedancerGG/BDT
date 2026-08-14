@@ -50,7 +50,7 @@ export function ActionsButton() {
             <span className="actions-button__pending">
               {counts.pending} {/*({counts.pendingSteps})*/}
             </span>
-            {counts.done > 0 && " / "}
+            {counts.done > 0 && (<>&nbsp;/&nbsp;</>)}
           </>
         )}
         {counts.done > 0 && (

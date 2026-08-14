@@ -354,12 +354,37 @@ Two things happen so the UI stays fast:
 
 - the plan is recomputed **just before execution**, not when queued — earlier
   actions have moved items around in the meantime;
-- a successful step is replayed on the cached profile (`applyStep`) instead of
-  refetching it. The profile weighs ~1.6 MB and one action costs up to four
-  steps; the real refetch happens once the queue drains.
+- a successful step is replayed on the cached profile (`applyStep`, or a socket
+  patch for an insertion) instead of refetching it. The profile weighs ~1.6 MB
+  and one action costs up to four steps; the real refetch happens once the queue
+  drains.
 
 `ErrorCode` is checked in `bungieFetch`: Bungie reports its refusals with
 **HTTP 200**, so a rejected `EquipItem` used to look exactly like a success.
+
+#### Stale snapshots
+
+That final refetch is the trap. `GetProfile` sits behind a cache whose
+**contents** lag a few seconds behind the writes we just issued: reloading right
+after a successful action can hand back the item at its old place, or the perk
+we just replaced. Overwriting the local cache with it makes the change *jump
+back*.
+
+`responseMintedTimestamp` is no help — it is fresh even when the data is not: it
+dates the response, not the snapshot it carries. The only reliable signal is the
+content itself, so `src/lib/bungie/profile-freshness.ts` records what our writes
+left behind and refuses any response that disagrees:
+
+| Write | Recorded | Compared against |
+|---|---|---|
+| Move | where the item ended up | `locateItem` in the response |
+| Perk insertion | the plug each touched socket carries | `items[id].sockets[i]` |
+
+Both are needed, and neither covers the other: a move changes the item's place
+without touching its sockets, an insertion does the opposite. `useProfile`
+retries three times (1 s, 2 s, 4 s) then gives up and keeps the local state —
+persisting would block every later reload, and the guard also fires when the
+player touches the same item in-game at that exact moment.
 
 ### Interface
 
@@ -435,9 +460,21 @@ Double-clicking equips on the displayed character.
 
 ### Equipping a perk
 
-Changing a weapon perk is *not* a move: it does not go through the action queue.
-`POST /api/sockets` sends one request, `InsertSocketPlugFree`, and that is all
-(`src/lib/destiny/use-insert-plug.ts` on the browser side).
+Changing a weapon perk is not a move, but it *does* share the queue. One
+request, `InsertSocketPlugFree`, sent to `POST /api/sockets`; the browser side
+is `src/lib/actions/use-insert-planner.ts`, the counterpart of the move planner
+minus the plan — an insertion costs one request and never more.
+
+Sharing the queue is not a display convenience: the runner sends **one request
+at a time**, and Bungie throttles writes per account across all routes. It also
+means a perk change reads like any other action in the side panel, with its own
+card, progress and refusal — and inherits the throttle retries for free.
+
+`QueuedAction` is therefore a union discriminated by `kind` (`"move"` /
+`"insert"`), and so is `ActionStep`; `sendStep` routes on the same discriminant.
+The tooltip keeps no state of its own — it is unmounted every time it closes,
+while the action outlives it in the queue — so `usePlugActionState` reads the
+pending insertion and the last refusal straight from there.
 
 Bungie exposes two socket writes and only one is reachable: `InsertSocketPlug`
 requires an *advanced write action* token, issued from the game itself.
@@ -445,18 +482,35 @@ requires an *advanced write action* token, issued from the game itself.
 already in use — but **"free" is a restriction, not a gift**: the API only
 accepts changes that cost the player nothing (perks already unlocked on the
 weapon, armor mods, subclass fragments). Anything else is refused, with a status
-that is passed straight through to the tooltip. The item must also be **held by
-a character**: a weapon in the vault is refused, and that refusal is raised
-locally rather than paid for with a round-trip.
+that is passed straight through to the tooltip.
+
+Three things the OpenAPI spec says that are easy to get wrong:
+
+- **`characterId` is the character that acts, not the one that owns the item.**
+  Nothing attaches the field to the item, and an item **in the vault can be
+  modified** — you just pass a character. Any of them will do for a weapon perk:
+  the options come from the weapon instance (`reusablePlugs`), never from
+  character unlocks. That would no longer hold for mods.
+- **The character must be in a social space, in orbit, or offline** — the same
+  precondition as the paid endpoint. Nothing exposes it beforehand; it surfaces
+  as a refusal.
+- **Rate limit: 2 socket actions per second per user**, tighter than the general
+  write budget. The queue sends one request at a time, so it is not reachable
+  today, but a batch feature would have to respect it.
 
 In the tooltip, clicking a perk equips it. The perk tooltip announces this with
 a left-click symbol, as a hint and not a button: it closes as soon as the cursor
 leaves the icon, so it could never be reached with the mouse.
 
 The profile cache is patched on the spot (`items[id].sockets[socketIndex]`) for
-the same reason moves are — reloading 1.6 MB for one plug is out of proportion,
-and the tooltip is still open under the user's eyes. The reload that follows is
-what brings the stats back in line: those we cannot recompute locally.
+the same reason move steps are — reloading 1.6 MB for one plug is out of
+proportion, and the tooltip is still open under the user's eyes. The reload the
+queue triggers on drain is what brings the stats back in line: those we cannot
+recompute locally.
+
+> The weapon's tile is **not** greyed out during an insertion, unlike a move:
+> the item does not go anywhere. The wait is shown where the click happened —
+> on the perk itself.
 
 ## Game symbol fonts
 
@@ -1044,12 +1098,38 @@ Deux choix gardent l'interface vive :
 
 - le plan est recalculé **juste avant l'exécution**, pas à la mise en file — les
   actions précédentes ont déplacé des objets entre-temps ;
-- une étape réussie est rejouée sur le profil en cache (`applyStep`) au lieu
-  d'être rechargée. Le profil pèse ~1,6 Mo et une action coûte jusqu'à quatre
-  étapes ; le vrai rechargement n'a lieu qu'une fois la file vidée.
+- une étape réussie est rejouée sur le profil en cache (`applyStep`, ou une
+  correction de socket pour une insertion) au lieu d'être rechargée. Le profil
+  pèse ~1,6 Mo et une action coûte jusqu'à quatre étapes ; le vrai rechargement
+  n'a lieu qu'une fois la file vidée.
 
 `ErrorCode` est contrôlé dans `bungieFetch` : Bungie signale ses refus en
 **HTTP 200**, un `EquipItem` rejeté ressemblait donc exactement à un succès.
+
+#### Instantanés périmés
+
+Ce rechargement final est le piège. `GetProfile` est servi derrière un cache
+dont le **contenu** retarde de quelques secondes sur les écritures qu'on vient
+d'émettre : recharger juste après une action réussie peut renvoyer l'objet à son
+ancienne place, ou l'attribut qu'on vient de remplacer. L'écraser sur le cache
+local fait *sauter le changement en arrière*.
+
+`responseMintedTimestamp` n'y aide pas : il est frais même quand les données ne
+le sont pas — il date la réponse, pas l'instantané qu'elle transporte. Le seul
+signal fiable est le contenu lui-même, donc `src/lib/bungie/profile-freshness.ts`
+retient ce que nos écritures ont laissé derrière elles et refuse toute réponse
+qui dit autre chose :
+
+| Écriture | Retenu | Confronté à |
+|---|---|---|
+| Déplacement | où l'objet a atterri | `locateItem` dans la réponse |
+| Insertion d'attribut | le plug de chaque socket touché | `items[id].sockets[i]` |
+
+Les deux sont nécessaires, aucune ne couvre l'autre : un déplacement change la
+place de l'objet sans toucher à ses sockets, une insertion fait l'inverse.
+`useProfile` réessaie trois fois (1 s, 2 s, 4 s) puis abandonne en conservant
+l'état local — s'entêter bloquerait tout rechargement ultérieur, et la garde se
+déclenche aussi quand le joueur touche au même objet en jeu à cet instant précis.
 
 ### Interface
 
@@ -1130,9 +1210,24 @@ Le double-clic équipe sur le personnage affiché.
 
 ### Équiper un attribut
 
-Changer l'attribut d'une arme n'est *pas* un déplacement : cela ne passe pas par
-la file d'actions. `POST /api/sockets` envoie une requête, `InsertSocketPlugFree`,
-et c'est tout (`src/lib/destiny/use-insert-plug.ts` côté navigateur).
+Changer l'attribut d'une arme n'est pas un déplacement, mais cela partage bien
+la file. Une requête, `InsertSocketPlugFree`, envoyée à `POST /api/sockets` ;
+côté navigateur, `src/lib/actions/use-insert-planner.ts` — le pendant du
+planificateur de déplacements, moins le plan : une insertion coûte une requête
+et jamais plus.
+
+Partager la file n'est pas une commodité d'affichage : l'exécuteur n'envoie
+**qu'une requête à la fois**, et Bungie limite le débit des écritures par
+compte, toutes routes confondues. Cela veut dire aussi qu'un changement
+d'attribut se lit comme n'importe quelle action dans le panneau latéral, avec sa
+carte, son avancement et son refus — et qu'il hérite des reprises sur
+limitation de débit sans rien coder.
+
+`QueuedAction` est donc une union discriminée par `kind` (`"move"` /
+`"insert"`), `ActionStep` aussi, et `sendStep` aiguille sur le même
+discriminant. L'infobulle ne garde aucun état à elle — elle se démonte à chaque
+fermeture, là où l'action lui survit dans la file — d'où `usePlugActionState`,
+qui y lit l'insertion en cours et le dernier refus.
 
 Bungie expose deux écritures sur les sockets, une seule est accessible :
 `InsertSocketPlug` exige un jeton d'*advanced write action*, délivré depuis le
@@ -1141,8 +1236,21 @@ jeu lui-même. `InsertSocketPlugFree` ne demande rien de plus que la portée
 un cadeau** : l'API n'accepte que les changements qui ne coûtent rien au joueur
 (attributs déjà débloqués sur l'arme, mods d'armure, fragments de doctrine).
 Tout le reste est refusé, avec un statut transmis tel quel jusqu'à l'infobulle.
-L'objet doit par ailleurs être **détenu par un personnage** : une arme au coffre
-est refusée, et ce refus-là est levé localement plutôt que payé d'un aller-retour.
+
+Trois points du schéma OpenAPI faciles à se figurer de travers :
+
+- **`characterId` désigne le personnage qui agit, pas le détenteur de l'objet.**
+  Rien n'attache le champ à l'objet, et **un objet au coffre se modifie** — il
+  suffit de passer un personnage. N'importe lequel convient pour un attribut
+  d'arme : les options viennent de l'instance de l'arme (`reusablePlugs`),
+  jamais des déblocages du personnage. Ce ne serait plus vrai pour des mods.
+- **Le personnage doit être en zone sociale, en orbite ou hors ligne** — la même
+  condition que pour l'endpoint payant. Rien ne l'expose à l'avance ; elle se
+  manifeste par un refus.
+- **Débit limité à 2 actions de socket par seconde et par joueur**, plus serré
+  que le budget d'écriture général. La file n'envoyant qu'une requête à la fois,
+  il n'est pas atteignable aujourd'hui — mais une action groupée devrait en tenir
+  compte.
 
 Dans l'infobulle, un clic sur un attribut l'équipe. L'infobulle de l'attribut
 l'annonce par un symbole de clic gauche — une indication, pas un bouton : elle
@@ -1150,10 +1258,14 @@ se ferme dès que le curseur quitte l'icône, elle ne pourrait pas être atteint
 la souris.
 
 Le cache du profil est corrigé sur-le-champ (`items[id].sockets[socketIndex]`),
-pour la même raison que les déplacements : recharger 1,6 Mo pour un plug serait
-disproportionné, et l'infobulle est encore ouverte sous les yeux de
-l'utilisateur. C'est le rechargement qui suit qui remet les statistiques
-d'accord — elles, on ne sait pas les recalculer localement.
+pour la même raison que les étapes de déplacement : recharger 1,6 Mo pour un
+plug serait disproportionné, et l'infobulle est encore ouverte sous les yeux de
+l'utilisateur. C'est le rechargement déclenché à la vidange de la file qui remet
+les statistiques d'accord — elles, on ne sait pas les recalculer localement.
+
+> La vignette de l'arme n'est **pas** grisée pendant une insertion, à la
+> différence d'un déplacement : l'objet ne va nulle part. L'attente se montre là
+> où le clic a eu lieu — sur l'attribut.
 
 ## Polices de symboles du jeu
 

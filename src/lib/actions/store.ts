@@ -2,26 +2,40 @@
 
 import { create } from "zustand";
 import type { MoveFailure, MoveTarget, PlannedStep } from "@/lib/destiny/moves";
+import type { InsertFailure, InsertStepRequest } from "./sockets";
 
 /**
- * File des déplacements demandés par l'utilisateur.
+ * File des actions demandées par l'utilisateur.
  *
  * Elle n'est **pas** persistée : une action à moitié envoyée qu'on rejouerait
  * au rechargement partirait d'un état de compte qui n'est plus celui du plan.
  *
- * Une « action » est ce que l'utilisateur a demandé (un objet, une destination) ;
- * ses « étapes » sont les requêtes Bungie que cela coûte — d'où l'affichage en
- * « n / total » dans le panneau.
+ * Une « action » est ce que l'utilisateur a demandé (déplacer un objet, équiper
+ * un attribut) ; ses « étapes » sont les requêtes Bungie que cela coûte — d'où
+ * l'affichage en « n / total » dans le panneau.
+ *
+ * Deux natures d'action, discriminées par `kind`. Elles partagent la file
+ * plutôt que d'avoir chacune la sienne, et ce n'est pas qu'une commodité
+ * d'affichage : l'exécuteur n'envoie **qu'une requête à la fois**, or Bungie
+ * limite le débit des écritures par compte, toutes routes confondues.
  */
 
 export type ActionStatus = "pending" | "running" | "done" | "error";
 
-export interface ActionStep extends PlannedStep {
+interface ActionStepBase {
   id: string;
   status: ActionStatus;
   /** Message renvoyé par Bungie en cas de refus */
   error?: string;
 }
+
+/** Une requête d'un plan de déplacement. */
+export interface MoveActionStep extends ActionStepBase, PlannedStep {}
+
+/** L'unique requête d'une insertion d'attribut. */
+export interface InsertActionStep extends ActionStepBase, InsertStepRequest {}
+
+export type ActionStep = MoveActionStep | InsertActionStep;
 
 /**
  * L'objet d'une action : de quoi l'identifier, et de quoi **redessiner** sa
@@ -42,17 +56,36 @@ export interface QueuedItem {
   gearTier?: number;
 }
 
-export interface QueuedAction extends QueuedItem {
+interface QueuedActionBase extends QueuedItem {
   id: string;
-  target: MoveTarget;
   steps: ActionStep[];
   status: ActionStatus;
-  /** Refus détecté à la planification, avant tout envoi */
-  failure?: MoveFailure;
   /** Refus renvoyé par Bungie pendant l'exécution */
   error?: string;
   createdAt: number;
 }
+
+/** Déplacer un objet : plan à plusieurs requêtes, replanifié avant l'envoi. */
+export interface QueuedMoveAction extends QueuedActionBase {
+  kind: "move";
+  target: MoveTarget;
+  steps: MoveActionStep[];
+  /** Refus détecté à la planification, avant tout envoi */
+  failure?: MoveFailure;
+}
+
+/**
+ * Équiper un attribut : une requête, jamais plus, et rien à replanifier — un
+ * socket ne se remplit pas tout seul entre la mise en file et l'envoi.
+ */
+export interface QueuedInsertAction extends QueuedActionBase {
+  kind: "insert";
+  steps: InsertActionStep[];
+  /** Refus détecté avant tout envoi */
+  failure?: InsertFailure;
+}
+
+export type QueuedAction = QueuedMoveAction | QueuedInsertAction;
 
 /** Filtre du panneau : reprend les trois états visibles par l'utilisateur. */
 export type ActionFilter = "all" | "pending" | "running" | "done";
@@ -70,8 +103,8 @@ interface ActionQueueState {
   setFilter: (filter: ActionFilter) => void;
   setPanelOpen: (open: boolean) => void;
 
-  /** Ajoute une action et renvoie son identifiant. */
-  enqueue: (
+  /** Met un déplacement en file et renvoie son identifiant. */
+  enqueueMove: (
     action: QueuedItem & {
       target: MoveTarget;
       steps: PlannedStep[];
@@ -79,7 +112,15 @@ interface ActionQueueState {
     },
   ) => string;
 
-  /** Remplace le plan d'une action, replanifiée juste avant son exécution. */
+  /** Met une insertion d'attribut en file et renvoie son identifiant. */
+  enqueueInsert: (
+    action: QueuedItem & {
+      step?: InsertStepRequest;
+      failure?: InsertFailure;
+    },
+  ) => string;
+
+  /** Remplace le plan d'un déplacement, replanifié juste avant son exécution. */
   setSteps: (actionId: string, steps: PlannedStep[]) => void;
   setActionStatus: (
     actionId: string,
@@ -101,7 +142,7 @@ let counter = 0;
 /** Identifiant local, sans prétention d'unicité au-delà de l'onglet. */
 const nextId = (prefix: string) => `${prefix}-${(counter += 1)}`;
 
-const toSteps = (steps: PlannedStep[]): ActionStep[] =>
+const toSteps = (steps: PlannedStep[]): MoveActionStep[] =>
   steps.map((step) => ({ ...step, id: nextId("step"), status: "pending" }));
 
 export const useActionQueue = create<ActionQueueState>()((set) => ({
@@ -112,7 +153,7 @@ export const useActionQueue = create<ActionQueueState>()((set) => ({
   setFilter: (filter) => set({ filter }),
   setPanelOpen: (panelOpen) => set({ panelOpen }),
 
-  enqueue: ({
+  enqueueMove: ({
     itemHash,
     itemInstanceId,
     state: itemState,
@@ -127,6 +168,7 @@ export const useActionQueue = create<ActionQueueState>()((set) => ({
       actions: [
         ...state.actions,
         {
+          kind: "move",
           id,
           itemHash,
           itemInstanceId,
@@ -145,10 +187,46 @@ export const useActionQueue = create<ActionQueueState>()((set) => ({
     return id;
   },
 
+  enqueueInsert: ({
+    itemHash,
+    itemInstanceId,
+    state: itemState,
+    versionNumber,
+    gearTier,
+    step,
+    failure,
+  }) => {
+    const id = nextId("action");
+    set((state) => ({
+      actions: [
+        ...state.actions,
+        {
+          kind: "insert",
+          id,
+          itemHash,
+          itemInstanceId,
+          state: itemState,
+          versionNumber,
+          gearTier,
+          steps: step
+            ? [{ ...step, id: nextId("step"), status: "pending" }]
+            : [],
+          status: failure ? "error" : "pending",
+          failure,
+          createdAt: Date.now(),
+        },
+      ],
+    }));
+    return id;
+  },
+
   setSteps: (actionId, steps) =>
     set((state) => ({
       actions: state.actions.map((action) =>
-        action.id === actionId ? { ...action, steps: toSteps(steps) } : action,
+        // Seul un déplacement se replanifie ; une insertion n'a qu'une requête
+        action.id === actionId && action.kind === "move"
+          ? { ...action, steps: toSteps(steps) }
+          : action,
       ),
     })),
 
@@ -161,16 +239,24 @@ export const useActionQueue = create<ActionQueueState>()((set) => ({
 
   setStepStatus: (actionId, stepId, status, error) =>
     set((state) => ({
-      actions: state.actions.map((action) =>
-        action.id === actionId
+      actions: state.actions.map((action) => {
+        if (action.id !== actionId) return action;
+        // Le `map` est écrit deux fois : sur une union de tableaux, TypeScript
+        // ne sait pas qu'un `MoveActionStep[]` reste un `MoveActionStep[]`.
+        return action.kind === "move"
           ? {
               ...action,
               steps: action.steps.map((step) =>
                 step.id === stepId ? { ...step, status, error } : step,
               ),
             }
-          : action,
-      ),
+          : {
+              ...action,
+              steps: action.steps.map((step) =>
+                step.id === stepId ? { ...step, status, error } : step,
+              ),
+            };
+      }),
     })),
 
   clearFinished: () =>
@@ -195,12 +281,16 @@ export const useActionQueue = create<ActionQueueState>()((set) => ({
  *
  * Le sélecteur renvoie un booléen, pas un ensemble : les centaines de vignettes
  * montées y sont abonnées, et seules celles dont la réponse change re-rendent.
+ *
+ * Les insertions d'attribut sont ignorées : l'objet ne bouge pas, et l'attente
+ * se signale là où le clic a eu lieu — sur l'attribut, dans l'infobulle.
  */
 export function useItemBusy(itemInstanceId?: string): boolean {
   return useActionQueue((state) =>
     itemInstanceId
       ? state.actions.some(
           (action) =>
+            action.kind === "move" &&
             (action.status === "pending" || action.status === "running") &&
             (action.itemInstanceId === itemInstanceId ||
               action.steps.some(
@@ -213,6 +303,54 @@ export function useItemBusy(itemInstanceId?: string): boolean {
         )
       : false,
   );
+}
+
+// —— Insertion d'attribut en cours ————————————————————————————
+
+/** L'insertion que l'infobulle doit refléter : attente en cours, ou refus. */
+export interface PlugActionState {
+  /** Socket en cours d'insertion — sa colonne est figée */
+  pendingSocket?: number;
+  /** Attribut cliqué : lui seul porte l'animation d'attente */
+  pendingPlug?: number;
+  /** Motif du dernier refus, à afficher sous les colonnes */
+  error?: string;
+  failure?: InsertFailure;
+}
+
+/**
+ * État des insertions portant sur un objet, lu depuis la file.
+ *
+ * L'infobulle n'a pas d'état à elle : elle se démonte à chaque fermeture, et
+ * l'action, elle, survit dans la file. C'est donc la file qui dit ce qu'elle
+ * doit montrer — attente comme refus.
+ *
+ * L'objet retourné est recréé à chaque appel : le sélecteur ne peut pas servir
+ * de comparaison d'égalité, d'où la lecture du tableau entier et le tri ici.
+ * Une infobulle à la fois est ouverte, le coût est nul.
+ */
+export function usePlugActionState(
+  itemInstanceId: string | undefined,
+): PlugActionState {
+  const actions = useActionQueue((s) => s.actions);
+  if (!itemInstanceId) return {};
+
+  const mine = actions.filter(
+    (a): a is QueuedInsertAction =>
+      a.kind === "insert" && a.itemInstanceId === itemInstanceId,
+  );
+
+  const running = mine.find(
+    (a) => a.status === "pending" || a.status === "running",
+  );
+  if (running) {
+    const step = running.steps[0];
+    return { pendingSocket: step?.socketIndex, pendingPlug: step?.plugItemHash };
+  }
+
+  // Le dernier refus, et lui seul : les précédents ont été remplacés à l'écran
+  const failed = mine.filter((a) => a.status === "error").at(-1);
+  return failed ? { error: failed.error, failure: failed.failure } : {};
 }
 
 // —— Compteurs affichés dans l'en-tête ————————————————————————

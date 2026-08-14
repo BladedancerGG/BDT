@@ -233,8 +233,8 @@ $ease: cubic-bezier(0.16, 1, 0.3, 1); // décélération franche, sans rebond
   &__thumb {
     position: relative;
     display: block;
-    width: 2.5rem;
-    height: 2.5rem;
+    width: 3.5rem;
+    height: 3.5rem;
     flex-shrink: 0;
     background-color: var(--color-icon-surface);
   }
@@ -355,19 +355,18 @@ $ease: cubic-bezier(0.16, 1, 0.3, 1); // décélération franche, sans rebond
 // —— Sigil de destination ————————————————————————————————————
 
 .destination-icon {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 1.75rem;
-  height: 1.75rem;
+  width: 3.5rem;
+  height: 3.5rem;
   flex-shrink: 0;
-  border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-sm);
   // Les icônes de Bungie sont des dessins clairs : elles ont besoin d'un fond
   // sombre dans les deux thèmes (voir --color-icon-surface). Le symbole de
   // classe étant teinté par `color`, il suit la même contrainte — d'où l'encre
   // dédiée plutôt que --color-text, invisible ici en thème clair.
-  background-color: var(--color-icon-surface);
   color: var(--color-icon-ink);
 
   // `> *` et non `img` : le symbole de classe est un masque porté par un span
@@ -377,9 +376,24 @@ $ease: cubic-bezier(0.16, 1, 0.3, 1); // décélération franche, sans rebond
     object-fit: contain;
   }
 
-  // Équiper n'est pas ranger : l'accent le distingue d'un simple transfert
-  &--equip {
-    border-color: var(--color-accent);
+
+  // Insertion d'attribut : la « destination » est l'attribut lui-même. Rond
+  // comme dans l'infobulle — c'est ce qui le fait reconnaître au premier coup
+  // d'œil, là où un carré se confondrait avec une icône de destination.
+  &--plug {
+    border: 1px solid #ffffff;
+    border-radius: var(--radius-full);
+    background-color: #4887ba;
+
+    > * {
+      width: 88%;
+      height: 88%;
+    }
+
+    .plug-icon__img-enhanced {
+      width: 100%;
+      height: 100%;
+    }
   }
 }
 

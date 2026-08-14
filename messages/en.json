@@ -115,7 +115,7 @@
   },
   "actions": {
     "title": "Actions",
-    "openHint": "Show pending, running and completed moves",
+    "openHint": "Show pending, running and completed actions",
     "failedHint": "Failed actions",
     "close": "Close panel",
     "expand": "Show details",
@@ -138,7 +138,8 @@
     "target": {
       "vault": "Transfer to the vault",
       "inventory": "Transfer to {character}",
-      "equip": "Equip on {character}"
+      "equip": "Equip on {character}",
+      "perk": "Perk: {perk}"
     },
     "step": {
       "pull": "Pull from the postmaster to {character}",
@@ -146,7 +147,8 @@
       "fromVault": "Transfer to {character}",
       "equip": "Equip on {character}",
       "unequip": "Unequip: “{item}” takes its place",
-      "evict": "Move “{item}” to the vault to free a slot"
+      "evict": "Move “{item}” to the vault to free a slot",
+      "insert": "Equipping the “{perk}” perk"
     },
     "zone": {
       "equipHere": "Equip",
@@ -165,7 +167,8 @@
       "noExoticSwap": "Another exotic is equipped, and no non-exotic item can take its place.",
       "postmasterSideEffects": "Bungie refuses to pull this item from the postmaster.",
       "vaultFull": "The vault is full.",
-      "bucketFull": "The destination slot is full."
+      "bucketFull": "The destination slot is full.",
+      "noCharacter": "No character on this account."
     }
   },
   "manifest": {
@@ -205,11 +208,7 @@
     "setBonus": "Set bonus",
     "setPieces": "{count} pieces",
     "weaponLevel": "Weapon Lv. {level}",
-    "equipPerk": "Equip",
-    "insert": {
-      "unknownItem": "Item not found in the profile.",
-      "inVault": "Move the weapon out of the vault to change its perks."
-    }
+    "equipPerk": "Equip"
   },
   "search": {
     "label": "Search items",

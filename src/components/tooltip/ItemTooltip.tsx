@@ -32,7 +32,8 @@ import {subclassDamageType, isSubclass} from "@/lib/destiny/subclass";
 import {useItemProgress} from "@/lib/destiny/use-item-progress";
 import {useStatBonuses} from "@/lib/destiny/use-stat-bonuses";
 import {useArmorPerks} from "@/lib/destiny/use-armor-perks";
-import {useInsertPlug} from "@/lib/destiny/use-insert-plug";
+import {useInsertPlanner} from "@/lib/actions/use-insert-planner";
+import {usePlugActionState, type QueuedItem} from "@/lib/actions/store";
 import {PlugIcon} from "./PlugIcon";
 import {StatBar} from "./StatBar";
 import {TooltipSkeleton} from "./TooltipSkeleton";
@@ -110,19 +111,22 @@ function useCategoryName(categoryHash: number): string {
 function PerkColumns({
                          def,
                          detail,
-                         itemInstanceId,
+                         item,
                          categoryHash,
                      }: {
     def: InventoryItemDefinition;
     detail: ItemDetail | undefined;
-    itemInstanceId?: string;
+    /** L'arme telle qu'elle part en file — ses habillages compris, pour que la
+        carte du panneau puisse redessiner sa vignette. */
+    item?: QueuedItem;
     categoryHash: number;
 }) {
-    const t = useTranslations("item");
+    const t = useTranslations("actions");
     const all = useSocketColumns(def, detail, categoryHash);
     const title = useCategoryName(categoryHash);
-    const {insert, pendingSocket, pendingPlug, error, failure} =
-        useInsertPlug(itemInstanceId);
+    const insert = useInsertPlanner();
+    const {pendingSocket, pendingPlug, error, failure} =
+        usePlugActionState(item?.itemInstanceId);
     const disabled = new Set(detail?.disabledSockets ?? []);
 
     // Le compte-frags occupe une colonne de cette catégorie sans être un
@@ -146,7 +150,7 @@ function PerkColumns({
                     // le hook ne suit qu'une insertion, et Bungie limite de
                     // toute façon le débit des écritures sur un même compte.
                     const changeable =
-                        Boolean(itemInstanceId) &&
+                        Boolean(item) &&
                         column.options.length > 1 &&
                         !disabled.has(column.socketIndex) &&
                         pendingSocket === undefined;
@@ -162,8 +166,8 @@ function PerkColumns({
                                     // améliorés ; ailleurs le marquage n'a pas de sens.
                                     markEnhanced
                                     onEquip={
-                                        changeable && hash !== column.equippedHash
-                                            ? () => void insert(column.socketIndex, hash)
+                                        item && changeable && hash !== column.equippedHash
+                                            ? () => insert(item, column.socketIndex, hash)
                                             : undefined
                                     }
                                     busy={
@@ -177,11 +181,13 @@ function PerkColumns({
                 })}
             </div>
 
-            {/* Refus de Bungie — le plus souvent « ce changement n'est pas
-                gratuit ». Le message vient de l'API et est déjà localisé. */}
+            {/* Le refus est aussi dans le panneau des actions, mais c'est ici
+                qu'on vient de cliquer : le motif doit être sous les yeux. Le
+                plus fréquent — « ce changement n'est pas gratuit » — vient de
+                Bungie, déjà localisé. */}
             {(error || failure) && (
                 <p className="socket-section__error">
-                    {failure ? t(`insert.${failure}`) : error}
+                    {failure ? t(`failure.${failure}`) : error}
                 </p>
             )}
         </div>
@@ -419,7 +425,17 @@ export function ItemTooltip({
                             <PerkColumns
                                 def={def}
                                 detail={detail}
-                                itemInstanceId={itemInstanceId}
+                                item={
+                                    itemInstanceId
+                                        ? {
+                                            itemHash,
+                                            itemInstanceId,
+                                            state,
+                                            versionNumber,
+                                            gearTier,
+                                        }
+                                        : undefined
+                                }
                                 categoryHash={SOCKET_CATEGORY.WEAPON_PERKS}
                             />
                         )}

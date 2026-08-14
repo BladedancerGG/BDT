@@ -2,36 +2,63 @@
 //
 // Bungie sert `GetProfile` derrière un cache dont le CONTENU retarde de
 // quelques secondes sur les écritures qu'on vient d'émettre. Recharger juste
-// après un déplacement réussi peut donc renvoyer l'objet à son ancienne place,
-// et l'écraser sur le cache local le fait « sauter » en arrière.
+// après une action réussie peut donc renvoyer l'objet à son ancienne place — ou
+// l'attribut qu'on vient de remplacer —, et l'écraser sur le cache local le
+// fait « sauter » en arrière.
 //
 // La date de fabrication de la réponse (`responseMintedTimestamp`) ne sert à
 // rien ici : elle est fraîche même quand les données ne le sont pas — c'est la
 // réponse qui vient d'être fabriquée, pas l'instantané qu'elle transporte.
 //
-// Le seul signal fiable est donc le contenu : on retient où nos déplacements
-// ont laissé les objets touchés, et on refuse une réponse qui les montre encore
-// ailleurs. C'est exact — pas d'horloge, pas de fenêtre à régler — au prix d'un
-// faux positif si le joueur déplace le même objet en jeu au même moment ; la
-// garde se lève alors d'elle-même après quelques tentatives.
+// Le seul signal fiable est donc le contenu : on retient ce que nos écritures
+// ont laissé derrière elles, et on refuse une réponse qui montre autre chose.
+// C'est exact — pas d'horloge, pas de fenêtre à régler — au prix d'un faux
+// positif si le joueur touche au même objet en jeu au même moment ; la garde se
+// lève alors d'elle-même après quelques tentatives.
+//
+// Deux natures d'écriture à surveiller, et il en faut bien deux : un
+// déplacement change la place de l'objet sans toucher à ses sockets, une
+// insertion d'attribut fait l'inverse.
 //
 // Pas de "use client" : ce module n'a pas de dépendance React, mais son état
-// mutable n'a de sens que dans l'onglet qui a émis les déplacements.
+// mutable n'a de sens que dans l'onglet qui a émis les écritures.
 
 import { locateItem, type ItemPlace } from "@/lib/destiny/moves";
 import type { ProfileData } from "./use-profile";
 
 /** Position attendue de chaque objet déplacé, par itemInstanceId. */
-let expected = new Map<string, string>();
+let expectedPlaces = new Map<string, string>();
+
+/** Attribut attendu dans chaque socket touché, par `itemInstanceId:socketIndex`. */
+let expectedPlugs = new Map<string, number | undefined>();
 
 /** Position réduite à une chaîne comparable — `null` = objet introuvable. */
 function placeKey(place: ItemPlace | null): string {
-  if (!place) return "absent";
-  return place.kind === "vault" ? "vault" : `${place.kind}:${place.characterId}`;
+  return !place
+    ? "absent"
+    : place.kind === "vault"
+      ? "vault"
+      : `${place.kind}:${place.characterId}`;
 }
 
-function keyOf(profile: ProfileData, itemInstanceId: string): string {
+function placeOf(profile: ProfileData, itemInstanceId: string): string {
   return placeKey(locateItem(profile, itemInstanceId)?.place ?? null);
+}
+
+/** Identifie un socket dans les deux tables. */
+export function socketKey(itemInstanceId: string, socketIndex: number): string {
+  return `${itemInstanceId}:${socketIndex}`;
+}
+
+/**
+ * Plug lu dans un instantané. `undefined` quand l'objet n'y est pas encore :
+ * c'est une valeur distincte de `0` (socket vide), qui est une réponse.
+ */
+function plugOf(profile: ProfileData, key: string): number | undefined {
+  const separator = key.lastIndexOf(":");
+  const itemInstanceId = key.slice(0, separator);
+  const socketIndex = Number(key.slice(separator + 1));
+  return profile.items?.[itemInstanceId]?.sockets?.[socketIndex];
 }
 
 /**
@@ -43,19 +70,36 @@ export function markLocalMoves(
   itemInstanceIds: Iterable<string>,
 ) {
   for (const itemInstanceId of itemInstanceIds) {
-    expected.set(itemInstanceId, keyOf(profile, itemInstanceId));
+    expectedPlaces.set(itemInstanceId, placeOf(profile, itemInstanceId));
   }
 }
 
-/** Vrai quand la réponse ne reflète pas encore nos déplacements. */
+/**
+ * Même chose pour les attributs équipés : quel plug chaque socket touché doit
+ * porter. Les clés sont celles de `socketKey`.
+ */
+export function markLocalPlugs(
+  profile: ProfileData,
+  socketKeys: Iterable<string>,
+) {
+  for (const key of socketKeys) {
+    expectedPlugs.set(key, plugOf(profile, key));
+  }
+}
+
+/** Vrai quand la réponse ne reflète pas encore nos écritures. */
 export function isStaleProfile(fresh: ProfileData): boolean {
-  for (const [itemInstanceId, place] of expected) {
-    if (keyOf(fresh, itemInstanceId) !== place) return true;
+  for (const [itemInstanceId, place] of expectedPlaces) {
+    if (placeOf(fresh, itemInstanceId) !== place) return true;
+  }
+  for (const [key, plugHash] of expectedPlugs) {
+    if (plugOf(fresh, key) !== plugHash) return true;
   }
   return false;
 }
 
 /** Plus rien à vérifier : réponse acceptée, ou garde abandonnée. */
-export function clearLocalMoves() {
-  expected = new Map();
+export function clearLocalWrites() {
+  expectedPlaces = new Map();
+  expectedPlugs = new Map();
 }

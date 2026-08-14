@@ -3,7 +3,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { DestinyItemComponent } from "./profile";
 import type { ItemDetail } from "./item-components";
-import { clearLocalMoves, isStaleProfile } from "./profile-freshness";
+import { clearLocalWrites, isStaleProfile } from "./profile-freshness";
 
 export interface Character {
   characterId: string;
@@ -48,25 +48,26 @@ export function useProfile() {
         if (!res.ok) throw new Error("Échec du chargement du profil");
         const fresh = (await res.json()) as ProfileData;
 
-        // Cas courant : la réponse reflète nos déplacements (ou il n'y en a pas
-        // eu à surveiller), elle fait autorité.
+        // Cas courant : la réponse reflète nos écritures (ou il n'y en a pas eu
+        // à surveiller), elle fait autorité.
         if (!isStaleProfile(fresh)) {
-          clearLocalMoves();
+          clearLocalWrites();
           return fresh;
         }
 
-        // Sinon le cache de Bungie montre encore les objets à leur ancienne
-        // place : reprendre cet instantané effacerait des déplacements réussis.
+        // Sinon le cache de Bungie montre encore les objets dans leur état
+        // d'avant : reprendre cet instantané effacerait des écritures réussies.
         const local = queryClient.getQueryData<ProfileData>(["profile"]);
         if (attempt >= STALE_RETRIES || !local) {
-          // La garde est levée : soit Bungie ne confirmera pas (l'objet a bougé
-          // en jeu entre-temps), soit il n'y a pas d'état local à préserver.
-          // Dans les deux cas, s'entêter bloquerait tout rechargement ultérieur.
+          // La garde est levée : soit Bungie ne confirmera pas (le joueur a
+          // touché au même objet en jeu entre-temps), soit il n'y a pas d'état
+          // local à préserver. Dans les deux cas, s'entêter bloquerait tout
+          // rechargement ultérieur.
           console.warn(
             "[profil] Bungie renvoie toujours un instantané périmé : " +
-              "l'état local, qui reflète les déplacements réussis, est conservé.",
+              "l'état local, qui reflète les écritures réussies, est conservé.",
           );
-          clearLocalMoves();
+          clearLocalWrites();
           return local ?? fresh;
         }
 

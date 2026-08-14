@@ -12,12 +12,34 @@ export interface InsertPlugRequest {
   /** Index dans `ItemDetail.sockets` — le même que celui du manifeste */
   socketIndex: number;
   plugItemHash: number;
-  /** Personnage détenteur : l'API n'agit pas sur un objet resté au coffre */
+  /**
+   * Personnage qui agit — pas forcément le détenteur : un objet au coffre se
+   * modifie tout autant, au nom du personnage affiché.
+   */
   characterId: string;
 }
 
 /** Le refus est de même nature que celui d'un déplacement : même forme. */
 export type InsertPlugError = MoveStepError;
+
+/**
+ * Refus détecté avant tout envoi (clés `actions.failure.*`, partagées avec les
+ * déplacements — `notInstanced` y dit déjà « objet introuvable dans le profil »).
+ */
+export type InsertFailure = "notInstanced" | "noCharacter";
+
+/**
+ * L'insertion telle qu'elle vit dans la file d'actions.
+ *
+ * `kind` la distingue des quatre déplacements (voir `MoveStepKind`) : c'est ce
+ * discriminant qui aiguille l'envoi vers /api/sockets plutôt que /api/actions.
+ * `itemHash` ne part dans aucune requête — il sert à redessiner la vignette de
+ * l'arme dans le panneau.
+ */
+export interface InsertStepRequest extends InsertPlugRequest {
+  kind: "insert";
+  itemHash: number;
+}
 
 /** Garde de type : le corps de requête vient du réseau, il n'est pas de confiance. */
 export function isInsertPlugRequest(value: unknown): value is InsertPlugRequest {

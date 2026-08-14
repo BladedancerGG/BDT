@@ -27,7 +27,7 @@ export function useMovePlanner() {
   const queryClient = useQueryClient();
   const { defs } = useItemDefs();
   const capacities = useBucketCapacities();
-  const enqueueAction = useActionQueue((s) => s.enqueue);
+  const enqueueAction = useActionQueue((s) => s.enqueueMove);
 
   const context = useCallback((): PlanContext | null => {
     const profile = queryClient.getQueryData<ProfileData>(PROFILE_KEY);
