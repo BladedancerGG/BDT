@@ -110,10 +110,17 @@ function Row({
 }
 
 /**
- * Rangée dont chaque emplacement ouvre son sélecteur : aspects et fragments.
+ * Rangée dont chaque emplacement ouvre son sélecteur : compétences, aspects et
+ * fragments.
  *
- * Les compétences n'y ont pas droit : leur catégorie de sockets n'est pas la
- * même d'une doctrine à l'autre, et le cahier des charges ne les demande pas.
+ * Elle travaille sur des index de sockets, et c'est ce qui la rend utilisable
+ * ici : les catégories de sockets d'une doctrine changent avec la classe et
+ * l'élément (voir subclass.ts), on ne peut pas les désigner par leur hash.
+ *
+ * Les compétences tirent leurs options des plugs débloqués du compte
+ * (`plugSources: 6`) : trois compétences de classe, huit grenades solaires… Une
+ * qui n'en offre qu'une — les supers de stase, par exemple — reste une simple
+ * icône, `PlugSlot` n'ouvrant rien quand il n'y a pas de choix.
  */
 function EquippableRow({
                            title,
@@ -186,8 +193,16 @@ export function SubclassSockets({
 
     return (
         <>
+            {/* La transcendance ne se choisit pas : ses deux emplacements
+                découlent de la doctrine prismatique elle-même. */}
             <Row title={t("transcendence")} sockets={transcendence}/>
-            <Row title={t("abilities")} sockets={abilities}/>
+            <EquippableRow
+                title={t("abilities")}
+                def={def}
+                detail={detail}
+                available={available}
+                sockets={abilities}
+            />
             <EquippableRow
                 title={t("aspects")}
                 def={def}
