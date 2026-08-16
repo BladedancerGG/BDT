@@ -104,7 +104,7 @@ export function PlugTooltip({
           <DestinySymbol name="mouseLeft" className="plug-tooltip__action-key" />
           {equippable
             ? t("equipPerk")
-            : t("browsePlugs", { type: browseLabel ?? "" })}
+            : t("browsePlugs")}
         </p>
       )}
     </div>

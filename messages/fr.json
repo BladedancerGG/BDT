@@ -209,7 +209,7 @@
     "setPieces": "{count} pièces",
     "weaponLevel": "Niv. d'arme {level}",
     "equipPerk": "Équiper",
-    "browsePlugs": "Voir les {type}",
+    "browsePlugs": "Voir les objets similaires",
     "searchPlugs": "Rechercher…"
   },
   "search": {
