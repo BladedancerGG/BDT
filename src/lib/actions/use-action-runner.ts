@@ -11,6 +11,7 @@ import {
 import { useItemDefs } from "@/lib/destiny/item-defs";
 import { useBucketCapacities } from "@/lib/destiny/use-bucket-capacities";
 import { applyStep, planMove } from "@/lib/destiny/moves";
+import { socketsAfterInsert } from "@/lib/destiny/sockets";
 import { sendStep } from "./api";
 import {
   useActionQueue,
@@ -97,21 +98,45 @@ export function useActionRunner() {
       }
 
       setStepStatus(action.id, step.id, "done");
-      // Socket dont le rechargement final devra confirmer le nouvel attribut
+
+      // Socket visé : le rechargement final devra confirmer le nouvel attribut
       inserted.add(socketKey(step.itemInstanceId, step.socketIndex));
-      queryClient.setQueryData<ProfileData>(PROFILE_KEY, (current) => {
-        const detail = current?.items?.[step.itemInstanceId];
-        if (!current || !detail) return current;
-        const sockets = [...detail.sockets];
-        sockets[step.socketIndex] = step.plugItemHash;
-        return {
-          ...current,
-          items: {
-            ...current.items,
-            [step.itemInstanceId]: { ...detail, sockets },
-          },
-        };
-      });
+
+      const snapshot = queryClient.getQueryData<ProfileData>(PROFILE_KEY);
+      const detail = snapshot?.items?.[step.itemInstanceId];
+      if (snapshot && detail) {
+        // Pas toujours un simple « ce socket porte ce plug » : réinitialiser un
+        // artéfact vide tous ses emplacements d'un coup.
+        const sockets = socketsAfterInsert(
+          defs.get(step.itemHash),
+          detail.sockets,
+          step.socketIndex,
+          step.plugItemHash,
+        );
+
+        // **Tous** les sockets touchés sont surveillés, pas seulement celui de
+        // la requête. Sans cela, une réinitialisation d'artéfact était perdue au
+        // rechargement : son propre socket revient à son plug d'origine des deux
+        // côtés — donc rien à signaler —, pendant que la réponse de Bungie,
+        // encore en cache, montrait les attributs toujours en place.
+        sockets.forEach((plugHash, index) => {
+          if (plugHash !== detail.sockets[index]) {
+            inserted.add(socketKey(step.itemInstanceId, index));
+          }
+        });
+
+        queryClient.setQueryData<ProfileData>(PROFILE_KEY, (current) =>
+          current
+            ? {
+                ...current,
+                items: {
+                  ...current.items,
+                  [step.itemInstanceId]: { ...detail, sockets },
+                },
+              }
+            : current,
+        );
+      }
       setActionStatus(action.id, "done");
     };
 

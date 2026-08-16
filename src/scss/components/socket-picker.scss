@@ -1,0 +1,70 @@
+@use "../abstracts/variables" as v;
+
+// Deuxième infobulle : les plugs équipables dans un socket.
+// Ancrée à droite de l'infobulle d'objet (voir ItemTooltip), sa hauteur est
+// plafonnée à celle de cette dernière — le débordement défile.
+
+.socket-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  // Six icônes par ligne. La largeur est calculée plutôt que fixée : elle suit
+  // la taille d'icône choisie dans les réglages.
+  width: max-content;
+  // Le `1rem` final est la gouttière d'ascenseur réservée par la grille : sans
+  // elle, six colonnes de 42 px ne tiennent plus dès que le contenu défile, et
+  // c'est un ascenseur horizontal qui apparaît.
+  max-width: calc(v.$plug-size * 6 + 0.33rem * 6 + 1.3rem + 1rem);
+  // Posée en ligne par Floating UI (middleware `size`) sur le calque flottant,
+  // donc héritée d'ici. Le panneau, lui, ne déborde pas : c'est sa grille qui
+  // défile, pour que la recherche et le message d'erreur restent visibles.
+  max-height: var(--picker-max-height, none);
+  overflow: hidden;
+
+  padding: 0.65rem;
+  border: 1px solid var(--color-border-strong);
+  background-color: var(--color-panel);
+  color: var(--color-text);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
+
+  // Recherche par nom et description parmi les options du socket
+  &__search {
+    flex: none;
+    width: 100%;
+    padding: 0.3rem 0.45rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background-color: var(--color-panel-alt);
+    color: var(--color-text);
+    font-size: 0.75rem;
+
+    &:focus-visible {
+      outline: none;
+      border-color: var(--color-border-strong);
+    }
+  }
+
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(6, v.$plug-size);
+    gap: 0.32rem;
+    // `min-height: 0` : sans lui, une grille en contexte flex refuse de
+    // rétrécir sous sa hauteur de contenu et ne défile jamais.
+    min-height: 0;
+    overflow-y: auto;
+    // La gouttière est réservée en permanence : sans elle, filtrer la
+    // recherche jusqu'à faire disparaître l'ascenseur décalerait la grille.
+    scrollbar-gutter: stable;
+    overscroll-behavior: contain;
+  }
+
+  // Refus renvoyé par Bungie : c'est ici qu'on vient de cliquer, le motif doit
+  // être sous les yeux.
+  &__error {
+    flex: none;
+    margin: 0;
+    font-size: 0.6875rem;
+    line-height: 1.35;
+    color: var(--color-danger);
+  }
+}

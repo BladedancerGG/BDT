@@ -100,7 +100,17 @@ export function ItemIcon({
 
   // Fermeture au clic extérieur et à Échap — la seule façon de la refermer,
   // puisqu'elle ne suit plus le curseur.
-  const dismiss = useDismiss(context);
+  //
+  // Le sélecteur d'attributs (deuxième infobulle) est rendu dans son propre
+  // portail : il n'est donc pas un descendant DOM de celle-ci, et un clic
+  // dedans passerait pour un clic extérieur. Il refermerait tout au moment
+  // même où l'on choisit un mod.
+  const dismiss = useDismiss(context, {
+    outsidePress: (event) => {
+      const target = event.target;
+      return !(target instanceof Element && target.closest(".socket-picker"));
+    },
+  });
   const role = useRole(context, { role: "dialog" });
   const { getReferenceProps, getFloatingProps } = useInteractions([
     dismiss,

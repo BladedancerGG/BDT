@@ -8,8 +8,84 @@ import {TIER} from "./display";
  * manifeste : l'UI fournit donc son propre libellé.
  */
 export const ARTIFACT_SOCKET_CATEGORIES: readonly number[] = [
-    2631166533, 2631166534, 2631166535, 3072446841,
+    2631166533, 2631166534, 2631166535,
 ];
+
+/**
+ * Catégorie du seul socket de « Réinitialisation d'artéfact ».
+ *
+ * L'API expose la remise à zéro comme un plug ordinaire
+ * (`plugCategoryIdentifier: "artifact_reset"`), logé dans un socket à lui, dans
+ * sa propre catégorie. C'est ce qui permet de l'afficher sur sa propre ligne
+ * plutôt qu'au milieu des attributs.
+ */
+export const ARTIFACT_RESET_CATEGORY = 3072446841;
+
+/**
+ * Sockets d'un objet après l'insertion d'un plug, pour corriger le cache local
+ * sans attendre le rechargement du profil.
+ *
+ * Le cas ordinaire tient en une affectation. La **réinitialisation d'un
+ * artéfact** n'en est pas un : une seule requête y vide *tous* les emplacements
+ * d'attributs, et le socket de réinitialisation lui-même ne garde rien. Sans ce
+ * traitement, l'infobulle continuerait d'afficher les attributs jusqu'au
+ * rechargement.
+ */
+export function socketsAfterInsert(
+    def: InventoryItemDefinition | undefined,
+    sockets: readonly number[],
+    socketIndex: number,
+    plugItemHash: number,
+): number[] {
+    const next = [...sockets];
+    const categories = def?.sockets?.socketCategories ?? [];
+
+    const isReset = categories.some(
+        (category) =>
+            category.socketCategoryHash === ARTIFACT_RESET_CATEGORY &&
+            category.socketIndexes.includes(socketIndex),
+    );
+
+    if (!isReset) {
+        next[socketIndex] = plugItemHash;
+        return next;
+    }
+
+    // Chaque emplacement revient à son plug d'origine — « Mod d'artéfact vide »
+    for (const category of categories) {
+        if (
+            !ARTIFACT_SOCKET_CATEGORIES.includes(category.socketCategoryHash) &&
+            category.socketCategoryHash !== ARTIFACT_RESET_CATEGORY
+        ) {
+            continue;
+        }
+        for (const index of category.socketIndexes) {
+            const initial = def?.sockets?.socketEntries?.[index]?.singleInitialItemHash;
+            if (initial) next[index] = initial;
+        }
+    }
+    return next;
+}
+
+/**
+ * Masque `SocketPlugSources` : d'où proviennent les plugs équipables.
+ *
+ * C'est la définition du socket qui le dit, et il ne faut pas en décider
+ * autrement : un socket de mod d'armure vaut 13 (inventaire + plug sets), un
+ * socket d'attribut d'arme 0 ou 2 (l'instance, et elle seule). Lire les plug
+ * sets du compte pour un attribut d'arme afficherait le pool du manifeste à la
+ * place du tirage réel de l'arme.
+ */
+export const PLUG_SOURCE = {
+    /** Objets de l'inventaire du joueur (revêtements, ornements « à la carte ») */
+    Inventory: 1,
+    /** `reusablePlugs` de l'instance — composant 310 */
+    Reusable: 2,
+    /** `profilePlugSets` : débloqués au niveau du compte */
+    ProfilePlugSet: 4,
+    /** `characterPlugSets` : débloqués sur un personnage */
+    CharacterPlugSet: 8,
+} as const;
 
 /**
  * Un plug a-t-il réellement été inséré dans ce socket ?
@@ -42,6 +118,65 @@ export function isTrackerPlug(
 ): boolean {
     const category = def?.plug?.plugCategoryIdentifier;
     return Boolean(category?.split(".").includes("trackers"));
+}
+
+/**
+ * Ce plug occupe-t-il un emplacement que l'application ne sait pas changer ?
+ *
+ * Deux familles, logées comme les autres dans la catégorie des mods :
+ *
+ *  - **la pièce maîtresse** (`masterworks`), sur les armes comme sur les
+ *    armures — la changer coûte des matériaux ;
+ *  - **le mémento** d'une arme façonnée (`mementos`, et
+ *    `crafting.recipes.empty_socket` quand l'emplacement est libre) — il faut
+ *    posséder l'objet correspondant, qui est consommé.
+ *
+ * Dans les deux cas `InsertSocketPlugFree` — la seule insertion accessible à
+ * une application ordinaire — refuse par construction ce qui n'est pas gratuit.
+ * L'icône reste affichée, mais ouvrir son sélecteur ne mènerait qu'à un refus.
+ *
+ * Les familles relevées dans le manifeste :
+ * `v400.plugs.weapons.masterworks.stat.range`,
+ * `v460.plugs.armor.masterworks.stat.resistance_2`, `mementos`. Les
+ * compte-frags partagent le segment `masterworks` mais sont de toute façon
+ * déjà écartés des rangées.
+ */
+export function isFixedPlug(
+    def: InventoryItemDefinition | undefined,
+): boolean {
+    const category = def?.plug?.plugCategoryIdentifier;
+    if (!category) return false;
+    if (category === EMPTY_MEMENTO_CATEGORY) return true;
+    const segments = category.split(".");
+    return segments.includes("masterworks") || segments.includes("mementos");
+}
+
+/** Emplacement de mémento libre — voir `isFixedPlug`. */
+const EMPTY_MEMENTO_CATEGORY = "crafting.recipes.empty_socket";
+
+/**
+ * Emplacements d'arme que le jeu gère ailleurs que dans la liste des mods, et
+ * qui n'ont donc rien à faire dans l'infobulle.
+ *
+ * Ils n'apparaissent que sur les armes **façonnées** et **améliorées**, et
+ * aucun ne se change à la main :
+ *
+ *  - `…transfusers.level` : le « Boost de niveau d'arme », dont l'effet est
+ *    déjà lisible dans le niveau affiché en tête d'infobulle ;
+ *  - `…enhancers` : le palier d'amélioration, façonné (`crafting.plugs…`) comme
+ *    d'équipement (`weapon_tiering.plugs…`), déjà signalé par le marquage de la
+ *    vignette.
+ *
+ * Le test porte sur le plug **d'origine** du socket, pas sur celui qui s'y
+ * trouve : c'est le seul qui ne dépende pas de l'état de l'arme.
+ */
+export function isHiddenSocketPlug(
+    def: InventoryItemDefinition | undefined,
+): boolean {
+    const category = def?.plug?.plugCategoryIdentifier;
+    if (!category) return false;
+    const segments = category.split(".");
+    return segments.includes("enhancers") || segments.includes("transfusers");
 }
 
 /**

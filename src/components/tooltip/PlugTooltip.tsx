@@ -43,17 +43,23 @@ function StatLine({ statHash, value }: { statHash: number; value: number }) {
  * une indication, pas un bouton : l'infobulle se ferme dès que le curseur
  * quitte l'icône, elle n'est pas atteignable à la souris. Le clic se fait sur
  * l'icône.
+ *
+ * `browseLabel` remplace ce pied lorsque le clic n'équipe pas mais **ouvre le
+ * sélecteur** du socket — les mods, revêtements et ornements sont trop nombreux
+ * pour être proposés dans l'infobulle elle-même.
  */
 export function PlugTooltip({
   hash,
   table = "DestinyInventoryItemDefinition",
   typeLabel,
   equippable = false,
+  browseLabel,
 }: {
   hash: number;
   table?: string;
   typeLabel?: string;
   equippable?: boolean;
+  browseLabel?: string;
 }) {
   const t = useTranslations("item");
   const def = useDefinition<InventoryItemDefinition>(table, hash);
@@ -93,10 +99,12 @@ export function PlugTooltip({
         </div>
       )}
 
-      {equippable && (
+      {(equippable || browseLabel) && (
         <p className="plug-tooltip__action">
           <DestinySymbol name="mouseLeft" className="plug-tooltip__action-key" />
-          {t("equipPerk")}
+          {equippable
+            ? t("equipPerk")
+            : t("browsePlugs", { type: browseLabel ?? "" })}
         </p>
       )}
     </div>

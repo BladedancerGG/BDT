@@ -373,7 +373,7 @@ function compileTerm(
         : null;
     }
 
-    case "geartier":
+    case "tier":
     case "palier": {
       const test = parseComparison(value);
       return test

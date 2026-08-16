@@ -4,6 +4,7 @@ import {
   type ItemDetail,
   type RawItemComponentSet,
 } from "./item-components";
+import { trimPlugSets, type ProfilePlugSets } from "./plug-sets";
 
 // Composants GetProfile demandés :
 //  102 = ProfileInventory (le coffre, partagé entre tous les personnages)
@@ -49,6 +50,17 @@ interface ProfileResponse {
   /** Le coffre — non rattaché à un personnage */
   profileInventory?: { data?: { items: DestinyItemComponent[] } };
   itemComponents?: RawItemComponentSet;
+  /** Plugs débloqués sur le compte — livrés avec le composant 305 */
+  profilePlugSets?: {
+    data?: { plugs: Record<string, { plugItemHash: number; canInsert: boolean }[]> };
+  };
+  /** Idem, par personnage */
+  characterPlugSets?: {
+    data?: Record<
+      string,
+      { plugs: Record<string, { plugItemHash: number; canInsert: boolean }[]> }
+    >;
+  };
 }
 
 /** Récupère personnages, inventaires et détail de tous les objets instanciés. */
@@ -94,5 +106,17 @@ export async function getProfileInventory(
     data.itemComponents,
   );
 
-  return { characters, equipment, inventory, vault, items };
+  // Mods, revêtements, ornements, aspects, fragments et attributs d'artéfact
+  // débloqués : c'est la seule source de ce que le joueur peut réellement
+  // équiper — voir lib/bungie/plug-sets.ts.
+  const plugSets: ProfilePlugSets = {
+    profile: trimPlugSets(data.profilePlugSets?.data),
+    characters: Object.fromEntries(
+      Object.entries(data.characterPlugSets?.data ?? {}).map(
+        ([characterId, component]) => [characterId, trimPlugSets(component)],
+      ),
+    ),
+  };
+
+  return { characters, equipment, inventory, vault, items, plugSets };
 }

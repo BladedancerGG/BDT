@@ -1,10 +1,27 @@
 "use client";
 
-import type {CSSProperties} from "react";
+import {useMemo, useState, type CSSProperties} from "react";
 import {useTranslations} from "next-intl";
+import {
+    useFloating,
+    offset,
+    flip,
+    shift,
+    size,
+    autoUpdate,
+    FloatingPortal,
+} from "@floating-ui/react";
 import {useDefinition} from "@/lib/manifest/use-definition";
 import {useItemData} from "@/lib/bungie/use-item-data";
-import {useSocketColumns, useTrackerPlugs} from "@/lib/destiny/use-sockets";
+import {
+    useSocketColumns,
+    useSocketOptions,
+    useTrackerPlugs,
+} from "@/lib/destiny/use-sockets";
+import {
+    usePlugAvailability,
+    type PlugAvailability,
+} from "@/lib/destiny/use-plug-availability";
 import type {
     InventoryItemDefinition,
     SocketCategoryDefinition,
@@ -13,6 +30,7 @@ import type {ItemDetail} from "@/lib/bungie/item";
 import {
     tierColor,
     damageColor,
+    BUCKET,
     ITEM_TYPE,
     ITEM_SUBTYPE,
     SOCKET_CATEGORY,
@@ -25,8 +43,8 @@ import {
     ARMOR_STAT_ORDER,
 } from "@/lib/destiny/stat-order";
 import {
+    ARTIFACT_RESET_CATEGORY,
     ARTIFACT_SOCKET_CATEGORIES,
-    isPlugApplied,
 } from "@/lib/destiny/sockets";
 import {subclassDamageType, isSubclass} from "@/lib/destiny/subclass";
 import {useItemProgress} from "@/lib/destiny/use-item-progress";
@@ -44,51 +62,104 @@ import {WeaponSummary} from "./WeaponSummary";
 import {WeaponArchetype} from "./WeaponArchetype";
 import {ArmorArchetype} from "./ArmorArchetype";
 import {ArmorIntrinsic} from "./ArmorIntrinsic";
+import {
+    PlugButton,
+    PlugSlot,
+    SocketPicker,
+    SocketPickerProvider,
+    type PickerTarget,
+} from "./SocketPicker";
+
+// Rangées d'emplacements de l'infobulle. Les constantes vivent hors du rendu :
+// elles servent de dépendance à un `useMemo`, un tableau recréé à chaque rendu
+// le relancerait sans fin.
+//
+// Une arme n'a qu'une rangée : mods et cosmétiques (revêtement, ornement, effet
+// de frag) y tiennent côte à côte, comme en jeu. Une armure garde les siennes
+// séparées — ses quatre mods et ses deux cosmétiques ne tiendraient pas sur une
+// seule ligne.
+const WEAPON_SOCKET_ROW = [
+    SOCKET_CATEGORY.WEAPON_MODS,
+    SOCKET_CATEGORY.WEAPON_COSMETICS,
+] as const;
+const ARMOR_MOD_ROW = [SOCKET_CATEGORY.ARMOR_MODS] as const;
+const ARMOR_COSMETIC_ROW = [SOCKET_CATEGORY.ARMOR_COSMETICS] as const;
 
 /**
  * Attributs d'un artéfact.
  *
- * Leurs quatre catégories de sockets n'ont aucun nom dans le manifeste : on
- * regroupe donc tout sous un libellé traduit. Les emplacements encore vides
- * (« Mod d'artéfact vide ») sont écartés.
+ * Leurs catégories de sockets n'ont aucun nom dans le manifeste : on regroupe
+ * donc tout sous un libellé traduit. Les emplacements vides sont conservés,
+ * contrairement à avant : ce sont eux qu'on vient remplir.
+ *
+ * La réinitialisation — qui déséquipe d'un coup tous les attributs — vit dans
+ * un socket à part, sur sa propre ligne (voir ARTIFACT_RESET_CATEGORY).
  */
 function ArtifactPerks({
                            def,
                            detail,
+                           available,
                        }: {
     def: InventoryItemDefinition;
     detail: ItemDetail | undefined;
+    available: PlugAvailability;
 }) {
     const t = useTranslations("item");
-    const hidden = new Set(detail?.hiddenSockets ?? []);
+    // Les quatre catégories sont des rangées du même bloc : leurs index de
+    // sockets sont concaténés dans l'ordre du jeu.
+    const indexes = useMemo(
+        () =>
+            ARTIFACT_SOCKET_CATEGORIES.flatMap(
+                (categoryHash) =>
+                    def.sockets?.socketCategories?.find(
+                        (c) => c.socketCategoryHash === categoryHash,
+                    )?.socketIndexes ?? [],
+            ),
+        [def],
+    );
+    const columns = useSocketOptions(def, detail, indexes, available);
+    const reset = useSocketColumns(
+        def,
+        detail,
+        ARTIFACT_RESET_CATEGORY,
+        available,
+    );
 
-    const equipped = ARTIFACT_SOCKET_CATEGORIES.flatMap((categoryHash) => {
-        const category = def.sockets?.socketCategories?.find(
-            (c) => c.socketCategoryHash === categoryHash,
-        );
-        if (!category) return [];
-
-        return category.socketIndexes.flatMap((index) => {
-            // Un socket masqué en jeu n'a pas à apparaître ici non plus
-            if (hidden.has(index)) return [];
-            const plugHash = detail?.sockets?.[index];
-            if (!plugHash || plugHash <= 0) return [];
-            if (!isPlugApplied(def, index, plugHash)) return [];
-            return [plugHash];
-        });
-    });
-
-    if (equipped.length === 0) return null;
+    if (columns.length === 0) return null;
 
     return (
-        <div className="socket-section">
-            {/*<span className="socket-section__title">{t("artifactPerks")}</span>*/}
-            <div className="socket-section__row">
-                {equipped.map((hash, i) => (
-                    <PlugIcon key={`${hash}-${i}`} hash={hash} square/>
-                ))}
+        <>
+            <div className="socket-section">
+                <div className="socket-section__row">
+                    {columns.map((column) => (
+                        <PlugSlot
+                            key={column.socketIndex}
+                            column={column}
+                            label={t("artifactPerks")}
+                        />
+                    ))}
+                </div>
             </div>
-        </div>
+
+            {reset.map((column) => {
+                // Le socket porte deux plugs : l'emplacement vide (en place) et
+                // la remise à zéro. C'est celle-ci qu'on affiche, cliquable.
+                const resetHash = column.options.find(
+                    (hash) => hash !== column.equippedHash,
+                );
+                if (!resetHash) return null;
+                return (
+                    <div key={column.socketIndex} className="socket-section">
+                        <div className="socket-section__row">
+                            <PlugButton
+                                socketIndex={column.socketIndex}
+                                hash={resetHash}
+                            />
+                        </div>
+                    </div>
+                );
+            })}
+        </>
     );
 }
 
@@ -194,28 +265,52 @@ function PerkColumns({
     );
 }
 
-/** Sockets affichés en simple ligne (mods, cosmétiques) : plugs équipés. */
+/**
+ * Sockets affichés en simple ligne (mods, cosmétiques) : le plug équipé de
+ * chacun, cliquable pour ouvrir le sélecteur de son socket.
+ *
+ * Plusieurs catégories peuvent partager la rangée — sur une arme, les mods et
+ * les cosmétiques (revêtement, ornement, effet de frag) tiennent sur la même,
+ * comme en jeu. Le regroupement se fait sur les index de sockets, donc sans
+ * ajouter de lecture : le nombre de hooks ne dépend pas du nombre de
+ * catégories.
+ */
 function PlugRow({
                      def,
                      detail,
-                     categoryHash,
+                     available,
+                     categoryHashes,
                      square = true,
                  }: {
     def: InventoryItemDefinition;
     detail: ItemDetail | undefined;
-    categoryHash: number;
+    available: PlugAvailability;
+    categoryHashes: readonly number[];
     square?: boolean;
 }) {
-    const columns = useSocketColumns(def, detail, categoryHash);
-    const title = useCategoryName(categoryHash);
+    const indexes = useMemo(
+        () =>
+            categoryHashes.flatMap(
+                (categoryHash) =>
+                    def.sockets?.socketCategories?.find(
+                        (c) => c.socketCategoryHash === categoryHash,
+                    )?.socketIndexes ?? [],
+            ),
+        [def, categoryHashes],
+    );
+    const columns = useSocketOptions(def, detail, indexes, available);
+    // Nom de repli quand le plug équipé n'a pas de type affichable : celui de
+    // la première catégorie, la plus représentative de la rangée.
+    const title = useCategoryName(categoryHashes[0]);
 
-    const plugs = columns
-        .map((c) => c.equippedHash)
-        .filter((h): h is number => Boolean(h));
     // Même écart que dans les colonnes d'attributs : certaines armes portent
     // leur compteur dans une catégorie affichée en rangée.
-    const trackers = useTrackerPlugs(plugs);
-    const equipped = plugs.filter((h) => !trackers.has(h));
+    const trackers = useTrackerPlugs(
+        columns.map((c) => c.equippedHash).filter(Boolean) as number[],
+    );
+    const equipped = columns.filter(
+        (c) => c.equippedHash && !trackers.has(c.equippedHash),
+    );
 
     if (equipped.length === 0) return null;
 
@@ -223,8 +318,13 @@ function PlugRow({
         <div className="socket-section">
             {/*<span className="socket-section__title">{title}</span>*/}
             <div className="socket-section__row">
-                {equipped.map((hash, i) => (
-                    <PlugIcon key={`${hash}-${i}`} hash={hash} square={square}/>
+                {equipped.map((column) => (
+                    <PlugSlot
+                        key={column.socketIndex}
+                        column={column}
+                        square={square}
+                        label={title}
+                    />
                 ))}
             </div>
         </div>
@@ -261,6 +361,54 @@ export function ItemTooltip({
     const statBonuses = useStatBonuses(detail);
     // Archétype d'armure et, sur une exotique, l'attribut qui la définit
     const armorPerks = useArmorPerks(detail);
+    // Mods, revêtements, ornements, aspects… débloqués sur le compte : sans
+    // eux, aucun moyen de savoir ce qui est équipable dans un emplacement.
+    const available = usePlugAvailability(itemInstanceId);
+
+    // L'objet tel qu'il part en file d'actions. Les habillages en font partie :
+    // la carte du panneau est montée hors de la grille et ne peut pas les
+    // retrouver seule.
+    const queued: QueuedItem | undefined = useMemo(
+        () =>
+            itemInstanceId
+                ? {itemHash, itemInstanceId, state, versionNumber, gearTier}
+                : undefined,
+        [itemHash, itemInstanceId, state, versionNumber, gearTier],
+    );
+
+    // Socket dont le sélecteur est ouvert. Il vit ici et non dans chaque
+    // rangée : un seul panneau à la fois, et c'est l'infobulle entière qui lui
+    // sert d'ancre.
+    const [picker, setPicker] = useState<PickerTarget | undefined>();
+    const {pendingSocket, pendingPlug, error, failure} =
+        usePlugActionState(itemInstanceId);
+
+    // Le panneau s'ancre à l'infobulle, pas à l'icône cliquée : il la longe sur
+    // toute sa hauteur, comme dans la maquette. `size` la lui impose comme
+    // plafond — au-delà, il défile.
+    const {refs, floatingStyles} = useFloating({
+        open: Boolean(picker),
+        placement: "right-end",
+        middleware: [
+            offset(8),
+            flip({fallbackPlacements: ["left-end"]}),
+            shift({padding: 8}),
+            size({
+                padding: 8,
+                apply({availableHeight, rects, elements}) {
+                    // Une variable CSS, pas un `max-height` sur le calque : le
+                    // calque n'a pas de débordement à lui, c'est le panneau
+                    // qu'il contient qui doit être borné — sinon rien ne le
+                    // retient et sa grille ne défile pas.
+                    elements.floating.style.setProperty(
+                        "--picker-max-height",
+                        `${Math.min(availableHeight, rects.reference.height)}px`,
+                    );
+                },
+            }),
+        ],
+        whileElementsMounted: autoUpdate,
+    });
 
     if (!def) {
         return (
@@ -312,8 +460,36 @@ export function ItemTooltip({
     const impact = detail?.stats?.[WEAPON_STAT.IMPACT];
     const energy = detail?.instance?.energy;
 
+    // Un artéfact n'est identifiable que par son emplacement : son `itemType`
+    // vaut 0 (voir CLAUDE.md). Ni lui ni une doctrine n'ont de puissance à
+    // afficher — la valeur que renvoie l'API n'a pas de sens pour eux.
+    const isArtifact = def.inventory?.bucketTypeHash === BUCKET.Artifact;
+    const showPower = !isSubclassItem && !isArtifact;
+
+    // Le sélecteur garde son socket, pas l'état du socket : après une
+    // insertion réussie, le plug en place a changé et il doit le refléter.
+    const target: PickerTarget | undefined = picker && {
+        ...picker,
+        equippedHash: detail?.sockets?.[picker.socketIndex] || picker.equippedHash,
+    };
+
     return (
+        <SocketPickerProvider
+            value={{
+                item: queued,
+                target,
+                toggle: (next) =>
+                    setPicker((current) =>
+                        current?.socketIndex === next.socketIndex ? undefined : next,
+                    ),
+                disabled: new Set(detail?.disabledSockets ?? []),
+                pendingSocket,
+                pendingPlug,
+            }}
+        >
         <div
+            // setReference est un callback ref stable de Floating UI
+            ref={refs.setReference}
             className="item-tooltip"
             style={
                 {
@@ -357,9 +533,10 @@ export function ItemTooltip({
                         {/* Hors des armes : puissance, et pour une armure son
                             archétype — à la place qu'occupent les munitions sur
                             une arme. */}
-                        {!isWeapon && (power != null || armorPerks.archetypeHash) && (
+                        {!isWeapon &&
+                            ((showPower && power != null) || armorPerks.archetypeHash) && (
                             <div className="item-tooltip__power">
-                                {power != null && (
+                                {showPower && power != null && (
                                     <span className="item-tooltip__power-value">{power}</span>
                                 )}
                                 {armorPerks.archetypeHash && (
@@ -425,17 +602,7 @@ export function ItemTooltip({
                             <PerkColumns
                                 def={def}
                                 detail={detail}
-                                item={
-                                    itemInstanceId
-                                        ? {
-                                            itemHash,
-                                            itemInstanceId,
-                                            state,
-                                            versionNumber,
-                                            gearTier,
-                                        }
-                                        : undefined
-                                }
+                                item={queued}
                                 categoryHash={SOCKET_CATEGORY.WEAPON_PERKS}
                             />
                         )}
@@ -455,32 +622,69 @@ export function ItemTooltip({
                             d'armure exotique, donc avant les mods */}
                         {isArmor && <SetBonus def={def}/>}
 
-                        {/* Mods et cosmétiques : plugs équipés */}
+                        {/* Mods et cosmétiques : plug équipé de chaque socket,
+                            cliquable pour choisir ce qu'on y met. Les
+                            cosmétiques d'arme (revêtement, ornement, effet de
+                            frag) ont leur propre catégorie, distincte de celle
+                            des armures. */}
                         <PlugRow
                             def={def}
                             detail={detail}
-                            categoryHash={SOCKET_CATEGORY.WEAPON_MODS}
+                            available={available}
+                            categoryHashes={WEAPON_SOCKET_ROW}
                         />
                         <PlugRow
                             def={def}
                             detail={detail}
-                            categoryHash={SOCKET_CATEGORY.ARMOR_MODS}
+                            available={available}
+                            categoryHashes={ARMOR_MOD_ROW}
                         />
                         <PlugRow
                             def={def}
                             detail={detail}
-                            categoryHash={SOCKET_CATEGORY.ARMOR_COSMETICS}
+                            available={available}
+                            categoryHashes={ARMOR_COSMETIC_ROW}
                         />
 
-                        {/* Attributs équipés sur un artéfact */}
-                        <ArtifactPerks def={def} detail={detail}/>
+                        {/* Attributs équipés sur un artéfact, et sa remise à zéro */}
+                        {isArtifact && (
+                            <ArtifactPerks
+                                def={def}
+                                detail={detail}
+                                available={available}
+                            />
+                        )}
 
                         {/* Compétences, aspects et fragments d'une doctrine */}
-                        {isSubclassItem && <SubclassSockets def={def} detail={detail}/>}
+                        {isSubclassItem && (
+                            <SubclassSockets
+                                def={def}
+                                detail={detail}
+                                available={available}
+                            />
+                        )}
                     </>
                 )}
 
             </div>
         </div>
+
+            {/* Deuxième infobulle : les options du socket cliqué. Dans un
+                portail, comme l'infobulle d'objet — elle ne doit pas être
+                rognée par elle. */}
+            {target && (
+                <FloatingPortal>
+                    <div
+                        // setFloating est un callback ref stable de Floating UI
+                        // eslint-disable-next-line react-hooks/refs
+                        ref={refs.setFloating}
+                        style={floatingStyles}
+                        className="floating-layer floating-layer--picker"
+                    >
+                        <SocketPicker target={target} error={error} failure={failure}/>
+                    </div>
+                </FloatingPortal>
+            )}
+        </SocketPickerProvider>
     );
 }

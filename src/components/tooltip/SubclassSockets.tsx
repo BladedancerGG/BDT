@@ -12,7 +12,10 @@ import {
     subclassSocketKind,
     type SubclassSocketKind,
 } from "@/lib/destiny/subclass";
+import {useSocketOptions} from "@/lib/destiny/use-sockets";
+import type {PlugAvailability} from "@/lib/destiny/use-plug-availability";
 import {PlugIcon} from "./PlugIcon";
+import {PlugSlot} from "./SocketPicker";
 
 interface SubclassSocket {
     socketIndex: number;
@@ -107,6 +110,44 @@ function Row({
 }
 
 /**
+ * Rangée dont chaque emplacement ouvre son sélecteur : aspects et fragments.
+ *
+ * Les compétences n'y ont pas droit : leur catégorie de sockets n'est pas la
+ * même d'une doctrine à l'autre, et le cahier des charges ne les demande pas.
+ */
+function EquippableRow({
+                           title,
+                           def,
+                           detail,
+                           available,
+                           sockets,
+                       }: {
+    title: string;
+    def: InventoryItemDefinition;
+    detail: ItemDetail | undefined;
+    available: PlugAvailability;
+    sockets: SubclassSocket[];
+}) {
+    // Les index viennent d'un tableau recréé à chaque rendu : le hook en fait
+    // sa clé de dépendance par leur contenu.
+    const indexes = sockets.map((s) => s.socketIndex);
+    const columns = useSocketOptions(def, detail, indexes, available);
+
+    if (columns.length === 0) return null;
+
+    return (
+        <div className="socket-section">
+            <span className="socket-section__title">{title}</span>
+            <div className="socket-section__row">
+                {columns.map((column) => (
+                    <PlugSlot key={column.socketIndex} column={column} label={title}/>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+/**
  * Compétences d'une doctrine, en lignes :
  *   1. super, compétence de classe, mouvement, grenade, mêlée
  *   2. transcendance et grenade prismatique — doctrines prismatiques seulement
@@ -116,9 +157,11 @@ function Row({
 export function SubclassSockets({
                                     def,
                                     detail,
+                                    available,
                                 }: {
     def: InventoryItemDefinition;
     detail: ItemDetail | undefined;
+    available: PlugAvailability;
 }) {
     const t = useTranslations("subclass");
     const sockets = useSubclassSockets(def, detail);
@@ -145,8 +188,20 @@ export function SubclassSockets({
         <>
             <Row title={t("transcendence")} sockets={transcendence}/>
             <Row title={t("abilities")} sockets={abilities}/>
-            <Row title={t("aspects")} sockets={aspects}/>
-            <Row title={t("fragments")} sockets={fragments}/>
+            <EquippableRow
+                title={t("aspects")}
+                def={def}
+                detail={detail}
+                available={available}
+                sockets={aspects}
+            />
+            <EquippableRow
+                title={t("fragments")}
+                def={def}
+                detail={detail}
+                available={available}
+                sockets={fragments}
+            />
         </>
     );
 }

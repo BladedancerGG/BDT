@@ -116,6 +116,33 @@ The vault (component `102`) is included, shared across characters, returned in
 | Without the vault | ~370 KB | ~2.6 s |
 | With the vault | ~1.65 MB | ~3.1 s |
 
+## Unlocked plugs (plug sets)
+
+What can be slotted into a mod, shader, ornament, aspect, fragment or artifact
+socket is **not** on the item. The manifest only gives the game-wide pool (712
+shaders, 82 leg mods…); what the player actually owns lives in
+`profilePlugSets` / `characterPlugSets`, two components that ship with
+`ItemSockets` (305) — already requested, so they cost no extra call. They were
+simply thrown away until the socket picker needed them.
+
+`src/lib/bungie/plug-sets.ts` trims them to `{ plugSetHash: [plugItemHash] }`,
+keeping only plugs whose `canInsert` is true — which is exactly what the picker
+may offer, and what makes the payload bearable:
+
+| Plug sets in `/api/profile` | Size |
+|---|---|
+| Raw components | ~870 KB |
+| After trimming (10646 / 12934 plugs kept, 1469 sets) | ~133 KB |
+
+**Which source feeds which socket is declared, not guessed**: the socket
+entry's `plugSources` bitmask (`SocketPlugSources`, mirrored as `PLUG_SOURCE` in
+`lib/destiny/sockets.ts`) says whether options come from the instance
+(`reusablePlugs`, component 310) or from the profile / character plug sets.
+Measured values: weapon perks `0`, weapon mods and cosmetics `7`, armor mods
+`13`, armor ornaments `15`, artifact perks and subclass aspects / fragments `4`.
+Reading plug sets for a weapon perk would show the manifest pool instead of the
+weapon's actual roll — hence the flags rather than a uniform rule.
+
 ## Displayed items
 
 Only item types that make up a loadout are shown: **weapons, armor, subclasses
@@ -841,6 +868,35 @@ Le coffre (composant `102`) est inclus, partagé entre personnages, renvoyé dan
 |---|---|---|
 | Sans le coffre | ~370 Ko | ~2,6 s |
 | Avec le coffre | ~1,65 Mo | ~3,1 s |
+
+## Plugs débloqués (plug sets)
+
+Ce qui peut être inséré dans un emplacement de mod, de revêtement, d'ornement,
+d'aspect, de fragment ou d'attribut d'artéfact ne se lit **pas** sur l'objet. Le
+manifeste ne donne que le pool du jeu (712 revêtements, 82 mods de jambes…) ; ce
+que le joueur possède réellement vit dans `profilePlugSets` /
+`characterPlugSets`, deux composants livrés avec `ItemSockets` (305) — déjà
+demandé, ils ne coûtent donc aucune requête de plus. Ils étaient simplement
+jetés jusqu'à ce que le sélecteur de socket en ait besoin.
+
+`src/lib/bungie/plug-sets.ts` les élague en `{ hashPlugSet: [hashPlug] }`, en ne
+gardant que les plugs dont `canInsert` est vrai — exactement ce que le sélecteur
+peut proposer, et ce qui rend la réponse supportable :
+
+| Plug sets dans `/api/profile` | Poids |
+|---|---|
+| Composants bruts | ~870 Ko |
+| Après élagage (10646 / 12934 plugs gardés, 1469 sets) | ~133 Ko |
+
+**Quelle source alimente quel socket est déclaré, pas deviné** : le masque
+`plugSources` de l'entrée de socket (`SocketPlugSources`, repris dans
+`PLUG_SOURCE` de `lib/destiny/sockets.ts`) dit si les options viennent de
+l'instance (`reusablePlugs`, composant 310) ou des plug sets du compte / du
+personnage. Valeurs relevées : attributs d'arme `0`, mods et cosmétiques d'arme
+`7`, mods d'armure `13`, ornements d'armure `15`, attributs d'artéfact et
+aspects / fragments de doctrine `4`. Lire les plug sets pour un attribut d'arme
+afficherait le pool du manifeste à la place du tirage réel de l'arme — d'où les
+drapeaux plutôt qu'une règle uniforme.
 
 ## Objets affichés
 

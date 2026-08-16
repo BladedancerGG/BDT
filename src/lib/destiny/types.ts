@@ -8,6 +8,12 @@ export interface SocketEntryDefinition {
   /** Pool de plugs tiré aléatoirement (rolls aléatoires) */
   randomizedPlugSetHash?: number;
   reusablePlugItems?: { plugItemHash: number }[];
+  /**
+   * Masque SocketPlugSources : d'où viennent les plugs équipables sur ce
+   * socket. Voir PLUG_SOURCE dans sockets.ts — sans lui, impossible de savoir
+   * s'il faut lire l'instance ou les plugs débloqués du compte.
+   */
+  plugSources?: number;
 }
 
 // Champs de DestinyInventoryItemDefinition réellement utilisés par l'UI.

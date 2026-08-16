@@ -24,6 +24,16 @@
     height: 100%;
   }
 
+  // Filigrane de saison des cosmétiques. L'image du manifeste est un 96×96 qui
+  // porte déjà son propre calage : elle se pose telle quelle sur l'icône.
+  &__watermark {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+
   &__img-enhanced {
     position: absolute;
     scale: 1.1;
@@ -69,6 +79,13 @@
     }
   }
 
+  // Emplacement dont le sélecteur est ouvert : il faut pouvoir revenir à
+  // l'icône cliquée depuis l'autre bout du panneau.
+  &--selected {
+    outline: 2px solid var(--color-danger);
+    outline-offset: -2px;
+  }
+
   // Requête partie : l'icône s'efface le temps de la réponse, comme la vignette
   // d'un objet en cours de déplacement.
   &--busy {
@@ -88,4 +105,6 @@
 }
 .plug-icon.plug-icon--equipped.plug-icon--square {
   background-color: unset;
+  opacity: 0.5;
+  cursor: not-allowed;
 }

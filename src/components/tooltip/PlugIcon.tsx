@@ -17,6 +17,7 @@ import {useDefinition} from "@/lib/manifest/use-definition";
 import type {InventoryItemDefinition} from "@/lib/destiny/types";
 import {BUNGIE_ROOT} from "@/lib/destiny/display";
 import {isEnhancedPlug} from "@/lib/destiny/sockets";
+import {watermarkPath} from "@/lib/destiny/overlays";
 import {PlugTooltip} from "./PlugTooltip";
 
 /**
@@ -31,6 +32,11 @@ import {PlugTooltip} from "./PlugTooltip";
  *                 colonnes d'attributs d'arme, seules à en contenir.
  * - `onEquip`   : rend l'icône cliquable — l'infobulle annonce alors le clic
  *                 gauche comme moyen d'équiper l'attribut
+ * - `onBrowse`  : rend l'icône cliquable pour **ouvrir le sélecteur** du socket
+ *                 (mods, revêtements, ornements, aspects…), là où les options
+ *                 sont trop nombreuses pour tenir en colonne
+ * - `browseLabel` : ce que le sélecteur contiendra, annoncé dans l'infobulle
+ * - `selected`  : ce socket est celui dont le sélecteur est ouvert
  * - `busy`      : requête en cours sur ce socket
  *
  * Au survol, une infobulle détaille le plug. Elle est rendue dans un portail :
@@ -42,8 +48,12 @@ export function PlugIcon({
                              state,
                              table = "DestinyInventoryItemDefinition",
                              typeLabel,
+                             def: preloadedDef,
                              markEnhanced = false,
                              onEquip,
+                             onBrowse,
+                             browseLabel,
+                             selected = false,
                              busy = false,
                          }: {
     hash: number;
@@ -51,12 +61,27 @@ export function PlugIcon({
     state?: "equipped" | "available";
     table?: string;
     typeLabel?: string;
+    /** Définition déjà chargée — évite une souscription Dexie par icône */
+    def?: InventoryItemDefinition;
     markEnhanced?: boolean;
     onEquip?: () => void;
+    onBrowse?: () => void;
+    browseLabel?: string;
+    selected?: boolean;
     busy?: boolean;
 }) {
-    const def = useDefinition<InventoryItemDefinition>(table, hash);
+    // Une lecture par icône, sauf quand l'appelant a déjà chargé le lot :
+    // le sélecteur d'un socket peut en aligner plusieurs centaines.
+    const ownDef = useDefinition<InventoryItemDefinition>(
+        table,
+        preloadedDef ? null : hash,
+    );
+    const def = preloadedDef ?? ownDef;
     const icon = def?.displayProperties?.icon;
+    // Revêtements et ornements portent le filigrane de leur saison — 640 des
+    // 720 revêtements du manifeste en ont un. Mods et attributs, aucun : la
+    // règle est donc simplement « celui que la définition fournit ».
+    const watermark = watermarkPath(def);
     const name = def?.displayProperties?.name ?? "";
 
     const [open, setOpen] = useState(false);
@@ -84,13 +109,19 @@ export function PlugIcon({
 
     const enhanced = markEnhanced && isEnhancedPlug(def);
     const equippable = Boolean(onEquip) && !busy;
+    const browsable = Boolean(onBrowse) && !busy;
+    // Une seule action possible : équiper l'emporte, un plug proposé dans un
+    // sélecteur n'ouvre pas un second sélecteur.
+    const activate = onEquip ?? onBrowse;
+    const clickable = equippable || browsable;
 
     const classes = [
         "plug-icon",
         square ? "plug-icon--square" : "plug-icon--circle",
         state ? `plug-icon--${state}` : null,
         enhanced ? "plug-icon--enhanced" : null,
-        equippable ? "plug-icon--equippable" : null,
+        clickable ? "plug-icon--equippable" : null,
+        selected ? "plug-icon--selected" : null,
         busy ? "plug-icon--busy" : null,
     ]
         .filter(Boolean)
@@ -101,21 +132,22 @@ export function PlugIcon({
             <div
                 ref={refs.setReference}
                 {...getReferenceProps({
-                    onClick: onEquip
+                    onClick: activate
                         ? (event) => {
                             // L'infobulle de l'objet se referme au clic extérieur : ce
                             // clic-ci lui appartient, il ne doit pas remonter jusqu'à
                             // la vignette qui la bascule.
                             event.stopPropagation();
-                            if (equippable) onEquip();
+                            if (clickable) activate();
                         }
                         : undefined,
                 })}
                 className={classes}
-                role={equippable ? "button" : undefined}
-                tabIndex={equippable ? 0 : undefined}
-                aria-label={equippable ? name : undefined}
+                role={clickable ? "button" : undefined}
+                tabIndex={clickable ? 0 : undefined}
+                aria-label={clickable ? name : undefined}
                 aria-busy={busy || undefined}
+                aria-expanded={onBrowse ? selected : undefined}
             >
                 {icon && (
                     <>
@@ -124,7 +156,24 @@ export function PlugIcon({
                             src={`${BUNGIE_ROOT}${icon}`}
                             alt={name}
                             className="plug-icon__img"
+                            // Le sélecteur d'un socket de revêtement en aligne
+                            // plusieurs centaines : seules celles à l'écran ont
+                            // à partir en requête.
+                            loading="lazy"
                         />
+                        {watermark && (
+                            // Filigrane de saison, comme sur les vignettes
+                            // d'objets. Il ne concerne en pratique que les
+                            // cosmétiques : ni les mods ni les attributs n'en
+                            // portent dans le manifeste.
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                                src={`${BUNGIE_ROOT}${watermark}`}
+                                alt=""
+                                className="plug-icon__watermark"
+                                loading="lazy"
+                            />
+                        )}
                         {enhanced && (
                             <>
                                 {/*// eslint-disable-next-line @next/next/no-img-element*/}
@@ -160,6 +209,7 @@ export function PlugIcon({
                             table={table}
                             typeLabel={typeLabel}
                             equippable={equippable}
+                            browseLabel={browsable ? browseLabel : undefined}
                         />
                     </div>
                 </FloatingPortal>

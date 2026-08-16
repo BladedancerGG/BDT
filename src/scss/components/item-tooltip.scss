@@ -10,6 +10,12 @@
 .floating-layer {
   z-index: 50;
 
+  // Sélecteur d'un socket : au-dessus de l'infobulle d'objet à laquelle il
+  // s'ancre, mais sous les infobulles d'attribut qu'on y survole.
+  &--picker {
+    z-index: 55;
+  }
+
   // Infobulle imbriquée (attribut survolé dans une infobulle d'objet) :
   // elle doit passer au-dessus de celle qui la contient.
   &--nested {

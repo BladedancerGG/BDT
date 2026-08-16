@@ -208,7 +208,9 @@
     "setBonus": "Set bonus",
     "setPieces": "{count} pieces",
     "weaponLevel": "Weapon Lv. {level}",
-    "equipPerk": "Equip"
+    "equipPerk": "Equip",
+    "browsePlugs": "Browse {type}",
+    "searchPlugs": "Search…"
   },
   "search": {
     "label": "Search items",

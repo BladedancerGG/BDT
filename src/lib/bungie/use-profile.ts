@@ -3,6 +3,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { DestinyItemComponent } from "./profile";
 import type { ItemDetail } from "./item-components";
+import type { ProfilePlugSets } from "./plug-sets";
 import { clearLocalWrites, isStaleProfile } from "./profile-freshness";
 
 export interface Character {
@@ -24,6 +25,12 @@ export interface ProfileData {
   vault: DestinyItemComponent[];
   /** Détail (stats, sockets, plugs) de chaque objet, par itemInstanceId */
   items: Record<string, ItemDetail>;
+  /**
+   * Plugs débloqués sur le compte et par personnage — ce que l'on peut
+   * réellement équiper dans un socket de mod, de cosmétique, de doctrine ou
+   * d'artéfact. Absent des profils servis par un cache antérieur à son ajout.
+   */
+  plugSets?: ProfilePlugSets;
 }
 
 /** Nouvelles tentatives quand Bungie renvoie un instantané d'avant nos écritures. */

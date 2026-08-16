@@ -208,7 +208,9 @@
     "setBonus": "Bonus d'ensemble",
     "setPieces": "{count} pièces",
     "weaponLevel": "Niv. d'arme {level}",
-    "equipPerk": "Équiper"
+    "equipPerk": "Équiper",
+    "browsePlugs": "Voir les {type}",
+    "searchPlugs": "Rechercher…"
   },
   "search": {
     "label": "Rechercher des objets",
