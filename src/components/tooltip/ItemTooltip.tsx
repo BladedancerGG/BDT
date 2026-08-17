@@ -196,8 +196,7 @@ function PerkColumns({
     const all = useSocketColumns(def, detail, categoryHash);
     const title = useCategoryName(categoryHash);
     const insert = useInsertPlanner();
-    const {pendingSocket, pendingPlug, error, failure} =
-        usePlugActionState(item?.itemInstanceId);
+    const {pending, error, failure} = usePlugActionState(item?.itemInstanceId);
     const disabled = new Set(detail?.disabledSockets ?? []);
 
     // Le compte-frags occupe une colonne de cette catégorie sans être un
@@ -217,14 +216,21 @@ function PerkColumns({
             {/*<span className="socket-section__title">{title}</span>*/}
             <div className="socket-section__columns">
                 {columns.map((column) => {
-                    // Toutes les colonnes sont figées le temps de la réponse :
-                    // le hook ne suit qu'une insertion, et Bungie limite de
-                    // toute façon le débit des écritures sur un même compte.
+                    // Rien n'est figé pendant l'attente : les colonnes restent
+                    // cliquables et les choix s'empilent dans la file, qui les
+                    // envoie l'un après l'autre — Bungie limite le débit des
+                    // écritures sur un même compte, pas les clics.
                     const changeable =
                         Boolean(item) &&
                         column.options.length > 1 &&
-                        !disabled.has(column.socketIndex) &&
-                        pendingSocket === undefined;
+                        !disabled.has(column.socketIndex);
+
+                    // L'attribut en file prime sur celui rendu par l'API : il
+                    // sert d'« équipé » à l'affichage comme à la comparaison,
+                    // sans quoi un second clic dans la même colonne reproposerait
+                    // ce qui vient d'être demandé.
+                    const equippedHash =
+                        pending.get(column.socketIndex) ?? column.equippedHash;
 
                     return (
                         <div key={column.socketIndex} className="socket-column">
@@ -232,19 +238,16 @@ function PerkColumns({
                                 <PlugIcon
                                     key={hash}
                                     hash={hash}
-                                    state={hash === column.equippedHash ? "equipped" : "available"}
+                                    state={hash === equippedHash ? "equipped" : "available"}
                                     // Seules ces colonnes contiennent des attributs
                                     // améliorés ; ailleurs le marquage n'a pas de sens.
                                     markEnhanced
                                     onEquip={
-                                        item && changeable && hash !== column.equippedHash
+                                        item && changeable && hash !== equippedHash
                                             ? () => insert(item, column.socketIndex, hash)
                                             : undefined
                                     }
-                                    busy={
-                                        pendingSocket === column.socketIndex &&
-                                        pendingPlug === hash
-                                    }
+                                    busy={pending.get(column.socketIndex) === hash}
                                 />
                             ))}
                         </div>
@@ -380,8 +383,7 @@ export function ItemTooltip({
     // rangée : un seul panneau à la fois, et c'est l'infobulle entière qui lui
     // sert d'ancre.
     const [picker, setPicker] = useState<PickerTarget | undefined>();
-    const {pendingSocket, pendingPlug, error, failure} =
-        usePlugActionState(itemInstanceId);
+    const {pending, error, failure} = usePlugActionState(itemInstanceId);
 
     // Le panneau s'ancre à l'infobulle, pas à l'icône cliquée : il la longe sur
     // toute sa hauteur, comme dans la maquette. `size` la lui impose comme
@@ -483,8 +485,7 @@ export function ItemTooltip({
                         current?.socketIndex === next.socketIndex ? undefined : next,
                     ),
                 disabled: new Set(detail?.disabledSockets ?? []),
-                pendingSocket,
-                pendingPlug,
+                pending,
             }}
         >
         <div

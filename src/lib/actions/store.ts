@@ -307,23 +307,34 @@ export function useItemBusy(itemInstanceId?: string): boolean {
 
 // —— Insertion d'attribut en cours ————————————————————————————
 
-/** L'insertion que l'infobulle doit refléter : attente en cours, ou refus. */
+/** Les insertions que l'infobulle doit refléter : attentes en cours, ou refus. */
 export interface PlugActionState {
-  /** Socket en cours d'insertion — sa colonne est figée */
-  pendingSocket?: number;
-  /** Attribut cliqué : lui seul porte l'animation d'attente */
-  pendingPlug?: number;
+  /**
+   * Attribut attendu dans chaque socket, par index — l'aperçu optimiste.
+   *
+   * L'infobulle l'affiche comme équipé avant même la réponse de Bungie : sans
+   * cela, enchaîner deux choix sur la même colonne montrerait encore l'ancien
+   * attribut au second clic, et l'utilisateur croirait le premier perdu.
+   */
+  pending: Map<number, number>;
   /** Motif du dernier refus, à afficher sous les colonnes */
   error?: string;
   failure?: InsertFailure;
 }
+
+/** Partagée par tous les appels sans objet : elle n'est jamais écrite. */
+const NO_PENDING_PLUGS = new Map<number, number>();
 
 /**
  * État des insertions portant sur un objet, lu depuis la file.
  *
  * L'infobulle n'a pas d'état à elle : elle se démonte à chaque fermeture, et
  * l'action, elle, survit dans la file. C'est donc la file qui dit ce qu'elle
- * doit montrer — attente comme refus.
+ * doit montrer — attentes comme refus.
+ *
+ * Plusieurs insertions peuvent attendre à la fois, y compris sur un même
+ * socket : la file est parcourue dans l'ordre, la dernière demandée l'emporte
+ * — c'est bien elle que Bungie appliquera en dernier.
  *
  * L'objet retourné est recréé à chaque appel : le sélecteur ne peut pas servir
  * de comparaison d'égalité, d'où la lecture du tableau entier et le tri ici.
@@ -333,24 +344,43 @@ export function usePlugActionState(
   itemInstanceId: string | undefined,
 ): PlugActionState {
   const actions = useActionQueue((s) => s.actions);
-  if (!itemInstanceId) return {};
+  if (!itemInstanceId) return { pending: NO_PENDING_PLUGS };
 
   const mine = actions.filter(
     (a): a is QueuedInsertAction =>
       a.kind === "insert" && a.itemInstanceId === itemInstanceId,
   );
 
-  const running = mine.find(
-    (a) => a.status === "pending" || a.status === "running",
-  );
-  if (running) {
-    const step = running.steps[0];
-    return { pendingSocket: step?.socketIndex, pendingPlug: step?.plugItemHash };
+  const pending = new Map<number, number>();
+  for (const action of mine) {
+    if (action.status !== "pending" && action.status !== "running") continue;
+    const step = action.steps[0];
+    if (step) pending.set(step.socketIndex, step.plugItemHash);
   }
+  if (pending.size > 0) return { pending };
 
   // Le dernier refus, et lui seul : les précédents ont été remplacés à l'écran
   const failed = mine.filter((a) => a.status === "error").at(-1);
-  return failed ? { error: failed.error, failure: failed.failure } : {};
+  return failed
+    ? { pending, error: failed.error, failure: failed.failure }
+    : { pending };
+}
+
+// —— File encore active ————————————————————————————————————————
+
+/**
+ * `true` tant qu'une action attend ou s'exécute.
+ *
+ * Sert à museler les rechargements *automatiques* du profil : tant que la file
+ * n'est pas vidée, le cache local est en avance sur Bungie (chaque étape y est
+ * rejouée), et une réponse de l'API ramènerait les objets à leur état d'avant.
+ */
+export function useActionsBusy(): boolean {
+  return useActionQueue((state) =>
+    state.actions.some(
+      (action) => action.status === "pending" || action.status === "running",
+    ),
+  );
 }
 
 // —— Compteurs affichés dans l'en-tête ————————————————————————

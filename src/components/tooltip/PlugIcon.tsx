@@ -109,7 +109,10 @@ export function PlugIcon({
 
     const enhanced = markEnhanced && isEnhancedPlug(def);
     const equippable = Boolean(onEquip) && !busy;
-    const browsable = Boolean(onBrowse) && !busy;
+    // Ouvrir le sélecteur reste possible pendant l'attente : seul le plug déjà
+    // demandé n'est pas re-cliquable. C'est ce qui permet d'enchaîner les
+    // changements sans attendre la réponse de Bungie.
+    const browsable = Boolean(onBrowse);
     // Une seule action possible : équiper l'emporte, un plug proposé dans un
     // sélecteur n'ouvre pas un second sélecteur.
     const activate = onEquip ?? onBrowse;

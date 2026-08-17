@@ -41,15 +41,18 @@ interface SocketPickerValue {
     toggle: (target: PickerTarget) => void;
     /** Index des sockets verrouillés (fragments non déverrouillés…) */
     disabled: Set<number>;
-    /** Insertion en cours : tout est figé le temps de la réponse de Bungie */
-    pendingSocket?: number;
-    pendingPlug?: number;
+    /**
+     * Attribut attendu dans chaque socket, par index : les insertions en file
+     * s'affichent comme équipées sans attendre la réponse de Bungie.
+     */
+    pending: Map<number, number>;
 }
 
 const SocketPickerContext = createContext<SocketPickerValue>({
     toggle: () => {
     },
     disabled: new Set<number>(),
+    pending: new Map<number, number>(),
 });
 
 export const SocketPickerProvider = SocketPickerContext.Provider;
@@ -79,13 +82,17 @@ export function PlugSlot({
     square?: boolean;
     label?: string;
 }) {
-    const {item, target, toggle, disabled, pendingSocket} = useSocketPicker();
+    const {item, target, toggle, disabled, pending} = useSocketPicker();
+    // L'attribut en file prend la place de celui rendu par l'API : l'emplacement
+    // montre ce que l'utilisateur vient de choisir, pas ce qu'il remplace.
+    const pendingHash = pending.get(column.socketIndex);
+    const shownHash = pendingHash ?? column.equippedHash;
     const def = useDefinition<InventoryItemDefinition>(
         "DestinyInventoryItemDefinition",
-        column.equippedHash ?? null,
+        shownHash ?? null,
     );
 
-    if (!column.equippedHash) return null;
+    if (!shownHash) return null;
 
     const browsable =
         Boolean(item) &&
@@ -97,7 +104,7 @@ export function PlugSlot({
 
     return (
         <PlugIcon
-            hash={column.equippedHash}
+            hash={shownHash}
             square={square}
             onBrowse={
                 browsable
@@ -106,7 +113,7 @@ export function PlugSlot({
             }
             browseLabel={browseLabel}
             selected={target?.socketIndex === column.socketIndex}
-            busy={pendingSocket === column.socketIndex}
+            busy={pendingHash !== undefined}
         />
     );
 }
@@ -127,19 +134,15 @@ export function PlugButton({
     hash: number;
     square?: boolean;
 }) {
-    const {item, pendingSocket, pendingPlug} = useSocketPicker();
+    const {item, pending} = useSocketPicker();
     const insert = useInsertPlanner();
 
     return (
         <PlugIcon
             hash={hash}
             square={square}
-            onEquip={
-                item && pendingSocket === undefined
-                    ? () => insert(item, socketIndex, hash)
-                    : undefined
-            }
-            busy={pendingSocket === socketIndex && pendingPlug === hash}
+            onEquip={item ? () => insert(item, socketIndex, hash) : undefined}
+            busy={pending.get(socketIndex) === hash}
         />
     );
 }
@@ -161,7 +164,7 @@ export function SocketPicker({
 }) {
     const t = useTranslations("actions");
     const tItem = useTranslations("item");
-    const {item, pendingSocket, pendingPlug} = useSocketPicker();
+    const {item, pending} = useSocketPicker();
     const insert = useInsertPlanner();
     // Une seule lecture du manifeste pour toute la grille, recherche comprise
     const {defs, search} = usePlugCatalog(target.options);
@@ -190,9 +193,10 @@ export function SocketPicker({
         ? ordered.filter((hash) => search.get(hash)?.includes(needle))
         : ordered;
 
-    // Une insertion à la fois : Bungie limite le débit des écritures sur un
-    // même compte, et le suivi d'attente ne porte que sur une requête.
-    const changeable = Boolean(item) && pendingSocket === undefined;
+    // L'attribut en file fait référence : c'est lui qui est marqué « équipé », et
+    // c'est à lui qu'on compare le clic suivant. Les choix s'enchaînent sans
+    // attendre la réponse — la file, elle, reste sérialisée à une requête.
+    const equippedHash = pending.get(target.socketIndex) ?? target.equippedHash;
 
     return (
         <div className="socket-picker">
@@ -215,15 +219,13 @@ export function SocketPicker({
                         hash={hash}
                         def={defs.get(hash)}
                         square={target.square}
-                        state={hash === target.equippedHash ? "equipped" : "available"}
+                        state={hash === equippedHash ? "equipped" : "available"}
                         onEquip={
-                            item && changeable && hash !== target.equippedHash
+                            item && hash !== equippedHash
                                 ? () => insert(item, target.socketIndex, hash)
                                 : undefined
                         }
-                        busy={
-                            pendingSocket === target.socketIndex && pendingPlug === hash
-                        }
+                        busy={pending.get(target.socketIndex) === hash}
                     />
                 ))}
             </div>

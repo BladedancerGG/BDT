@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useActionsBusy } from "@/lib/actions/store";
 import type { DestinyItemComponent } from "./profile";
 import type { ItemDetail } from "./item-components";
 import type { ProfilePlugSets } from "./plug-sets";
@@ -44,11 +45,23 @@ const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
  */
 export function useProfile() {
   const queryClient = useQueryClient();
+  const busy = useActionsBusy();
 
   return useQuery<ProfileData>({
     queryKey: ["profile"],
     // Le profil ne change qu'en jouant : inutile de le recharger sans cesse
     staleTime: 5 * 60 * 1000,
+    // Tant que des actions attendent ou s'exécutent, le cache local est en
+    // avance sur Bungie : un rechargement déclenché tout seul (retour sur
+    // l'onglet, remontage, reconnexion) ramènerait les objets à leur état
+    // d'avant, et rien ne le corrigerait avant la fin de la file.
+    //
+    // Ce n'est pas une désactivation de la requête : une invalidation explicite
+    // — le bouton « Rafraîchir », ou la resynchronisation de fin de file —
+    // passe toujours.
+    refetchOnWindowFocus: !busy,
+    refetchOnReconnect: !busy,
+    refetchOnMount: !busy,
     queryFn: async () => {
       for (let attempt = 0; ; attempt += 1) {
         const res = await fetch("/api/profile");

@@ -22,9 +22,13 @@ export function HeaderActions({
     const refreshing = useIsFetching({queryKey: ["profile"]}) > 0;
 
     const refresh = () => {
-        queryClient.invalidateQueries({queryKey: ["profile"]});
+        // `refetchQueries`, pas `invalidateQueries` : le clic est une demande
+        // explicite, elle doit aboutir même quand la file d'actions muselle les
+        // rechargements automatiques (voir `useProfile`) ou que la donnée est
+        // encore considérée fraîche.
+        void queryClient.refetchQueries({queryKey: ["profile"]});
         // Les détails chargés à l'unité (repli) deviennent aussi obsolètes
-        queryClient.invalidateQueries({queryKey: ["item"]});
+        void queryClient.invalidateQueries({queryKey: ["item"]});
     };
 
     return (
