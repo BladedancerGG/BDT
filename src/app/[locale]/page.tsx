@@ -50,6 +50,9 @@ export default async function Home() {
                 <Dashboard/>
             ) : (
                 <div className="login-screen">
+                    <h1>Bladedancer's Destiny Tools</h1>
+                    <h2>Personal tools used to manage stuff using the bungie.net Destiny 2 API</h2>
+                    <p>I'll put more things here in the future</p>
                     {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
                     <a href="/api/auth/login" className="btn btn--primary">
                         {t("login")}
