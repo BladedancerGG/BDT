@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import type { ActionStatus } from "@/lib/actions/store";
+import {QueueListIcon, CheckCircleIcon, ExclamationTriangleIcon } from "@heroicons/react/24/solid"
 
 /**
  * Pastille d'état : libellé + marque.
@@ -22,49 +23,18 @@ export function ActionStatusIcon({
   const label = t(status);
 
   return (
-    <span
-      className={`action-status action-status--${status}`}
-      title={labelled ? undefined : label}
-    >
+    <span className={`action-status action-status--${status}`}>
       {labelled && <span className="action-status__label">{label}</span>}
 
       {status === "running" ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src="/icons/loading.svg" alt="" className="action-status__spinner" />
       ) : status === "done" ? (
-        <svg viewBox="0 0 16 16" className="action-status__mark" aria-hidden>
-          <circle cx="8" cy="8" r="7" fill="currentColor" />
-          <path
-            d="M4.5 8.2l2.4 2.4 4.6-5"
-            fill="none"
-            stroke="var(--color-panel)"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
+        <CheckCircleIcon className="action-status__check-circle" aria-hidden />
       ) : status === "error" ? (
-        <svg viewBox="0 0 16 16" className="action-status__mark" aria-hidden>
-          <circle cx="8" cy="8" r="7" fill="currentColor" />
-          <path
-            d="M5.5 5.5l5 5M10.5 5.5l-5 5"
-            fill="none"
-            stroke="var(--color-panel)"
-            strokeWidth="2"
-            strokeLinecap="round"
-          />
-        </svg>
+        <ExclamationTriangleIcon className="action-status__error" aria-hidden />
       ) : (
-        <svg viewBox="0 0 16 16" className="action-status__mark" aria-hidden>
-          <circle
-            cx="8"
-            cy="8"
-            r="6.5"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-          />
-        </svg>
+        <QueueListIcon className="action-status__mark" aria-hidden />
       )}
 
       {!labelled && <span className="visually-hidden">{label}</span>}

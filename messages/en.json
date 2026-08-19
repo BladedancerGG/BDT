@@ -1,13 +1,21 @@
 {
   "auth": {
     "login": "Sign in with Bungie",
-    "logout": "Sign out",
-    "signedInAs": "Signed in as"
+    "logout": "Sign out"
   },
   "header": {
     "refresh": "Refresh",
     "refreshing": "Refreshing…",
     "refreshHint": "Reload item state from the Bungie API",
+    "settings": "Settings"
+  },
+  "menu": {
+    "signedInAs": "Signed in as",
+    "label": "Main menu",
+    "open": "Open the menu",
+    "inventory": "Inventory",
+    "loadouts": "Loadouts",
+    "soon": "soon",
     "settings": "Settings"
   },
   "settings": {

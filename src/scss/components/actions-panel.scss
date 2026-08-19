@@ -337,7 +337,7 @@ $ease: cubic-bezier(0.16, 1, 0.3, 1); // décélération franche, sans rebond
     white-space: nowrap;
   }
 
-  &__mark {
+  svg {
     width: 0.875rem;
     height: 0.875rem;
     flex-shrink: 0;
@@ -415,6 +415,27 @@ $ease: cubic-bezier(0.16, 1, 0.3, 1); // décélération franche, sans rebond
   }
 
   &__failed {
+    display: flex;
+    align-items: center;
     color: var(--color-danger);
+  }
+
+  span {
+    display: flex;
+    gap: 0.4rem;
+
+    > span {
+      display: flex;
+      gap: 0.15rem;
+
+      > span {
+        padding-bottom: 0.1rem;
+      }
+    }
+  }
+
+  svg {
+    height: 1rem;
+    width: 1rem;
   }
 }

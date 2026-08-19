@@ -1,8 +1,9 @@
 "use client";
 
-import { useRef } from "react";
-import { useTranslations } from "next-intl";
-import { countActions, useActionQueue } from "@/lib/actions/store";
+import {useRef} from "react";
+import {useTranslations} from "next-intl";
+import {countActions, useActionQueue} from "@/lib/actions/store";
+import {QueueListIcon, CheckCircleIcon, ExclamationTriangleIcon } from "@heroicons/react/24/solid"
 
 /**
  * Bouton d'en-tête : avancement de la file, et ouverture du panneau.
@@ -13,60 +14,55 @@ import { countActions, useActionQueue } from "@/lib/actions/store";
  * la file est vide : seul un chiffre non nul dit quelque chose.
  */
 export function ActionsButton() {
-  const t = useTranslations("actions");
-  const actions = useActionQueue((s) => s.actions);
-  const open = useActionQueue((s) => s.panelOpen);
-  const setOpen = useActionQueue((s) => s.setPanelOpen);
+    const t = useTranslations("actions");
+    const actions = useActionQueue((s) => s.actions);
+    const open = useActionQueue((s) => s.panelOpen);
+    const setOpen = useActionQueue((s) => s.setPanelOpen);
 
-  const counts = countActions(actions);
+    const counts = countActions(actions);
 
-  /**
-   * État du panneau tel qu'il était au tout début du clic.
-   *
-   * Le panneau se ferme désormais au clic au-dehors, et le bouton en fait
-   * partie : la fermeture est déjà survenue (sur `mousedown`) quand le `click`
-   * arrive, si bien qu'un simple `setOpen(!open)` le rouvrirait aussitôt. On
-   * décide donc à partir de l'état saisi au `pointerdown`, qui précède tout.
-   */
-  const openAtPress = useRef(false);
+    /**
+     * État du panneau tel qu'il était au tout début du clic.
+     *
+     * Le panneau se ferme désormais au clic au-dehors, et le bouton en fait
+     * partie : la fermeture est déjà survenue (sur `mousedown`) quand le `click`
+     * arrive, si bien qu'un simple `setOpen(!open)` le rouvrirait aussitôt. On
+     * décide donc à partir de l'état saisi au `pointerdown`, qui précède tout.
+     */
+    const openAtPress = useRef(false);
 
-  return (
-    <button
-      type="button"
-      className="btn btn--small actions-button"
-      onPointerDown={() => {
-        openAtPress.current = open;
-      }}
-      onClick={() => setOpen(!openAtPress.current)}
-      aria-expanded={open}
-      title={t("openHint")}
-    >
-      <span aria-hidden>⇄</span>
-      {/*{t("title")}*/}
-
-      <span className="actions-button__counts">
-        {(counts.pending > 0 || (counts.done === 0 && counts.failed === 0)) && (
-          <>
-            <span className="actions-button__pending">
-              {counts.pending} {/*({counts.pendingSteps})*/}
+    return (
+        <button
+            type="button"
+            className="btn btn--small actions-button"
+            onPointerDown={() => {
+                openAtPress.current = open;
+            }}
+            onClick={() => setOpen(!openAtPress.current)}
+            aria-expanded={open}
+            title={t("openHint")}
+        >
+            {/*<ArrowsRightLeftIcon/>*/}
+            <span className="actions-button__counts">
+                {(counts.pending > 0 || (counts.done === 0 && counts.failed === 0)) && (
+                    <span className="actions-button__pending">
+                        <QueueListIcon/>
+                        <span>{counts.pending}</span>
+                    </span>
+                )}
+                {counts.done > 0 && (
+                    <span className="actions-button__done">
+                        <CheckCircleIcon/>
+                        <span>{counts.done}</span>
+                    </span>
+                )}
+                {counts.failed > 0 && (
+                    <span className="actions-button__failed" title={t("failedHint")}>
+                        <ExclamationTriangleIcon/>
+                        <span>{counts.failed}</span>
+                    </span>
+                )}
             </span>
-            {counts.done > 0 && (<>&nbsp;/&nbsp;</>)}
-          </>
-        )}
-        {counts.done > 0 && (
-            <span className="actions-button__done">
-          {counts.done} {/*({counts.doneSteps})*/}
-        </span>
-        )}
-        {counts.failed > 0 && (
-          <>
-            &nbsp;/&nbsp;&nbsp;
-            <span className="actions-button__failed" title={t("failedHint")}>
-              ⚠ {counts.failed}
-            </span>
-          </>
-        )}
-      </span>
-    </button>
-  );
+        </button>
+    );
 }

@@ -1,0 +1,183 @@
+@use "../abstracts/variables" as v;
+@use "../abstracts/mixins" as m;
+
+// Menu principal : panneau latéral gauche.
+//
+// Mêmes ressorts que le panneau des actions — il flotte au-dessus de la vue,
+// et l'animation se joue sur l'attribut `data-status` posé par Floating UI, qui
+// vaut `initial` à l'arrivée, `open` une image plus tard, puis `close` au
+// départ. Les règles hors état décrivent donc l'état d'ENTRÉE et de SORTIE,
+// celles de `[data-status="open"]` l'état visible.
+
+// Doit rester égale à TRANSITION_MS dans components/nav/MainMenu.tsx, qui
+// décide du moment du démontage.
+$duration: 350ms;
+$ease: cubic-bezier(0.16, 1, 0.3, 1); // décélération franche, sans rebond
+
+.main-menu-overlay {
+  z-index: 40;
+  background-color: var(--color-overlay);
+
+  opacity: 0;
+  transition: opacity $duration $ease;
+
+  &[data-status="open"] {
+    opacity: 1;
+  }
+
+  // Pendant la fermeture le menu est encore monté : on le rend inerte, pour
+  // qu'un clic ne puisse pas atteindre ce qui est en train de disparaître.
+  &[data-status="close"] {
+    pointer-events: none;
+  }
+}
+
+.main-menu {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  width: min(22rem, 100vw);
+  height: 100dvh;
+  background-color: var(--color-panel);
+  border-right: 1px solid var(--color-border);
+  box-shadow: var(--shadow-panel);
+
+  // Le glissement part de la gauche ; l'opacité l'accompagne pour que la sortie
+  // ne laisse pas voir le bord du panneau franchir le voile.
+  translate: -100% 0;
+  opacity: 0;
+  transition:
+    translate $duration $ease,
+    opacity $duration $ease;
+
+  &[data-status="open"] {
+    translate: 0 0;
+    opacity: 1;
+  }
+
+  &__header {
+    padding: 1rem 1rem 0.875rem;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  &__title {
+    font-size: 1.0625rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+  }
+
+  // Groupes d'entrées, séparés d'un filet comme sur la maquette
+  &__section {
+    display: flex;
+    flex-direction: column;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  // Une entrée : lien, bouton ou libellé inerte se dessinent pareil, d'où la
+  // remise à plat des styles propres au <button> et au <a>.
+  &__item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.5rem 1rem;
+    border: 0;
+    background: none;
+    font: inherit;
+    font-size: 0.9375rem;
+    text-align: left;
+    text-decoration: none;
+    color: var(--color-text);
+    cursor: pointer;
+    transition: background-color 120ms ease;
+
+    &:hover {
+      background-color: var(--color-panel-alt);
+    }
+
+    // La page courante : marquée par un liseré, pas seulement par la couleur
+    &[aria-current="page"] {
+      box-shadow: inset 2px 0 0 var(--color-accent);
+      font-weight: 600;
+    }
+
+    &--soon {
+      color: var(--color-text-muted);
+      cursor: default;
+
+      &:hover {
+        background-color: transparent;
+      }
+    }
+
+    &--danger {
+      color: var(--color-danger);
+    }
+  }
+
+  &__badge {
+    margin-left: auto;
+    padding: 0.0625rem 0.375rem;
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-full);
+    font-size: 0.6875rem;
+    color: var(--color-text-muted);
+  }
+
+  // `margin-top: auto` : c'est ce qui ancre le pied en bas du panneau
+  &__footer {
+    margin-top: auto;
+    padding: 0.5rem 0;
+    border-top: 1px solid var(--color-border);
+  }
+
+  &__account {
+    display: flex;
+    gap: 0.25rem;
+    padding: 0.375rem 1rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    @include m.truncate;
+    &--name {
+      color: var(--color-text);
+    }
+  }
+}
+
+// Bouton d'ouverture, à gauche du titre
+.main-menu-button {
+  padding: 0.3rem;
+  border: none;
+  background-color: transparent;
+
+  svg {
+    height: 1.5rem;
+    width: 1.5rem;
+  }
+}
+
+// Préférence système : le menu apparaît et disparaît d'un coup.
+//
+// On neutralise aussi l'état d'entrée, et non seulement la transition : sans ça
+// le décalage et l'opacité nulle resteraient figés, faute d'animation pour en
+// sortir.
+@media (prefers-reduced-motion: reduce) {
+  .main-menu-overlay,
+  .main-menu {
+    transition: none;
+  }
+
+  .main-menu-overlay {
+    opacity: 1;
+  }
+
+  .main-menu {
+    translate: 0 0;
+    opacity: 1;
+  }
+}

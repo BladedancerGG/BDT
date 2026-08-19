@@ -1,6 +1,12 @@
 // Informations affichées dans la section « À propos » des paramètres.
 
 /**
+ * Titre du site, affiché en tête du menu latéral et dans les métadonnées.
+ * Ce module n'a pas de directive : il est lisible du serveur comme du client.
+ */
+export const APP_TITLE = "Bladedancer's Destiny Tools";
+
+/**
  * Version du site, injectée au build depuis package.json
  * (voir `env` dans next.config.ts).
  */

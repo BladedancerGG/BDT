@@ -1,13 +1,21 @@
 {
   "auth": {
     "login": "Se connecter avec Bungie",
-    "logout": "Se déconnecter",
-    "signedInAs": "Connecté en tant que"
+    "logout": "Se déconnecter"
   },
   "header": {
     "refresh": "Rafraîchir",
     "refreshing": "Rafraîchissement…",
     "refreshHint": "Recharger l'état des objets depuis l'API Bungie",
+    "settings": "Paramètres"
+  },
+  "menu": {
+    "signedInAs": "Connecté en tant que",
+    "label": "Menu principal",
+    "open": "Ouvrir le menu",
+    "inventory": "Inventaire",
+    "loadouts": "Équipements",
+    "soon": "à venir",
     "settings": "Paramètres"
   },
   "settings": {

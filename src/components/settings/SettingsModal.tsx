@@ -8,6 +8,7 @@ import {Modal} from "@/components/ui/Modal";
 import {SettingRow, Toggle, Select} from "@/components/ui/SettingRow";
 import {IconSizeControl} from "./IconSizeControl";
 import {SortRuleList} from "./SortRuleList";
+import {Cog6ToothIcon} from "@heroicons/react/24/solid"
 import {
     SEARCH_HISTORY_SIZE,
     useSettings,
@@ -54,7 +55,7 @@ export function SettingsModal({
     return (
         <Modal open={open} onClose={onClose} title={t("title")}>
             <header className="modal__header">
-                <h2 className="modal__title">{t("title")}</h2>
+                <h2 className="modal__title"><Cog6ToothIcon/><span>{t("title")}</span></h2>
                 <button
                     type="button"
                     className="modal__close"

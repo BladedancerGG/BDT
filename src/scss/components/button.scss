@@ -49,4 +49,37 @@
     padding: 0.3rem 0.65rem;
     font-size: 0.8125rem;
   }
+
+  &--settings {
+    padding: 0.3rem;
+    border: none;
+    background-color: transparent;
+    svg {
+      transition: transform 120ms ease-in-out;
+    }
+    &:hover svg {
+      transform: rotate(30deg);
+    }
+  }
+  &--refresh {
+    padding: 0.3rem;
+    border: none;
+    background-color: transparent;
+    svg {
+      transition: transform 120ms ease-in-out;
+      &.refreshing {
+        animation: refreshing 2s linear infinite;
+      }
+    }
+    &:hover svg:not(.refreshing) {
+      transform: rotate(45deg);
+    }
+  }
+
+}
+
+@keyframes refreshing {
+  to {
+    transform: rotate(360deg);
+  }
 }
