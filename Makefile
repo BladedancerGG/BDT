@@ -2,7 +2,9 @@
 # Lancer "make" ou "make help" pour voir toutes les cibles disponibles.
 
 # ".PHONY" : ces cibles ne sont pas des fichiers, make les exécute toujours.
-.PHONY: prod-up prod-down prod-logs prod-ps prod-migrate prod-backup \
+.PHONY: prod-up prod-down prod-restart prod-build prod-logs prod-ps prod-migrate \
+        prod-backup prod-restart-next prod-build-next prod-cold-start prod-update \
+        prod-update-next pull \
         help start stop restart build up down logs logs-db shell db-shell \
         ps migrate generate studio adminer install lint clean reset
 
@@ -99,12 +101,15 @@ prod-backup: ## Sauvegarde la base dans backup-<date>.sql.gz
 prod-restart-next: ## Redémarre le conteneur next.js
 	$(COMPOSE_PROD) restart app
 
+prod-build-next: ## (Re)construit uniquement l'image de l'app Next.js
+	$(COMPOSE_PROD) build app
 
 prod-cold-start: pull prod-build prod-up ## Build et démarre la production (idéal lors du premier lancement du projet)
 
-prod-update-all: pull prod-build prod-down prod-up ## Récupère la dernière version du code, build et redémarre TOUT les conteneurs (idéal pour envoyer des mises à jour sur plusieurs conteneurs en même temps)
+prod-update: pull prod-build prod-down prod-up ## Récupère la dernière version du code, build et redémarre TOUT les conteneurs (idéal pour envoyer des mises à jour sur plusieurs conteneurs en même temps)
 
-prod-update-next: pull prod-build prod-restart-next ## Récupère la dernière version du code, build et redémarre uniquement le conteneur Next.js (idéal pour envoyer des mises à jours spécifiques à Next.js)
+prod-update-next: pull prod-build-next ## Récupère la dernière version du code, build et recrée UNIQUEMENT le conteneur Next.js (les migrations ne sont pas rejouées : voir prod-migrate)
+	$(COMPOSE_PROD) up -d --no-deps --force-recreate app
 
 ## —— Nettoyage —————————————————————————————————————————————
 
