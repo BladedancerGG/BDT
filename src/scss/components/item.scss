@@ -55,8 +55,8 @@
     transform: translate(-50%, -50%);
     // Au-dessus des habillages de la vignette (filigrane, cadre…)
     z-index: 1;
-    // Le SVG est en `gray` : éclairci pour rester lisible sur la vignette
-    // assombrie, dans les deux thèmes.
+    // Le SVG (`LoadingIcon`) est en `gray` : éclairci pour rester lisible sur
+    // la vignette assombrie, dans les deux thèmes.
     filter: brightness(1.8);
   }
 

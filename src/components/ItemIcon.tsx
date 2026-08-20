@@ -20,6 +20,7 @@ import { subclassKind } from "@/lib/destiny/subclass";
 import { useMoveActions, type DraggedItem } from "./dnd/MoveDnd";
 import { ItemThumb, type ItemThumbProps } from "./ItemThumb";
 import { ItemTooltip } from "./tooltip/ItemTooltip";
+import { LoadingIcon } from "./icons";
 
 /** Forme de la vignette : les doctrines ne sont pas carrées. */
 const SHAPE_CLASS = {
@@ -163,9 +164,8 @@ export function ItemIcon({
         />
         {busy && (
           // Même animation que le panneau d'actions : elle vit dans le SVG
-          // lui-même, aucune règle CSS d'ici ne l'atteint.
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src="/icons/loading.svg" alt="" className="item__spinner" />
+          // lui-même (balises <animate>), pas dans une règle CSS.
+          <LoadingIcon className="item__spinner" />
         )}
       </div>
 

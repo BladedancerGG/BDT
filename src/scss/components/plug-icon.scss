@@ -34,8 +34,14 @@
     pointer-events: none;
   }
 
+  // Liseré doré des attributs améliorés, posé par-dessus l'icône du plug.
+  // Il couvre toute la vignette, `scale` mis à part : un SVG intégré n'a pas la
+  // taille intrinsèque que l'ancien fichier tenait de ses attributs.
   &__img-enhanced {
     position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
     scale: 1.1;
     pointer-events: none;
   }

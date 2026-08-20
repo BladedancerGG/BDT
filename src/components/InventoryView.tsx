@@ -97,8 +97,7 @@ function usePostmasterSection(items: DestinyItemComponent[]): LeadSection {
         () => ({
             key: "root:postmaster",
             label,
-            icon: "/icons/postmaster.svg",
-            iconKind: "mask",
+            icon: {kind: "postmaster"},
             items,
         }),
         [label, items],

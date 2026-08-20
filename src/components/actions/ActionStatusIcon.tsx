@@ -3,13 +3,14 @@
 import { useTranslations } from "next-intl";
 import type { ActionStatus } from "@/lib/actions/store";
 import {QueueListIcon, CheckCircleIcon, ExclamationTriangleIcon } from "@heroicons/react/24/solid"
+import { LoadingIcon } from "@/components/icons";
 
 /**
  * Pastille d'état : libellé + marque.
  *
- * « En cours » emprunte l'animation de chargement du jeu
- * (`public/icons/loading.svg`) ; « Terminé » une coche. Les deux autres états
- * n'ont qu'un cercle vide, comme dans la maquette.
+ * « En cours » emprunte l'animation de chargement du jeu (`LoadingIcon`) ;
+ * « Terminé » une coche. Les deux autres états n'ont qu'un cercle vide, comme
+ * dans la maquette.
  */
 export function ActionStatusIcon({
   status,
@@ -27,8 +28,7 @@ export function ActionStatusIcon({
       {labelled && <span className="action-status__label">{label}</span>}
 
       {status === "running" ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src="/icons/loading.svg" alt="" className="action-status__spinner" />
+        <LoadingIcon className="action-status__spinner" />
       ) : status === "done" ? (
         <CheckCircleIcon className="action-status__check-circle" aria-hidden />
       ) : status === "error" ? (

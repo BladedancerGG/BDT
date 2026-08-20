@@ -152,16 +152,14 @@
 
   // —— Cadre des objets ordinaires ————————————————————————————
   // Pendant du cadre doré des pièces maîtresses, qui lui vient du manifeste et
-  // se pose en dernier calque. Celui-ci n'existe pas côté Bungie : c'est un SVG
-  // local. Un ::after suffit, et il passe au-dessus des calques du manifeste,
-  // qui sont des enfants absolus donc dessinés avant.
-  &--regular-border::after {
-    content: "";
+  // se pose en dernier calque. Celui-ci n'existe pas côté Bungie : c'est une
+  // icône locale (`BorderIcon`), rendue en dernier enfant pour passer au-dessus
+  // des calques du manifeste.
+  &__border {
     position: absolute;
     inset: 0;
-    background-image: url("/icons/regular_border_path.svg");
-    // Le trait du SVG suit l'échelle de la vignette, comme les PNG 96×96
-    background-size: 100% 100%;
+    width: 100%;
+    height: 100%;
     pointer-events: none;
   }
 

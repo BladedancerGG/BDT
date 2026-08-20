@@ -5,7 +5,7 @@ import {useTranslations} from "next-intl";
 import {useVirtualizer} from "@tanstack/react-virtual";
 import type {DestinyItemComponent} from "@/lib/bungie/profile";
 import type {ItemDetail} from "@/lib/bungie/item-components";
-import type {GroupIconKind} from "@/lib/destiny/grouping";
+import type {GroupIcon} from "@/lib/destiny/grouping";
 import {useGroupedItems} from "@/lib/destiny/use-grouped-items";
 import {useGridMetrics} from "@/lib/destiny/use-grid-metrics";
 import {useSearchFiltered} from "@/lib/search/provider";
@@ -24,8 +24,7 @@ type GridRow =
     kind: "root";
     key: string;
     label: string;
-    icon?: string;
-    iconKind?: GroupIconKind;
+    icon?: GroupIcon;
     count: number;
     collapsed: boolean;
     height: number;
@@ -42,8 +41,7 @@ type GridRow =
     kind: "group";
     key: string;
     label: string;
-    icon?: string;
-    iconKind?: GroupIconKind;
+    icon?: GroupIcon;
     count: number;
     collapsed: boolean;
     height: number;
@@ -63,8 +61,7 @@ type GridRow =
 export interface LeadSection {
     key: string;
     label: string;
-    icon?: string;
-    iconKind?: GroupIconKind;
+    icon?: GroupIcon;
     items: DestinyItemComponent[];
 }
 
@@ -163,7 +160,6 @@ export function VirtualItemGrid({
                 key: lead.key,
                 label: lead.label,
                 icon: lead.icon,
-                iconKind: lead.iconKind,
                 count: leadFound.length,
                 collapsed: leadCollapsed,
                 height: rootHeight,
@@ -176,8 +172,7 @@ export function VirtualItemGrid({
             kind: "root",
             key: VAULT_KEY,
             label: title,
-            icon: "/icons/vault.svg",
-            iconKind: "mask",
+            icon: {kind: "vault"},
             count: total,
             collapsed: vaultCollapsed,
             height: rootHeight,
@@ -209,7 +204,6 @@ export function VirtualItemGrid({
                         key: groupKey,
                         label: group.label,
                         icon: group.icon,
-                        iconKind: group.iconKind,
                         count: group.items.length,
                         collapsed: groupCollapsed,
                         height: groupHeight,
@@ -300,7 +294,6 @@ export function VirtualItemGrid({
                                 label={row.label}
                                 count={row.count}
                                 icon={row.kind === "section" ? undefined : row.icon}
-                                iconKind={row.kind === "section" ? undefined : row.iconKind}
                                 collapsed={row.collapsed}
                                 onToggle={() => toggle(row.key)}
                                 expandLabel={t("expand")}

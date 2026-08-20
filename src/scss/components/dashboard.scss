@@ -43,7 +43,10 @@
     color: var(--color-danger);
   }
 
-  img {
+  // Animation de chargement (`LoadingIcon`). Un SVG intégré sans `width` prend
+  // toute la largeur offerte : la taille doit venir d'ici.
+  svg {
     width: 100px;
+    height: auto;
   }
 }

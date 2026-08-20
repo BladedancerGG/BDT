@@ -11,6 +11,11 @@
 // manifeste chargés par `use-group-defs`, libellés d'interface traduits par
 // l'appelant. Le tri, lui, reste appliqué **à l'intérieur** de chaque groupe :
 // les deux mécanismes se composent sans se connaître.
+//
+// Les icônes d'en-tête n'y sont pas montées, ni même désignées par un chemin :
+// le module ne décrit **que** celle qu'il faut, sous forme de descripteur
+// (`GroupIcon`), et c'est la couche de rendu qui l'aiguille vers le bon
+// composant (`components/icons`). Aucune dépendance à React n'entre donc ici.
 
 import type { DestinyItemComponent } from "@/lib/bungie/profile";
 import type { ItemDetail } from "@/lib/bungie/item-components";
@@ -18,7 +23,6 @@ import type { InventoryItemDefinition } from "./types";
 import type { ItemSortTraits } from "./sort-traits";
 import { ARMOR_BUCKETS, BUCKET_ORDER, WEAPON_BUCKETS } from "./buckets";
 import { BUNGIE_ROOT } from "./display";
-import { classIconPath } from "./icons";
 
 /** Sous-groupes proposés pour les armes. Le premier libellé est « aucun ». */
 export const WEAPON_GROUPINGS = [
@@ -49,8 +53,9 @@ export interface GroupingPreferences {
 
 // —— Icônes ————————————————————————————————————————————————————
 //
-// Les fichiers vivent dans `public/icons/`. Les types de dégâts font exception :
-// le manifeste en porte déjà une, traduite et à jour, inutile d'en dupliquer.
+// Les silhouettes locales sont des composants React (`components/icons`), pas
+// des fichiers servis par `<img>`. Les types de dégâts font exception : le
+// manifeste en porte déjà une, traduite et à jour, inutile d'en dupliquer.
 
 /** Type de munitions (DestinyAmmunitionType) : 1 principales, 2 spéciales, 3 lourdes. */
 export const AMMO_TYPE = {
@@ -58,25 +63,6 @@ export const AMMO_TYPE = {
   Special: 2,
   Heavy: 3,
 } as const;
-
-const AMMO_ICONS: Record<number, string> = {
-  [AMMO_TYPE.Primary]: "/icons/ammo-types/ammo_primary.svg",
-  [AMMO_TYPE.Special]: "/icons/ammo-types/ammo_special.svg",
-  [AMMO_TYPE.Heavy]: "/icons/ammo-types/ammo_heavy.svg",
-};
-
-/**
- * Icône du type de munitions d'une arme — `undefined` hors des armes, où
- * `ammoType` vaut 0 (None).
- *
- * Sert aussi aux infobulles et aux vignettes des armes équipées : le manifeste
- * n'expose aucune de ces trois icônes, d'où les fichiers locaux.
- */
-export function ammoIconPath(
-  ammoType: number | undefined,
-): string | undefined {
-  return ammoType ? AMMO_ICONS[ammoType] : undefined;
-}
 
 /** Clé de traduction du type de munitions, dans l'espace `inventory`. */
 export function ammoLabelKey(
@@ -92,58 +78,6 @@ export function ammoLabelKey(
     default:
       return undefined;
   }
-}
-
-/**
- * Icône par type d'arme (DestinyItemSubType).
- *
- * Valeurs relevées sur le manifeste (version 244213) en recoupant `itemSubType`
- * et `itemTypeDisplayName` sur les 2000+ armes légendaires et exotiques : la
- * couverture est totale, aucun autre sous-type n'apparaît sur une arme.
- */
-const WEAPON_SUBTYPE_ICONS: Record<number, string> = {
-  6: "auto_rifle",
-  7: "shotgun",
-  8: "machine_gun",
-  9: "hand_cannon",
-  10: "rocket_launcher",
-  11: "fusion_rifle",
-  12: "sniper_rifle",
-  13: "pulse_rifle",
-  14: "scout_rifle",
-  17: "sidearm",
-  18: "sword",
-  22: "linear_fusion_rifle",
-  23: "grenade_launcher", // remplacé plus bas : deux icônes selon les munitions
-  24: "submachine_gun",
-  25: "trace_rifle",
-  31: "bow",
-  33: "glaive",
-};
-
-const GRENADE_LAUNCHER = 23;
-
-/**
- * Icône d'un type d'arme.
- *
- * Les lance-grenades en ont deux, spécial et lourd, que `itemSubType` ne
- * distingue pas — c'est le type de munitions qui tranche. Sans ambiguïté en
- * pratique : les sections étant déjà séparées par emplacement, un même groupe
- * ne mélange jamais les deux.
- */
-function weaponTypeIcon(
-  subType: number | undefined,
-  ammoType: number | undefined,
-): string | undefined {
-  if (subType === undefined) return undefined;
-
-  if (subType === GRENADE_LAUNCHER) {
-    const prefix = ammoType === AMMO_TYPE.Heavy ? "heavy" : "special";
-    return `/icons/weapon-types/${prefix}_grenade_launcher.svg`;
-  }
-
-  const file = WEAPON_SUBTYPE_ICONS[subType];
-  return file ? `/icons/weapon-types/${file}.svg` : undefined;
 }
 
 // —— Contexte de lecture ————————————————————————————————————————
@@ -167,24 +101,30 @@ export interface GroupingContext {
 // —— Structure produite ————————————————————————————————————————
 
 /**
- * Comment poser l'icône du groupe.
+ * Icône d'un en-tête de groupe, décrite et non montée : `GroupHeader` en tire
+ * le composant (voir `components/icons`).
  *
- * `mask` : silhouette monochrome (les symboles de type d'arme et de classe sont
- * dessinés en `currentColor`), à rendre en masque CSS — un SVG chargé par
- * `<img>` est un document isolé, où `currentColor` ne voit jamais la couleur de
- * la page (même raison que `ClassIcon`).
- * `image` : illustration déjà colorée — pastilles de munitions, icônes du
- * manifeste — à rendre telle quelle.
+ * Les silhouettes locales sont des SVG intégrés, donc teintées par la couleur du
+ * texte quand leur dessin est en `currentColor` — ce qu'un `<img>` ne permettait
+ * pas. `image` est l'exception : l'illustration vient de bungie.net, elle ne
+ * peut être que chargée par son URL.
+ *
+ * `vault` et `postmaster` ne sortent pas d'ici mais des sections racines
+ * (`VirtualItemGrid`, `InventoryView`), qui empruntent le même en-tête.
  */
-export type GroupIconKind = "mask" | "image";
+export type GroupIcon =
+  | { kind: "ammo"; ammoType: number }
+  | { kind: "weaponType"; subType: number | undefined; ammoType: number | undefined }
+  | { kind: "class"; classType: number }
+  | { kind: "vault" }
+  | { kind: "postmaster" }
+  | { kind: "image"; src: string };
 
 export interface ItemGroup {
   /** Identité stable : clé de rendu et cible de l'état de repli */
   key: string;
   label: string;
-  /** Chemin d'image, local ou sur bungie.net */
-  icon?: string;
-  iconKind?: GroupIconKind;
+  icon?: GroupIcon;
   items: DestinyItemComponent[];
 }
 
@@ -205,8 +145,7 @@ export interface BucketSection {
 interface GroupKey {
   key: string;
   label: string;
-  icon?: string;
-  iconKind?: GroupIconKind;
+  icon?: GroupIcon;
   /** Rang d'affichage ; `undefined` renvoie le groupe en fin de section */
   order?: number | string;
 }
@@ -235,14 +174,14 @@ function groupKeyOf(
       return undefined;
 
     case "ammoType": {
+      // 0 (None) et 4 (Unknown) ne sont pas des groupes : ces objets rejoignent
+      // le fourre-tout, et aucune icône ne les représente.
       const ammo = def.equippingBlock?.ammoType;
-      if (!ammo || !AMMO_ICONS[ammo]) return undefined;
+      if (!ammo || ammo > AMMO_TYPE.Heavy) return undefined;
       return {
         key: `ammo:${ammo}`,
         label: ctx.ammoNames.get(ammo) ?? "",
-        icon: AMMO_ICONS[ammo],
-        // Les pastilles portent la couleur du jeu (blanc, vert, violet)
-        iconKind: "image",
+        icon: { kind: "ammo", ammoType: ammo },
         // L'ordre de l'énumération est déjà le bon : primaires, spéciales, lourdes
         order: ammo,
       };
@@ -254,8 +193,11 @@ function groupKeyOf(
       return {
         key: `type:${def.itemSubType ?? label}`,
         label,
-        icon: weaponTypeIcon(def.itemSubType, def.equippingBlock?.ammoType),
-        iconKind: "mask",
+        icon: {
+          kind: "weaponType",
+          subType: def.itemSubType,
+          ammoType: def.equippingBlock?.ammoType,
+        },
         order: label,
       };
     }
@@ -268,8 +210,9 @@ function groupKeyOf(
       return {
         key: `damage:${damage}`,
         label: entry?.name ?? "",
-        icon: entry?.icon ? `${BUNGIE_ROOT}${entry.icon}` : undefined,
-        iconKind: "image",
+        icon: entry?.icon
+          ? { kind: "image", src: `${BUNGIE_ROOT}${entry.icon}` }
+          : undefined,
         order: damage,
       };
     }
@@ -282,8 +225,7 @@ function groupKeyOf(
       return {
         key: `class:${classType}`,
         label: ctx.classNames.get(classType) ?? "",
-        icon: classIconPath(classType) ?? undefined,
-        iconKind: "mask",
+        icon: { kind: "class", classType },
         order: classType,
       };
     }
@@ -301,9 +243,8 @@ function groupKeyOf(
     //     key: `archetype:${name}`,
     //     label: name,
     //     icon: traits?.archetypeIcon
-    //       ? `${BUNGIE_ROOT}${traits.archetypeIcon}`
+    //       ? { kind: "image", src: `${BUNGIE_ROOT}${traits.archetypeIcon}` }
     //       : undefined,
-    //     iconKind: "image",
     //     order: name,
     //   };
     // }
@@ -394,7 +335,6 @@ export function groupItems(
         key,
         label: entry?.label ?? ctx.otherLabel,
         icon: entry?.icon,
-        iconKind: entry?.iconKind,
         items: groupItems,
       }));
 

@@ -8,6 +8,7 @@ import { BUNGIE_ROOT } from "@/lib/destiny/display";
 import type { MovePlan, MoveTarget } from "@/lib/destiny/moves";
 import { useCharacterNames } from "@/lib/destiny/use-character-names";
 import { ClassIcon } from "../ClassIcon";
+import { VaultIcon } from "../icons";
 import { DROP_TARGET_ATTR, useDraggedItem, zoneId } from "./MoveDnd";
 
 /**
@@ -224,8 +225,7 @@ export function DropZones({
           label={t("vault")}
         >
           <span className="drop-zone__icons">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/icons/vault.svg" alt="" className="drop-zone__sigil" />
+            <VaultIcon className="drop-zone__sigil" />
           </span>
         </DropZone>
       </div>

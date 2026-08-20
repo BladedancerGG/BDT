@@ -49,25 +49,6 @@ export function isTransparentIcon(
   return Boolean(iconDef?.foreground);
 }
 
-/**
- * Fichier d'icône de classe (DestinyClass : 0 Titan, 1 Chasseur, 2 Arcaniste).
- *
- * Ici plutôt que dans `use-character-names` : ce module-ci n'a pas de directive
- * « use client », la fonction reste donc utilisable depuis un module partagé.
- */
-export function classIconPath(classType: number | undefined): string | null {
-  switch (classType) {
-    case 0:
-      return "/icons/classes/titan.svg";
-    case 1:
-      return "/icons/classes/hunter.svg";
-    case 2:
-      return "/icons/classes/warlock.svg";
-    default:
-      return null;
-  }
-}
-
 /** Suffixe de classe SCSS correspondant à la rareté. */
 export function tierClassName(tierType: number | undefined): string {
   switch (tierType) {

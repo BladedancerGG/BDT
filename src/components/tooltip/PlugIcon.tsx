@@ -19,6 +19,7 @@ import {BUNGIE_ROOT} from "@/lib/destiny/display";
 import {isEnhancedPlug} from "@/lib/destiny/sockets";
 import {watermarkPath} from "@/lib/destiny/overlays";
 import {PlugTooltip} from "./PlugTooltip";
+import {EnhancedPerkIcon, LoadingIcon} from "@/components/icons";
 
 /**
  * Icône d'un plug (perk / mod), résolue via son hash dans le manifeste.
@@ -178,22 +179,14 @@ export function PlugIcon({
                             />
                         )}
                         {enhanced && (
-                            <>
-                                {/*// eslint-disable-next-line @next/next/no-img-element*/}
-                                <img
-                                    src={"/icons/enhanced_perk.svg"}
-                                    className="plug-icon__img-enhanced"
-                                />
-                            </>
-
+                            <EnhancedPerkIcon className="plug-icon__img-enhanced"/>
                         )}
                     </>
                 )}
                 {busy && (
                     // Même animation que les vignettes en cours de déplacement :
-                    // elle vit dans le SVG, aucune règle d'ici ne l'atteint.
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src="/icons/loading.svg" alt="" className="plug-icon__spinner"/>
+                    // elle vit dans le SVG (balises <animate>), pas dans le CSS.
+                    <LoadingIcon className="plug-icon__spinner"/>
                 )}
             </div>
 

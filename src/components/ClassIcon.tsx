@@ -1,21 +1,17 @@
 "use client";
 
-import type { CSSProperties } from "react";
-import { classIconPath } from "@/lib/destiny/icons";
+import { ClassSymbol } from "@/components/icons";
 
 /**
  * Symbole de classe (Titan, Chasseur, Arcaniste), teinté par la couleur de
  * texte héritée.
  *
- * Rendu en **masque CSS** et non par une balise `<img>` : un SVG chargé par
- * `<img>` est un document isolé, où `currentColor` se résout contre sa propre
- * racine et jamais contre la page. Le `color` du parent ne l'atteint donc pas,
- * quelle que soit la règle écrite en face. Le masque, lui, ne retient que la
- * silhouette du fichier et la remplit avec `currentColor` — la teinte suit
- * alors le thème sans dupliquer la palette dans les SVG.
- *
- * Le chemin passe en variable CSS inline, comme les autres valeurs dynamiques
- * du projet (couleur de rareté, emblème d'onglet).
+ * Le SVG est rendu **en ligne**, ce qui suffit à faire fonctionner le
+ * `currentColor` de son dessin : la teinte suit alors le thème sans dupliquer la
+ * palette dans les fichiers. Ce composant posait auparavant le fichier en masque
+ * CSS, faute de mieux — une balise `<img>` isole le SVG dans son propre
+ * document, où `currentColor` se résout contre sa racine et jamais contre la
+ * page, si bien qu'aucun `color` écrit en face ne l'atteignait.
  */
 export function ClassIcon({
   classType,
@@ -25,14 +21,10 @@ export function ClassIcon({
   classType: number | undefined;
   className?: string;
 }) {
-  const path = classIconPath(classType);
-  if (!path) return null;
-
   return (
-    <span
+    <ClassSymbol
+      classType={classType}
       className={["class-icon", className].filter(Boolean).join(" ")}
-      style={{ "--class-icon": `url(${path})` } as CSSProperties}
-      aria-hidden
     />
   );
 }

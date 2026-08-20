@@ -15,7 +15,7 @@ import {
 } from "@/lib/destiny/overlays";
 import { bestIconPath, tierClassName } from "@/lib/destiny/icons";
 import { isSubclass } from "@/lib/destiny/subclass";
-import { ammoIconPath } from "@/lib/destiny/grouping";
+import { AmmoIcon, BorderIcon, hasAmmoIcon } from "@/components/icons";
 import { BUNGIE_ROOT, ITEM_TYPE } from "@/lib/destiny/display";
 
 export interface ItemThumbProps {
@@ -109,14 +109,15 @@ export function ItemThumb({
   // Type de munitions de l'arme équipée. Il occupe le coin bas droit, celui où
   // le marquage façonné / amélioré est désormais renvoyé : quand les deux sont
   // là, le marquage se décale d'une case vers la gauche.
-  const ammoIcon =
+  const ammoType =
     equipped && def?.itemType === ITEM_TYPE.Weapon
-      ? ammoIconPath(def.equippingBlock?.ammoType)
+      ? def.equippingBlock?.ammoType
       : undefined;
+  const ammo = hasAmmoIcon(ammoType);
   const marker = overlays.some((overlay) => overlay.kind === "marker");
 
   // Une pièce maîtresse reçoit son cadre doré depuis le manifeste (dernier
-  // calque de `overlays`) ; les autres objets prennent le cadre blanc du SCSS.
+  // calque de `overlays`) ; les autres objets prennent le cadre blanc local.
   // Les doctrines en sont exemptées : leur vignette est un losange ou un
   // cercle, un cadre carré n'aurait aucun sens autour.
   const subclass = isSubclass(def);
@@ -128,12 +129,11 @@ export function ItemThumb({
     subclass ? null : `item-thumb--tier-${tierClassName(tierType)}`,
     holofoil ? "item-thumb--holofoil" : null,
     originalIcon ? "item-thumb--ornamented" : null,
-    regularBorder ? "item-thumb--regular-border" : null,
     // Dégradé du coin bas droit : il accompagne le marquage façonné / amélioré,
     // en remplacement de l'image de fond du manifeste (ancrée à gauche).
     marker ? "item-thumb--marked" : null,
     // Marquage décalé d'une case : l'icône de munitions occupe le coin
-    ammoIcon && marker ? "item-thumb--marker-shifted" : null,
+    ammo && marker ? "item-thumb--marker-shifted" : null,
     className,
   ]
     .filter(Boolean)
@@ -194,11 +194,20 @@ export function ItemThumb({
           }`}
         />
       ))}
-      {ammoIcon && (
-        // Fichier local, contrairement à tous les calques ci-dessus : pas de
-        // préfixe bungie.net.
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={ammoIcon} alt="" className="item-thumb__ammo" />
+      {ammo && (
+        // Icône locale, contrairement à tous les calques ci-dessus : le
+        // manifeste n'en porte aucune pour les types de munitions.
+        <AmmoIcon ammoType={ammoType} className="item-thumb__ammo" />
+      )}
+      {regularBorder && (
+        // Cadre des objets ordinaires, pendant du cadre doré des pièces
+        // maîtresses. Il n'existe pas côté Bungie : c'est une icône locale, et
+        // sa place en fin de pile la met au-dessus des calques du manifeste —
+        // comme le faisait le ::after qu'elle remplace.
+        //
+        // `preserveAspectRatio="none"` reproduit l'étirement de l'ancien
+        // `background-size: 100% 100%` : le trait suit l'échelle de la vignette.
+        <BorderIcon className="item-thumb__border" preserveAspectRatio="none" />
       )}
     </span>
   );

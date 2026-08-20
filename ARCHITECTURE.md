@@ -312,10 +312,14 @@ indent grows with the depth. Their heights therefore come from the CSS too
 Headers collapse, but that state is deliberately **not** persisted: the
 preferences cookie is capped at 4 KB and shared.
 
-Header icons take two forms: monochrome symbols (weapon type, class) are CSS
-masks so they inherit the text colour — an SVG loaded through `<img>` is an
-isolated document where `currentColor` never sees the page — while already
-coloured artwork (ammo pips, manifest icons) is a plain `<img>`.
+Header icons are **described, not mounted**: `grouping.ts` yields a `GroupIcon`
+descriptor (`ammo`, `weaponType`, `class`, `vault`, `postmaster`, `image`) and
+`GroupHeader` routes it to a component from `components/icons/`. Local icons are
+inline SVG, so monochrome symbols drawn in `currentColor` inherit the text colour
+directly; only manifest artwork stays an `<img>`, since an image hosted on
+bungie.net cannot be inlined. Inline SVG replaced the CSS masks the local files
+needed while they were served through `<img>`, which isolates them in their own
+document where `currentColor` never sees the page.
 
 > The scroll container does not clip tooltips: they render in a portal, outside
 > that DOM tree.
@@ -1079,11 +1083,16 @@ profondeur. Leur hauteur vient donc du CSS elle aussi
 mais cet état n'est délibérément **pas** mémorisé : le cookie de préférences est
 plafonné à 4 Ko et partagé.
 
-Les icônes d'en-tête ont deux formes : les symboles monochromes (type d'arme,
-classe) passent en masque CSS pour hériter de la couleur du texte — un SVG chargé
-par `<img>` est un document isolé, où `currentColor` ne voit jamais la page —
-tandis que les illustrations déjà colorées (pastilles de munitions, icônes du
-manifeste) restent de simples `<img>`.
+Les icônes d'en-tête sont **décrites, pas montées** : `grouping.ts` produit un
+descripteur `GroupIcon` (`ammo`, `weaponType`, `class`, `vault`, `postmaster`,
+`image`) et `GroupHeader` l'aiguille vers un composant de `components/icons/`.
+Les icônes locales sont des SVG intégrés : les symboles monochromes, dessinés en
+`currentColor`, héritent donc directement de la couleur du texte ; seules les
+illustrations du manifeste restent des `<img>`, une image hébergée sur
+bungie.net ne pouvant pas être intégrée au document. Le SVG intégré a remplacé
+les masques CSS qu'imposaient les fichiers locaux tant qu'ils passaient par
+`<img>`, qui les isole dans leur propre document — là où `currentColor` ne voit
+jamais la page.
 
 > Le conteneur de défilement ne rogne pas les infobulles : elles sont rendues
 > dans un portail, hors de cet arbre DOM.

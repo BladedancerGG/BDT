@@ -3,6 +3,7 @@
 import {useTranslations} from "next-intl";
 import {useManifest} from "@/lib/manifest/use-manifest";
 import {InventoryView} from "./InventoryView";
+import {LoadingIcon} from "@/components/icons"
 
 // Composant racine de l'espace connecté : garantit le manifeste puis affiche
 // l'inventaire. On centralise ici l'appel à useManifest pour éviter des
@@ -31,7 +32,7 @@ export function Dashboard() {
                 <div className="manifest-loader__track">
                     <div className="manifest-loader__fill" style={{width: `${pct}%`}}/>
                 </div>
-                <img src={"/icons/loading.svg"} alt="loading" />
+                <LoadingIcon />
             </div>
         );
     }

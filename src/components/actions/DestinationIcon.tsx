@@ -3,13 +3,14 @@
 import type { Character } from "@/lib/bungie/use-profile";
 import type { MoveTarget } from "@/lib/destiny/moves";
 import { ClassIcon } from "../ClassIcon";
+import { VaultIcon } from "../icons";
 
 /**
  * Où va l'objet : le sigil du coffre, ou celui de la classe du personnage.
  *
  * Les emblèmes de personnage sont des bandeaux larges, illisibles à cette
- * taille ; les icônes de classe (`public/icons/class_*.svg`) tiennent dans un
- * carré et se colorent comme du texte.
+ * taille ; les symboles de classe tiennent dans un carré et se colorent comme
+ * du texte.
  */
 export function DestinationIcon({
   target,
@@ -35,11 +36,8 @@ export function DestinationIcon({
       aria-label={label}
     >
       {target.kind === "vault" ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src="/icons/vault.svg" alt="" />
+        <VaultIcon />
       ) : (
-        // Teinté par la couleur de texte, contrairement au sigil du coffre qui
-        // garde la sienne — voir ClassIcon.
         <ClassIcon classType={character?.classType} />
       )}
     </span>

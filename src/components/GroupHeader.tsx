@@ -1,7 +1,14 @@
 "use client";
 
 import type {CSSProperties} from "react";
-import type {GroupIconKind} from "@/lib/destiny/grouping";
+import type {GroupIcon as GroupIconSpec} from "@/lib/destiny/grouping";
+import {
+    AmmoIcon,
+    ClassSymbol,
+    PostmasterIcon,
+    VaultIcon,
+    WeaponTypeIcon,
+} from "@/components/icons";
 
 /**
  * En-tête repliable d'un ensemble d'objets : bouton pleine largeur, pour que la
@@ -17,7 +24,6 @@ export function GroupHeader({
                                 label,
                                 count,
                                 icon,
-                                iconKind,
                                 collapsed,
                                 onToggle,
                                 expandLabel,
@@ -28,8 +34,7 @@ export function GroupHeader({
     kind: "root" | "section" | "group";
     label: string;
     count: number;
-    icon?: string;
-    iconKind?: GroupIconKind;
+    icon?: GroupIconSpec;
     collapsed: boolean;
     onToggle: () => void;
     expandLabel: string;
@@ -58,7 +63,7 @@ export function GroupHeader({
                 />
             </svg>
 
-            <GroupIcon icon={icon} kind={iconKind}/>
+            <GroupIcon icon={icon}/>
 
             <span className="item-group__label">{label}</span>
             <span className="item-group__count">{count}</span>
@@ -67,27 +72,36 @@ export function GroupHeader({
 }
 
 /**
- * Icône d'un en-tête.
- *
- * Deux rendus, selon la nature du fichier : les symboles monochromes passent en
- * masque CSS pour hériter de la couleur du texte (voir `GroupIconKind`), les
- * illustrations déjà colorées en simple image.
+ * Icône d'un en-tête. Les icônes locales sont des SVG intégrés, qui héritent
+ * donc de la couleur du texte ; seule l'illustration du manifeste reste un
+ * `<img>`, faute de pouvoir intégrer une image de bungie.net (voir `GroupIcon`).
  */
-function GroupIcon({icon, kind}: { icon?: string; kind?: GroupIconKind }) {
+function GroupIcon({icon}: { icon?: GroupIconSpec }) {
     if (!icon) return null;
 
-    if (kind === "mask") {
-        return (
-            <span
-                className="item-group__icon item-group__icon--mask"
-                style={{"--group-icon": `url(${icon})`} as CSSProperties}
-                aria-hidden
-            />
-        );
+    switch (icon.kind) {
+        case "ammo":
+            return <AmmoIcon ammoType={icon.ammoType} className={ICON_CLASS}/>;
+        case "weaponType":
+            return (
+                <WeaponTypeIcon
+                    subType={icon.subType}
+                    ammoType={icon.ammoType}
+                    className={ICON_CLASS}
+                />
+            );
+        case "class":
+            return <ClassSymbol classType={icon.classType} className={ICON_CLASS}/>;
+        case "vault":
+            return <VaultIcon className={ICON_CLASS}/>;
+        case "postmaster":
+            return <PostmasterIcon className={ICON_CLASS}/>;
+        case "image":
+            return (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img className={ICON_CLASS} src={icon.src} alt="" aria-hidden/>
+            );
     }
-
-    return (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img className="item-group__icon" src={icon} alt="" aria-hidden/>
-    );
 }
+
+const ICON_CLASS = "item-group__icon";

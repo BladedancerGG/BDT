@@ -343,8 +343,8 @@ $ease: cubic-bezier(0.16, 1, 0.3, 1); // décélération franche, sans rebond
     flex-shrink: 0;
   }
 
-  // L'animation vit dans le SVG lui-même (public/icons/loading.svg) : le
-  // fichier étant chargé en <img>, aucune règle CSS d'ici ne l'atteint.
+  // L'animation vit dans le SVG lui-même (`LoadingIcon`, balises <animate>) :
+  // aucune règle CSS d'ici ne la pilote.
   &__spinner {
     width: 0.875rem;
     height: 0.875rem;
@@ -369,7 +369,8 @@ $ease: cubic-bezier(0.16, 1, 0.3, 1); // décélération franche, sans rebond
   // dédiée plutôt que --color-text, invisible ici en thème clair.
   color: var(--color-icon-ink);
 
-  // `> *` et non `img` : le symbole de classe est un masque porté par un span
+  // `> *` et non `img` : les sigils du coffre et de classe sont des <svg>
+  // intégrés, seules les icônes du manifeste sont des <img>.
   > * {
     width: 70%;
     height: 70%;

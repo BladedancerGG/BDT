@@ -2,7 +2,8 @@
 
 import type {CSSProperties} from "react";
 import {useTranslations} from "next-intl";
-import {ammoIconPath, ammoLabelKey} from "@/lib/destiny/grouping";
+import {ammoLabelKey} from "@/lib/destiny/grouping";
+import {AmmoIcon, hasAmmoIcon} from "@/components/icons";
 import {BUNGIE_ROOT, damageColor} from "@/lib/destiny/display";
 import {useDamageTypeDefinition} from "@/lib/destiny/use-damage-type";
 /**
@@ -36,7 +37,7 @@ export function WeaponSummary({
     const damageIcon =
         damageDef?.displayProperties?.icon ?? damageDef?.transparentIconPath;
 
-    const ammoIcon = ammoIconPath(ammoType);
+    const ammo = hasAmmoIcon(ammoType);
     const ammoKey = ammoLabelKey(ammoType);
 
     let shortAmmoKey = ""
@@ -57,12 +58,12 @@ export function WeaponSummary({
     const {weaponLevel, weaponLevelProgress, tracker} = progress;
 
     const nothingToShow =
-        power == null && !ammoIcon && weaponLevel == null && !tracker;
+        power == null && !ammo && weaponLevel == null && !tracker;
     if (nothingToShow) return null;
 
     return (
         <div className="weapon-summary">
-            {(power != null || ammoIcon) && (
+            {(power != null || ammo) && (
                 <div className="weapon-summary__top">
                     {power != null && (
                         <div className="weapon-summary__power">
@@ -85,13 +86,13 @@ export function WeaponSummary({
                         </div>
                     )}
 
-                    {ammoIcon && shortAmmoKey && (
+                    {ammo && shortAmmoKey && (
                         <div className="weapon-summary__ammo">
-                            {/* Glyphe local monochrome (le manifeste n'en a aucun) : posé
-                                en masque, il prend la couleur du texte et reste donc
-                                lisible dans les deux thèmes — même mécanisme que les
-                                en-têtes de groupes du coffre. */}
-                            <img src={ammoIcon} className="weapon-summary__ammo-icon" />
+                            {/* Glyphe local (le manifeste n'en a aucun). Le SVG étant
+                                intégré, le CSS atteint ses tracés : la teinte du jeu
+                                cède ici la place à une encre lisible dans les deux
+                                thèmes — voir weapon-summary.scss. */}
+                            <AmmoIcon ammoType={ammoType} className="weapon-summary__ammo-icon"/>
                             <span className="weapon-summary__ammo-name">
                                 {tInventory(shortAmmoKey)}
                             </span>

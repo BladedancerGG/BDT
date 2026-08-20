@@ -13,6 +13,7 @@ import { ItemThumb } from "../ItemThumb";
 import { ActionStatusIcon } from "./ActionStatusIcon";
 import { DestinationIcon } from "./DestinationIcon";
 import {isEnhancedPlug} from "@/lib/destiny/sockets";
+import { EnhancedPerkIcon } from "../icons";
 
 /** Libellé de la destination demandée — c'est le sous-titre de la carte. */
 export function useTargetLabel(
@@ -50,15 +51,7 @@ function PlugDestination({ hash }: { hash: number }) {
         <>
           {/* eslint-disable-next-line @next/next/no-img-element*/}
           <img src={`${BUNGIE_ROOT}${icon}`} alt={name}/>
-          {enhanced && (
-            <>
-              {/*// eslint-disable-next-line @next/next/no-img-element*/}
-              <img
-                  src={"/icons/enhanced_perk.svg"}
-                  className="plug-icon__img-enhanced"
-              />
-            </>
-          )}
+          {enhanced && <EnhancedPerkIcon className="plug-icon__img-enhanced"/>}
         </>
       )}
     </span>

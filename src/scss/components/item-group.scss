@@ -42,27 +42,14 @@
     transform: rotate(-90deg);
   }
 
+  // La même règle sert aux deux provenances : icône locale en SVG intégré
+  // (dessinée en `currentColor`, elle suit donc la couleur du texte) ou
+  // illustration du manifeste en `<img>`.
   &__icon {
     flex-shrink: 0;
     width: 1.5rem;
     height: 1.5rem;
     object-fit: contain;
-
-    // Symbole monochrome : le fichier sert de masque et la couleur du texte
-    // devient l'encre (même mécanisme que `.class-icon`, voir class-icon.scss).
-    &--mask {
-      background-color: currentColor;
-
-      mask-image: var(--group-icon);
-      mask-repeat: no-repeat;
-      mask-position: center;
-      mask-size: contain;
-
-      -webkit-mask-image: var(--group-icon);
-      -webkit-mask-repeat: no-repeat;
-      -webkit-mask-position: center;
-      -webkit-mask-size: contain;
-    }
   }
 
   &__label {

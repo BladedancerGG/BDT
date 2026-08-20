@@ -50,14 +50,18 @@
     min-width: 0;
   }
 
-  // Glyphe monochrome : le fichier sert de masque et la couleur du texte
-  // devient l'encre (même mécanisme que `.item-group__icon--mask`). Un `<img>`
-  // blanc disparaîtrait sur le thème clair.
+  // Le glyphe porte la couleur du jeu (blanc, vert, violet) : le blanc des
+  // munitions principales disparaîtrait sur le thème clair. Le SVG étant
+  // intégré, une règle CSS suffit à réécrire ses tracés — la couleur y est un
+  // attribut de présentation, que la cascade emporte.
   &__ammo-icon {
     flex-shrink: 0;
     width: 2rem;
     height: 2rem;
-    background-color: var(--color-panel);
+
+    path {
+      fill: var(--color-panel);
+    }
   }
 
   &__ammo-name {
