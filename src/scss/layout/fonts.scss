@@ -1,6 +1,5 @@
 :root {
-  --font-sans:
-    system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-sans: Helvetica, -apple-system, "Segoe UI", Roboto, sans-serif;
 
   // Symboles du jeu — voir lib/destiny/symbols.ts pour la table nom ↔ caractère
   --font-destiny-symbols: "Destiny Symbols", var(--font-sans);

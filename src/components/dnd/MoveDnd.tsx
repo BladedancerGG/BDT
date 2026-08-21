@@ -119,6 +119,22 @@ const MoveActionsContext = createContext<MoveActionsValue>({
 });
 
 /**
+ * Sous-arbre où aucune vignette ne se saisit.
+ *
+ * C'est le mode « équipements » : il n'affiche ni inventaire d'emplacement ni
+ * coffre, donc aucune destination — un geste n'aurait nulle part à aboutir.
+ *
+ * Un contexte à lui, et non un drapeau dans `MoveActionsValue` : les deux modes
+ * sont montés en même temps (le fondu de bascule l'exige), et seul l'un des deux
+ * doit interdire le geste. Un booléen porté par le contexte des actions
+ * l'aurait imposé aux deux.
+ */
+const DragDisabledContext = createContext(false);
+
+export const DragDisabledProvider = DragDisabledContext.Provider;
+export const useDragDisabled = () => useContext(DragDisabledContext);
+
+/**
  * Deux contextes plutôt qu'un : l'objet saisi change au début et à la fin du
  * geste, et il n'intéresse que les zones de dépôt. Le mêler aux actions
  * re-rendait toutes les vignettes une deuxième fois, en plus de celle que

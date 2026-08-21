@@ -9,9 +9,12 @@ import {
     SEARCH_HISTORY_SIZE,
     clampIconSize,
     clampSearchHistorySize,
+    DEFAULT_VIEW_MODE,
     parseSearchMissMode,
+    parseViewMode,
     type SearchMissMode,
     type ThemePreference,
+    type ViewMode,
 } from "./constants";
 import {
     DEFAULT_SORT_RULES,
@@ -31,7 +34,7 @@ import {
 } from "@/lib/destiny/grouping";
 
 export {ICON_SIZE, SEARCH_HISTORY_SIZE, clampIconSize};
-export type {SearchMissMode, ThemePreference};
+export type {SearchMissMode, ThemePreference, ViewMode};
 
 export interface SettingsState {
     theme: ThemePreference;
@@ -57,6 +60,12 @@ export interface SettingsState {
     searchHistorySize: number;
     /** Sort des objets du coffre qui ne répondent pas à la recherche */
     searchMissMode: SearchMissMode;
+    /**
+     * Mode d'affichage de la page d'équipement. Persisté comme le reste : on
+     * retrouve la vue quittée au rechargement, ce qui est le comportement
+     * attendu d'un onglet.
+     */
+    viewMode: ViewMode;
 
     setTheme: (theme: ThemePreference) => void;
     setIconSize: (size: number) => void;
@@ -67,6 +76,9 @@ export interface SettingsState {
     setArmorGrouping: (grouping: ArmorGrouping) => void;
     setSearchHistorySize: (size: number) => void;
     setSearchMissMode: (mode: SearchMissMode) => void;
+    setViewMode: (mode: ViewMode) => void;
+    /** Bascule d'un mode à l'autre — c'est ce que fait la touche Tab */
+    toggleViewMode: () => void;
 
     /** Active ou désactive un critère, sans changer sa place */
     toggleSort: (id: SortId) => void;
@@ -90,6 +102,7 @@ export const useSettings = create<SettingsState>()(
             armorGrouping: DEFAULT_ARMOR_GROUPING,
             searchHistorySize: SEARCH_HISTORY_SIZE.default,
             searchMissMode: "hide",
+            viewMode: DEFAULT_VIEW_MODE,
 
             setTheme: (theme) => set({theme}),
             setIconSize: (size) => set({iconSize: clampIconSize(size)}),
@@ -102,6 +115,11 @@ export const useSettings = create<SettingsState>()(
             setSearchHistorySize: (size) =>
                 set({searchHistorySize: clampSearchHistorySize(size)}),
             setSearchMissMode: (searchMissMode) => set({searchMissMode}),
+            setViewMode: (viewMode) => set({viewMode}),
+            toggleViewMode: () =>
+                set((state) => ({
+                    viewMode: state.viewMode === "inventory" ? "equipment" : "inventory",
+                })),
 
             toggleSort: (id) =>
                 set((state) => ({
@@ -143,6 +161,7 @@ export const useSettings = create<SettingsState>()(
                 armorGrouping: state.armorGrouping,
                 searchHistorySize: state.searchHistorySize,
                 searchMissMode: state.searchMissMode,
+                viewMode: state.viewMode,
             }),
             // Reconstruit les règles depuis les jetons. Un cookie écrit avant
             // l'arrivée du tri n'a pas de clé `sorts` : les valeurs par défaut
@@ -157,6 +176,7 @@ export const useSettings = create<SettingsState>()(
                     armorGrouping,
                     searchHistorySize,
                     searchMissMode,
+                    viewMode,
                     ...rest
                 } = (persisted ?? {}) as Partial<SettingsState> & {
                     sorts?: unknown;
@@ -175,6 +195,7 @@ export const useSettings = create<SettingsState>()(
                             : current.searchHistorySize,
                     searchMissMode:
                         parseSearchMissMode(searchMissMode) ?? current.searchMissMode,
+                    viewMode: parseViewMode(viewMode) ?? current.viewMode,
                 };
             },
         },

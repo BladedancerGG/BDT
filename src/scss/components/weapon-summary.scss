@@ -46,7 +46,7 @@
   &__ammo {
     display: flex;
     align-items: center;
-    gap: 0.85rem;
+    gap: 0.5rem;
     min-width: 0;
   }
 
@@ -58,10 +58,6 @@
     flex-shrink: 0;
     width: 2rem;
     height: 2rem;
-
-    path {
-      fill: var(--color-panel);
-    }
   }
 
   &__ammo-name {

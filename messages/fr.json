@@ -200,7 +200,13 @@
       "primaryShort": "Principale",
       "specialShort": "Spéciale",
       "heavyShort": "Lourde"
-    }
+    },
+    "mode": {
+      "label": "Mode d'affichage",
+      "inventory": "Inventaire",
+      "equipment": "Équipements"
+    },
+    "currentEquipment": "Équipement actuel"
   },
   "subclass": {
     "abilities": "Compétences",
@@ -232,5 +238,22 @@
     "actionsLabel": "Actions sur les objets trouvés",
     "moveTo": "Transférer vers {character}",
     "moveToVault": "Transférer vers le coffre"
+  },
+  "loadouts": {
+    "slot": "Emplacement n°{number}",
+    "deselect": "Déselectionner",
+    "equip": "Équiper l'équipement n°{number}",
+    "snapshot": "Écraser cet équipement avec les objets équipés",
+    "clear": "Supprimer cet équipement",
+    "groups": "Voir dans les groupes d'équipements",
+    "groupsSoon": "Bientôt disponible",
+    "failed": "L'opération a échoué.",
+    "escapeKey": "Échap",
+    "pickColor": "Choisir la couleur de fond",
+    "pickIcon": "Choisir l'icône",
+    "pickName": "Choisir le nom",
+    "noSlots": "Aucun emplacement d'équipement renvoyé par l'API pour ce personnage.",
+    "create": "Créer cet équipement à partir des objets équipés",
+    "freeSlot": "Emplacement libre"
   }
 }

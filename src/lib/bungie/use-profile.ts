@@ -2,7 +2,7 @@
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useActionsBusy } from "@/lib/actions/store";
-import type { DestinyItemComponent } from "./profile";
+import type { DestinyItemComponent, DestinyLoadout } from "./profile";
 import type { ItemDetail } from "./item-components";
 import type { ProfilePlugSets } from "./plug-sets";
 import { clearLocalWrites, isStaleProfile } from "./profile-freshness";
@@ -16,6 +16,11 @@ export interface Character {
   emblemPath: string;
   emblemBackgroundPath: string;
   titleRecordHash?: number;
+  /**
+   * Statistiques totalisées par Bungie (santé, mêlée, grenade, super, classe,
+   * armes) : le cumul des armures, mods et fragments équipés.
+   */
+  stats: Record<string, number>;
 }
 
 export interface ProfileData {
@@ -24,6 +29,11 @@ export interface ProfileData {
   inventory: Record<string, DestinyItemComponent[]>;
   /** Le coffre, partagé entre tous les personnages */
   vault: DestinyItemComponent[];
+  /**
+   * Équipements sauvegardés en jeu, par personnage. Absent des profils servis
+   * par un cache antérieur à son ajout, d'où l'optionnel.
+   */
+  loadouts?: Record<string, DestinyLoadout[]>;
   /** Détail (stats, sockets, plugs) de chaque objet, par itemInstanceId */
   items: Record<string, ItemDetail>;
   /**

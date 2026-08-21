@@ -11,8 +11,12 @@ const ARCHETYPE = "armor_archetypes";
  * Attribut intrinsèque, propre aux armures exotiques. Ces plugs partagent la
  * famille `intrinsics` avec les armatures d'armes, mais sur une armure ils sont
  * les seuls de cette famille.
+ *
+ * Exporté : le mode « équipements » repère le même plug, et deux littéraux
+ * feraient deux vérités.
  */
-const INTRINSIC = "intrinsics";
+export const ARMOR_INTRINSIC_PLUG_CATEGORY = "intrinsics";
+const INTRINSIC = ARMOR_INTRINSIC_PLUG_CATEGORY;
 
 export interface ArmorPerks {
     archetypeHash?: number;

@@ -101,6 +101,11 @@ ne pas être rognées par le conteneur de défilement.
 - **Une constante exportée depuis un module `"use client"` arrive `undefined` côté serveur.** Tout
   ce qui est partagé avec le serveur va dans un module sans directive — voir
   `lib/settings/constants.ts`, dont l'en-tête le rappelle.
+- **Ajouter une table du manifeste sans incrémenter `MANIFEST_SCHEMA_VERSION` est invisible.**
+  Les clients ayant déjà la version précédente en cache ne téléchargent jamais la nouvelle table :
+  chaque lecture y renvoie `undefined`, pour toujours, et l'interface affiche simplement du vide,
+  sans erreur. `ensureManifest` lève désormais sur une table sans chemin ou vide, mais le bump
+  reste à faire à la main.
 - **Ne jamais deviner un hash ou une sémantique Destiny** : les vérifier contre le manifeste.
   Exemples relevés ainsi, contre-intuitifs : les artéfacts ont `itemType: 0` et ne sont
   identifiables que par leur emplacement ; l'élément d'une doctrine est dans

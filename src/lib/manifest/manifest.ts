@@ -53,22 +53,40 @@ export async function ensureManifest(
     let done = 0;
     for (const table of MANIFEST_TABLES) {
         const path = paths[table];
-        if (path) {
-            // Fichiers statiques publics servis directement par bungie.net (CORS OK)
-            const tableRes = await fetch(`${BUNGIE_ROOT}${path}`);
-            if (!tableRes.ok) throw new Error(`Échec téléchargement ${table}`);
-            const json: Record<string, unknown> = await tableRes.json();
 
-            const rows = Object.entries(json).map(([hash, data]) => ({
-                table,
-                hash: Number(hash),
-                data,
-            }));
-
-            // Remplace le contenu précédent de cette table
-            await manifestDb.definitions.where("table").equals(table).delete();
-            await manifestDb.definitions.bulkPut(rows);
+        // Une table demandée que le manifeste ne connaît pas est une erreur de
+        // programmation — un nom mal orthographié, en pratique. La passer sous
+        // silence est le pire des choix : les lectures renverraient `undefined`
+        // pour toujours, et l'interface se contenterait d'afficher du vide,
+        // sans le moindre indice. Elle doit donc casser bruyamment.
+        if (!path) {
+            throw new Error(
+                `Table absente du manifeste : ${table} (langue « ${language} »)`,
+            );
         }
+
+        // Fichiers statiques publics servis directement par bungie.net (CORS OK)
+        const tableRes = await fetch(`${BUNGIE_ROOT}${path}`);
+        if (!tableRes.ok) throw new Error(`Échec téléchargement ${table}`);
+        const json: Record<string, unknown> = await tableRes.json();
+
+        const rows = Object.entries(json).map(([hash, data]) => ({
+            table,
+            hash: Number(hash),
+            data,
+        }));
+
+        // Même raison : une table vide passerait pour un cache valide, et
+        // l'interface resterait muette. Aucune des tables demandées ici n'a de
+        // raison légitime d'être vide.
+        if (rows.length === 0) {
+            throw new Error(`Table vide dans le manifeste : ${table}`);
+        }
+
+        // Remplace le contenu précédent de cette table
+        await manifestDb.definitions.where("table").equals(table).delete();
+        await manifestDb.definitions.bulkPut(rows);
+
         done += 1;
         onProgress?.({table, done, total: MANIFEST_TABLES.length});
     }

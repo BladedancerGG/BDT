@@ -1,7 +1,7 @@
 // Version du "schéma" de tables téléchargées. À incrémenter dès qu'on ajoute
 // ou retire une table ci-dessous : force le re-téléchargement chez les clients
 // qui ont déjà un cache (sinon la nouvelle table manquerait).
-export const MANIFEST_SCHEMA_VERSION = "7";
+export const MANIFEST_SCHEMA_VERSION = "9";
 
 // Tables du manifeste à télécharger.
 // On ne prend QUE ce dont l'app a besoin : DestinyInventoryItemDefinition est
@@ -25,6 +25,18 @@ export const MANIFEST_TABLES = [
     "DestinyObjectiveDefinition",
     // Types anti-champion (bloqueur, surchargé, implacable) : nom + icône
     "DestinyBreakerTypeDefinition",
+    // Identifiants des équipements sauvegardés en jeu : fond, glyphe et nom des
+    // vignettes du panneau. Trois tables minuscules (moins de 10 Ko à elles
+    // trois, une vingtaine d'entrées chacune) et sans displayProperties : leur
+    // image vit dans `colorImagePath` / `iconImagePath`, leur libellé dans
+    // `name`.
+    "DestinyLoadoutColorDefinition",
+    "DestinyLoadoutIconDefinition",
+    "DestinyLoadoutNameDefinition",
+    // Une seule entrée (hash 1), 1,5 Ko : elle porte les listes **ordonnées**
+    // des trois identifiants ci-dessus. C'est la seule source de l'ordre dans
+    // lequel le jeu les propose — les tables elles-mêmes sont indexées par hash.
+    "DestinyLoadoutConstantsDefinition",
 ] as const;
 
 export type ManifestTable = (typeof MANIFEST_TABLES)[number];

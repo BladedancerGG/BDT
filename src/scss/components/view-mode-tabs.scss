@@ -1,0 +1,25 @@
+// Bascule entre les deux modes d'affichage, à droite des onglets de personnage.
+
+.view-mode-tabs {
+  display: flex;
+  gap: 0.5rem;
+  // Poussée à l'extrémité de la ligne des personnages. `margin-left: auto` et
+  // non un `justify-content` sur le parent : celui-ci enveloppe ses onglets, et
+  // un alignement global les écarterait aussi.
+  margin-left: auto;
+  align-items: flex-start;
+
+  &__tab {
+    // Le mode actif se lit au premier coup d'œil : un contour marqué, comme
+    // l'onglet du personnage sélectionné.
+    &--active {
+      border-color: var(--color-accent);
+      background-color: color-mix(
+        in srgb,
+        var(--color-accent) 18%,
+        var(--color-panel-alt)
+      );
+      font-weight: 600;
+    }
+  }
+}

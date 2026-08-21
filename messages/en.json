@@ -200,7 +200,13 @@
       "primaryShort": "Primary",
       "specialShort": "Special",
       "heavyShort": "Heavy"
-    }
+    },
+    "mode": {
+      "label": "Display mode",
+      "inventory": "Inventory",
+      "equipment": "Loadouts"
+    },
+    "currentEquipment": "Current loadout"
   },
   "subclass": {
     "abilities": "Abilities",
@@ -232,5 +238,22 @@
     "actionsLabel": "Actions on the items found",
     "moveTo": "Transfer to {character}",
     "moveToVault": "Transfer to the vault"
+  },
+  "loadouts": {
+    "slot": "Slot #{number}",
+    "deselect": "Deselect",
+    "equip": "Equip loadout #{number}",
+    "snapshot": "Overwrite this loadout with equipped items",
+    "clear": "Delete this loadout",
+    "groups": "View in loadout groups",
+    "groupsSoon": "Coming soon",
+    "failed": "The operation failed.",
+    "escapeKey": "Esc",
+    "pickColor": "Pick the background colour",
+    "pickIcon": "Pick the icon",
+    "pickName": "Pick the name",
+    "noSlots": "The API returned no loadout slots for this character.",
+    "create": "Create this loadout from the equipped items",
+    "freeSlot": "Free slot"
   }
 }

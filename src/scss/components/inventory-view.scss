@@ -25,6 +25,65 @@
     flex-shrink: 0; // ne se comprime pas au profit du coffre
   }
 
+  // Les deux modes d'affichage, superposés.
+  //
+  // Ils sont montés en même temps — la bascule doit être un fondu, pas un
+  // remontage — et occupent donc la MÊME case de grille. Une seule zone nommée
+  // suffit à les empiler ; la hauteur de la case est celle du plus grand.
+  &__modes {
+    display: grid;
+    grid-template-areas: "stack";
+    min-width: 0;
+    // Bloc conteneur du mode caché, sorti du flux (voir --hidden)
+    position: relative;
+
+    // Maillon de la chaîne de hauteurs (voir .app-main)
+    @include m.from(v.$bp-lg) {
+      flex: 1;
+      min-height: 0;
+      grid-template-rows: minmax(0, 1fr);
+    }
+  }
+
+  &__mode {
+    grid-area: stack;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    transition: opacity 180ms ease-in-out;
+
+    @include m.from(v.$bp-lg) {
+      min-height: 0;
+    }
+
+    &--hidden {
+      opacity: 0;
+      visibility: hidden;
+      // La visibilité ne bascule qu'à la FIN du fondu : sans ce délai le mode
+      // disparaîtrait d'un coup au lieu de s'effacer. Elle revient en revanche
+      // sans attendre, le délai ne portant que sur l'état caché.
+      transition:
+        opacity 180ms ease-in-out,
+        visibility 0s linear 180ms;
+
+      // Sorti du flux : sans cela la case de grille garderait la hauteur du
+      // PLUS GRAND des deux modes, et le plus court traînerait des centaines de
+      // pixels de vide sous lui. Sur grand écran la hauteur vient du parent et
+      // rien ne bouge ; en dessous, la page se réajuste pendant le fondu.
+      position: absolute;
+      inset: 0;
+    }
+
+    // Respecte la préférence système : la bascule reste instantanée
+    @media (prefers-reduced-motion: reduce) {
+      transition: none;
+
+      &--hidden {
+        transition: none;
+      }
+    }
+  }
+
   // Équipement à gauche, coffre à droite. Empilés sous 1024 px : les deux
   // colonnes d'emplacements et leurs panneaux dépliants demandent de la largeur.
   &__body {
@@ -49,6 +108,40 @@
       flex: 1;
       min-height: 0;
       align-items: stretch; // les deux colonnes prennent toute la hauteur
+    }
+  }
+
+  // Mode « équipements » : les lignes d'équipement à gauche, le panneau des
+  // équipements sauvegardés à droite. Pas de calque de dépôt à accrocher ici,
+  // donc pas besoin des lignes explicites du mode inventaire.
+  &__body--equipment {
+    @include m.from(v.$bp-lg) {
+      // Le panneau prend sa largeur naturelle (quatre vignettes et des boutons),
+      // les lignes d'équipement occupent le reste.
+      grid-template-columns: minmax(0, 1fr) auto;
+    }
+  }
+
+  // Colonne de gauche du mode « équipements » : les lignes, puis le résumé du
+  // personnage sous elles.
+  &__equipment {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+
+    @include m.from(v.$bp-lg) {
+      min-height: 0;
+    }
+  }
+
+  &__loadouts {
+    min-width: 0;
+
+    @include m.from(v.$bp-lg) {
+      min-height: 0;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: var(--color-border-strong) transparent;
     }
   }
 

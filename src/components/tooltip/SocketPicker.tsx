@@ -77,10 +77,20 @@ export function PlugSlot({
                              column,
                              square = true,
                              label,
+                             state,
+                             markEnhanced = false,
                          }: {
     column: SocketColumn;
     square?: boolean;
     label?: string;
+    /**
+     * Mise en avant de l'icône. Les rangées de l'infobulle n'en veulent pas —
+     * le fond ressortirait par les coins transparents d'un mod ; les attributs
+     * ronds du mode « équipements », si.
+     */
+    state?: "equipped" | "available";
+    /** Voir `PlugIcon` — réservé aux attributs d'arme */
+    markEnhanced?: boolean;
 }) {
     const {item, target, toggle, disabled, pending} = useSocketPicker();
     // L'attribut en file prend la place de celui rendu par l'API : l'emplacement
@@ -106,6 +116,8 @@ export function PlugSlot({
         <PlugIcon
             hash={shownHash}
             square={square}
+            state={state}
+            markEnhanced={markEnhanced}
             onBrowse={
                 browsable
                     ? () => toggle({...column, square, label: browseLabel})

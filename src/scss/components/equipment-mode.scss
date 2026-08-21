@@ -1,0 +1,125 @@
+@use "../abstracts/variables" as v;
+@use "../abstracts/mixins" as m;
+
+// Mode « équipements » : une ligne par emplacement, ses attributs à côté.
+//
+// La ligne est symétrique autour du centre : la moitié gauche (doctrine, armes,
+// artéfact) déploie ses attributs vers la gauche, la moitié droite (armures)
+// vers la droite. Les deux vignettes se retrouvent donc face à face au milieu,
+// comme les deux colonnes du mode inventaire.
+
+.equipment-mode {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+
+  // Comme la colonne d'équipement du mode inventaire : la page ne défile pas
+  // sur grand écran, c'est cette colonne qui s'en charge si la fenêtre est
+  // courte.
+  @include m.from(v.$bp-lg) {
+    // Le résumé du personnage, son voisin, garde sa place : ce sont les lignes
+    // qui prennent le reste et qui défilent.
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-border-strong) transparent;
+  }
+
+  // Reçoit soit le libellé « Équipement actuel », soit le bloc titre d'un
+  // emplacement sélectionné (numéro, nom et vignette) — voir loadout-title.
+  &__title {
+    @include m.section-title;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+    flex-shrink: 0;
+  }
+
+  &__rows {
+    display: flex;
+    flex-direction: column;
+    gap: var(--slot-row-gap);
+  }
+
+  // Deux moitiés de largeur égale : les vignettes tombent ainsi exactement au
+  // centre, d'une ligne à l'autre, quel que soit le nombre d'attributs.
+  &__row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: center;
+    gap: var(--slot-row-gap);
+  }
+
+  &__side {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+
+    // La vignette est toujours du côté du centre
+    &--left {
+      justify-content: flex-end;
+    }
+
+    &--right {
+      justify-content: flex-start;
+    }
+  }
+
+  // Empreinte fixe, même sans objet : les lignes restent alignées entre elles.
+  &__item {
+    width: var(--item-size);
+    height: var(--item-size);
+    flex-shrink: 0;
+  }
+
+  &__message {
+    color: var(--color-text-muted);
+    font-size: 0.875rem;
+    text-align: center;
+  }
+}
+
+// —— Attributs d'un objet ————————————————————————————————————
+//
+// Une ou deux lignes d'icônes. La seconde n'existe que pour les doctrines : les
+// fragments y sont seuls, les compétences et aspects occupant la première.
+
+.plug-chips {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+
+  &__row {
+    display: flex;
+    // Plutôt que de déborder : une doctrine prismatique aligne sept icônes, une
+    // arme façonnée autant, et l'écran peut être trop étroit pour les deux
+    // moitiés de la ligne. Le repli se voit, le débordement se subit.
+    flex-wrap: wrap;
+    gap: 0.25rem;
+  }
+
+  // Les deux lignes d'une doctrine s'alignent du même côté que le bloc entier,
+  // donc contre la vignette.
+  &--left &__row {
+    justify-content: flex-end;
+  }
+
+  &--right &__row {
+    justify-content: flex-start;
+  }
+
+  // Taille pleine, celle des infobulles : à trente pixels les glyphes de mods
+  // et d'aspects n'étaient plus lisibles. Sept icônes par côté tiennent
+  // largement dans la moitié de ligne à partir de 1024 px, et la ligne se
+  // replie en dessous.
+  .plug-icon {
+    width: v.$plug-size;
+    height: v.$plug-size;
+    flex-shrink: 0;
+  }
+}

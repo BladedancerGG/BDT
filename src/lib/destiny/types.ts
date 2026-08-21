@@ -161,3 +161,39 @@ export interface PlugSetDefinition {
     currentlyCanRoll?: boolean;
   }[];
 }
+// —— Identifiants des équipements sauvegardés ————————————————————
+//
+// Ces trois tables sont les seules du manifeste utilisées ici à ne PAS avoir de
+// `displayProperties` : leur contenu tient dans un unique champ, et un accès
+// via `displayProperties.icon` y renverrait toujours undefined.
+
+/** Fond coloré d'une vignette d'équipement. */
+export interface LoadoutColorDefinition {
+  colorImagePath: string;
+}
+
+/** Glyphe d'une vignette d'équipement. */
+export interface LoadoutIconDefinition {
+  iconImagePath: string;
+}
+
+/** Nom d'un équipement, choisi dans une liste fermée (« Alpha », « Bêta »…). */
+export interface LoadoutNameDefinition {
+  name: string;
+}
+
+/**
+ * Listes **ordonnées** des identifiants proposés par le jeu.
+ *
+ * Une seule entrée dans la table (hash 1). Les trois tables d'identifiants sont
+ * indexées par hash : sans ces listes, rien ne dit dans quel ordre le jeu les
+ * présente.
+ */
+export interface LoadoutConstantsDefinition {
+  loadoutColorHashes: number[];
+  loadoutIconHashes: number[];
+  loadoutNameHashes: number[];
+}
+
+/** Hash de l'unique DestinyLoadoutConstantsDefinition. */
+export const LOADOUT_CONSTANTS_HASH = 1;

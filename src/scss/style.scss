@@ -16,9 +16,11 @@
 @use "components/armor-archetype";
 @use "components/button";
 @use "components/dashboard";
+@use "components/character-summary";
 @use "components/destiny-symbol";
 @use "components/drop-zones";
 @use "components/equipment";
+@use "components/equipment-mode";
 @use "components/intrinsic-row";
 @use "components/inventory-view";
 @use "components/character-tab";
@@ -27,12 +29,15 @@
 @use "components/item-group";
 @use "components/item-thumb";
 @use "components/item-tooltip";
+@use "components/loadout-panel";
+@use "components/loadout-title";
 @use "components/main-menu";
 @use "components/modal";
 @use "components/plug-icon";
 @use "components/plug-tooltip";
 @use "components/search-bar";
 @use "components/settings";
+@use "components/view-mode-tabs";
 @use "components/socket-picker";
 @use "components/sort-rules";
 @use "components/skeleton";

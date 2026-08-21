@@ -127,6 +127,12 @@
   justify-content: space-between;
   gap: 1rem;
   padding: 0.75rem 0;
+  &:first-child {
+    padding-top: 0;
+  }
+  &:last-child {
+    padding-bottom: 0;
+  }
 
   &__text {
     min-width: 0;

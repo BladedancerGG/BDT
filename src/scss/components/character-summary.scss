@@ -1,0 +1,53 @@
+// Sous l'équipement : statistiques totales du personnage, puis les bonus
+// d'ensemble actifs.
+//
+// Les valeurs viennent du composant 200, déjà totalisées par Bungie ; les icônes
+// du manifeste, comme partout ailleurs.
+
+.character-summary {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding-top: 0.75rem;
+  flex-shrink: 0;
+
+  &__stats {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    justify-content: center;
+    padding: 0.375rem 0.75rem;
+    border-radius: var(--radius);
+    background-color: var(--color-panel-alt);
+  }
+
+  &__stat {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+  }
+
+  // PNG détouré clair du manifeste, lisible tel quel sur les deux thèmes
+  &__stat-icon {
+    width: 1.25rem;
+    height: 1.25rem;
+    object-fit: contain;
+  }
+
+  &__stat-value {
+    font-size: 1.125rem;
+    font-weight: 600;
+    line-height: 1;
+    // Les six valeurs restent alignées quand elles changent de nombre de
+    // chiffres (5 → 100 → 200).
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__bonuses {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+}

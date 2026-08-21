@@ -17,7 +17,11 @@ import { useSharedDefinition } from "@/lib/destiny/item-defs";
 import { useSearchMiss } from "@/lib/search/provider";
 import { useItemBusy } from "@/lib/actions/store";
 import { subclassKind } from "@/lib/destiny/subclass";
-import { useMoveActions, type DraggedItem } from "./dnd/MoveDnd";
+import {
+  useDragDisabled,
+  useMoveActions,
+  type DraggedItem,
+} from "./dnd/MoveDnd";
 import { ItemThumb, type ItemThumbProps } from "./ItemThumb";
 import { ItemTooltip } from "./tooltip/ItemTooltip";
 import { LoadingIcon } from "./icons";
@@ -66,6 +70,9 @@ export function ItemIcon({
   // déplacement en est volontairement absent, il re-rendrait toutes les
   // vignettes montées à chaque saisie.
   const { equipOnSelected } = useMoveActions();
+  // Contexte à part : les deux modes d'affichage sont montés ensemble, seul
+  // celui des équipements interdit le geste.
+  const dragDisabled = useDragDisabled();
 
   // L'objet tel qu'il part en déplacement — par glisser-déposer comme par
   // double-clic. Les habillages en font partie : les vignettes du DragOverlay
@@ -76,6 +83,8 @@ export function ItemIcon({
     : undefined;
 
   // Un objet non instancié n'a pas d'identité côté API : il ne se déplace pas.
+  // Le mode « équipements » désactive le geste pour tout le monde : il n'y a ni
+  // inventaire d'emplacement ni coffre où déposer.
   const {
     attributes,
     listeners,
@@ -83,7 +92,7 @@ export function ItemIcon({
     isDragging,
   } = useDraggable({
     id: itemInstanceId ?? `${itemHash}-static`,
-    disabled: !dragged,
+    disabled: !dragged || dragDisabled,
     data: dragged,
   });
 

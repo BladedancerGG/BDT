@@ -130,3 +130,106 @@ export function pullFromPostmaster({
     membershipType,
   });
 }
+
+// —— Équipements sauvegardés (loadouts) ————————————————————————
+//
+// Une deuxième famille d'écritures, indépendante de celle des objets : le jeu
+// garde par personnage une liste d'emplacements numérotés, que ces trois
+// endpoints équipent, enregistrent et vident. `loadoutIndex` est la place dans
+// cette liste — celle que renvoie le composant 206, dans le même ordre.
+//
+// Rien à planifier ici, contrairement aux déplacements : Bungie fait tout le
+// travail côté serveur (transferts depuis le coffre compris) en une requête.
+
+export interface LoadoutTarget {
+  accessToken: string;
+  membershipType: number;
+  characterId: string;
+  /** Place de l'emplacement dans la liste du personnage, à partir de 0 */
+  loadoutIndex: number;
+}
+
+/** Équipe l'équipement enregistré à cet emplacement. */
+export function equipLoadout({
+  accessToken,
+  membershipType,
+  characterId,
+  loadoutIndex,
+}: LoadoutTarget) {
+  return post("/Destiny2/Actions/Loadouts/EquipLoadout/", accessToken, {
+    loadoutIndex,
+    characterId,
+    membershipType,
+  });
+}
+
+/**
+ * Écrase l'emplacement avec ce que le personnage porte à cet instant.
+ *
+ * Les trois hashes d'identifiants sont facultatifs pour l'API mais souhaitables
+ * ici : sans eux, un emplacement neuf recevrait la couleur, l'icône et le nom
+ * par défaut, et écraser un emplacement existant lui ferait perdre les siens.
+ */
+export function snapshotLoadout({
+  accessToken,
+  membershipType,
+  characterId,
+  loadoutIndex,
+  colorHash,
+  iconHash,
+  nameHash,
+}: LoadoutTarget & {
+  colorHash?: number;
+  iconHash?: number;
+  nameHash?: number;
+}) {
+  return post("/Destiny2/Actions/Loadouts/SnapshotLoadout/", accessToken, {
+    loadoutIndex,
+    characterId,
+    membershipType,
+    colorHash,
+    iconHash,
+    nameHash,
+  });
+}
+
+/**
+ * Change la couleur, le glyphe et le nom d'un emplacement, sans toucher à son
+ * contenu.
+ *
+ * Les trois valeurs se choisissent dans des listes fermées, dont l'ordre vient
+ * de `DestinyLoadoutConstantsDefinition`.
+ */
+export function updateLoadoutIdentifiers({
+  accessToken,
+  membershipType,
+  characterId,
+  loadoutIndex,
+  colorHash,
+  iconHash,
+  nameHash,
+}: LoadoutTarget & {
+  colorHash: number;
+  iconHash: number;
+  nameHash: number;
+}) {
+  return post(
+    "/Destiny2/Actions/Loadouts/UpdateLoadoutIdentifiers/",
+    accessToken,
+    {loadoutIndex, characterId, membershipType, colorHash, iconHash, nameHash},
+  );
+}
+
+/** Vide l'emplacement — les objets, eux, restent où ils sont. */
+export function clearLoadout({
+  accessToken,
+  membershipType,
+  characterId,
+  loadoutIndex,
+}: LoadoutTarget) {
+  return post("/Destiny2/Actions/Loadouts/ClearLoadout/", accessToken, {
+    loadoutIndex,
+    characterId,
+    membershipType,
+  });
+}

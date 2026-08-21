@@ -1,0 +1,182 @@
+@use "../abstracts/variables" as v;
+
+// Titre du mode « équipements » quand un emplacement est sélectionné :
+// « 3 - Solaire », et sous lui la vignette de l'équipement.
+//
+// La vignette est composite : Bungie ne fournit pas d'assemblage, seulement un
+// fond coloré (`colorImagePath`) et un glyphe (`iconImagePath`). Ici les deux
+// sont superposés, puis **s'écartent au survol** — chacun devient alors sa
+// propre cible, avec sa grille de choix.
+
+.loadout-title {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+
+  &__name {
+    display: flex;
+    align-items: baseline;
+    gap: 0.375rem;
+    font-size: 1rem;
+    font-weight: 600;
+    letter-spacing: normal;
+    text-transform: none;
+    color: var(--color-text);
+  }
+
+  &__number {
+    font-variant-numeric: tabular-nums;
+  }
+
+  // Un `<select>` déguisé en texte : il ne se signale qu'au survol, pour ne pas
+  // encombrer un titre qu'on ne modifie qu'occasionnellement. `appearance` ôte
+  // la flèche et le cadre du contrôle natif, le reste hérite du titre.
+  &__select {
+    appearance: none;
+    padding: 0.0625rem 0.25rem;
+    border: 1px solid transparent;
+    border-radius: var(--radius);
+    background-color: transparent;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+
+    &:hover:not(:disabled),
+    &:focus-visible {
+      border-color: var(--color-border-strong);
+      background-color: var(--color-panel-alt);
+    }
+
+    &:disabled {
+      cursor: default;
+    }
+
+    // La liste déroulante, elle, est rendue par le système : elle n'hérite pas
+    // du fond transparent ci-dessus et resterait illisible en thème sombre.
+    option {
+      background-color: var(--color-panel);
+      color: var(--color-text);
+    }
+  }
+
+  // —— La vignette ————————————————————————————————————————
+  //
+  // Les deux parties sont superposées au repos (la seconde décalée par un
+  // `margin-left` négatif, donc sans position absolue : elles restent deux
+  // boutons de la même ligne, atteignables au clavier). Au survol, la marge
+  // revient à zéro et elles se séparent — c'est cette marge qu'on anime.
+
+  &__tile {
+    display: flex;
+    align-items: center;
+  }
+
+  &__part {
+    display: block;
+    width: v.$plug-size;
+    height: v.$plug-size;
+    padding: 0;
+    border: 1px solid transparent;
+    background: none;
+    cursor: pointer;
+    transition:
+      margin-left 160ms ease-in-out,
+      border-color 120ms ease;
+
+    img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    &:disabled {
+      cursor: default;
+    }
+
+    &:hover:not(:disabled),
+    &:focus-visible {
+      border-color: var(--color-text-muted);
+    }
+  }
+
+  // Le fond est recadré, le glyphe non : c'est un PNG détouré
+  &__part--color img {
+    object-fit: cover;
+  }
+
+  // Le glyphe est posé PAR-DESSUS le fond : la marge négative vaut exactement
+  // sa largeur.
+  &__part--icon {
+    margin-left: calc(-1 * #{v.$plug-size});
+  }
+
+  // Au survol de la vignette entière, ou dès qu'un sélecteur est ouvert : les
+  // deux se séparent. Le sélecteur ouvert les maintient écartés — il est rendu
+  // dans un portail, donc hors de la vignette, et aller le cliquer ferait sinon
+  // se refermer ce qu'on est en train de modifier.
+  &__tile:hover &__part--icon,
+  &__tile:focus-within &__part--icon,
+  &__tile--open &__part--icon {
+    margin-left: 0.5rem;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &__part {
+      transition: none;
+    }
+  }
+
+  // Emplacement libre : le titre n'a que son numéro et cette mention. Elle
+  // reste discrète — c'est un état, pas une valeur.
+  &__free {
+    color: var(--color-text-muted);
+    font-weight: 400;
+    font-style: italic;
+  }
+
+  &__error {
+    color: var(--color-danger);
+    font-size: 0.75rem;
+    letter-spacing: normal;
+    text-transform: none;
+  }
+}
+
+// —— Grille de choix d'un identifiant ————————————————————————
+//
+// Elle réutilise l'habillage du sélecteur de sockets (même geste, même place) ;
+// son contenu n'est pas fait de plugs mais de simples images du manifeste.
+
+.loadout-identifiers {
+  &__choice {
+    width: v.$plug-size;
+    height: v.$plug-size;
+    padding: 0;
+    border: 1px solid var(--color-border-strong);
+    background: none;
+    cursor: pointer;
+
+    img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    // Le glyphe est détouré : il ne se recadre pas, il se contient
+    &--icon img {
+      object-fit: contain;
+    }
+
+    &:hover {
+      border-color: var(--color-text-muted);
+    }
+
+    &--current {
+      border-color: var(--color-accent);
+      box-shadow: inset 0 0 0 1px var(--color-accent);
+    }
+  }
+}

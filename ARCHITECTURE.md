@@ -543,6 +543,143 @@ recompute locally.
 > the item does not go anywhere. The wait is shown where the click happened —
 > on the perk itself.
 
+## Display modes & in-game loadouts
+
+The equipment page has two modes, switched by the buttons next to the character
+tabs or by the **Tab** key. The mode lives in the preferences cookie
+(`viewMode`), so it survives a reload — see `lib/settings/constants.ts`.
+
+- **Inventory** — the historical view: two columns of slots with their
+  per-slot inventory, and the vault on the right. This is where items move.
+- **Loadouts** — one row per slot, the equipped item's perks, mods and
+  abilities laid out beside it, and the character's saved loadouts on the right.
+
+**Both modes stay mounted**, stacked in the same grid cell: switching is then a
+plain cross-fade, and nothing has to be rebuilt — not the virtualised vault, not
+the definitions already read. The hidden one is taken out of the flow
+(`position: absolute`, or the cell would keep the height of the taller of the
+two) and marked `inert`, which an opacity alone would not do.
+
+The loadouts mode does not move items — no drop zone, no per-slot inventory,
+nothing to drag onto. Drag is switched off by `DragDisabledProvider`, a context
+of its own rather than a flag on `MoveActionsValue`: both modes being mounted at
+once, a shared flag would have disabled the gesture in the inventory mode too.
+
+### Where the plug icons come from
+
+`lib/destiny/use-equipped-plugs.ts` builds every row in **one** grouped
+IndexedDB query for the whole screen. A plug's nature is only readable from its
+definition (`plugCategoryIdentifier`), and one read per icon would restore the
+dozens of Dexie subscriptions the project removed elsewhere.
+
+Per item type:
+
+- **weapon** — equipped perks, then mods, then the intrinsic frame;
+- **armor** — set-bonus perks (shown even below their piece threshold, as in
+  game) or, on an exotic, its intrinsic; then mods;
+- **subclass** — super, class ability, movement, grenade, melee and aspects on
+  the first line, fragments on the second;
+- **artifact** — the perks actually slotted.
+
+Cosmetics (shader, ornament, kill-clip effect) are left out: they change nothing
+about how the item behaves. So are **masterworks and catalysts** — they cannot be
+changed for free, and their icon only says "this item is upgraded", which the
+tile already shows.
+
+> Beware the masterwork test. `isFixedPlug` splits the plug family on dots, and
+> that misses most of them: alongside `v400.plugs.weapons.masterworks.stat.range`
+> the manifest holds `v300_new_auto_rifle0_masterwork` (underscores),
+> `v400.new.bow0.masterwork` and `v620.exotic.weapon.masterwork` (singular), and
+> `generic_exotic_masterwork`. `isMasterworkPlug` cuts on **both** separators and
+> accepts the singular — 160 families, 822 plugs, checked against the whole
+> manifest.
+
+When no loadout is selected the rows show what the character **wears**, and every
+socket is then editable: clicking a plug opens its socket picker, the same
+`PlugSlot` the tooltip uses, so the rule for "is there anything to choose here"
+is written once. A **selected** loadout is a snapshot — nothing is equipped right
+now, so its rows are read-only.
+
+### Saved loadouts
+
+They are **Bungie's**, not ours: profile component **206**
+(`characterLoadouts`) returns each character's numbered slots, and three write
+endpoints act on them (`lib/bungie/actions.ts`, `/api/loadouts`):
+
+| Button                       | Endpoint          |
+| ---------------------------- | ----------------- |
+| Equip loadout #n             | `EquipLoadout`    |
+| Overwrite with equipped items | `SnapshotLoadout` |
+| Delete this loadout          | `ClearLoadout`    |
+
+These do **not** go through the action queue: Bungie assembles the loadout
+server-side, vault transfers included, in a single request. Nothing to plan, so
+a local pending state plus a profile refetch is enough.
+
+Points worth knowing:
+
+- **A slot is free when its item list is empty** — the only reliable test; what
+  its three identifier hashes hold in that case is not something to rely on. A
+  free slot is still selectable, and its title is reduced to its number plus
+  "free slot": that number is the only sign of which slot a snapshot is about to
+  fill. Of the three actions only *create from the equipped items* is offered —
+  there is nothing to equip and nothing to delete — and the button says *create*
+  rather than *overwrite*.
+- **`SnapshotLoadout` must be given `colorHash` / `iconHash` / `nameHash`**,
+  otherwise the slot loses its colour, glyph and name. A free slot is the
+  exception: it has none to preserve, so they are omitted and Bungie assigns its
+  own. Sending them back would be useless at best and refused at worst.
+  Renaming and recolouring are likewise offered only on a slot that exists.
+- **A saved item's `bucketHash` is not usable as-is**: an item sitting in the
+  vault carries the vault's. The slot it equips into comes from its definition
+  (`inventory.bucketTypeHash`) — see `lib/destiny/use-loadout-items.ts`.
+- The tile's background and glyph are two separate manifest images
+  (`colorImagePath`, `iconImagePath`); `DestinyLoadoutColorDefinition`,
+  `DestinyLoadoutIconDefinition` and `DestinyLoadoutNameDefinition` are the only
+  tables used here **without** `displayProperties`.
+- The number of slots is not hard-coded: the component returns as many as the
+  account owns.
+- A saved item is drawn with its **current** plugs, not the ones recorded in the
+  loadout. `plugItemHashes` is a flat list, not indexed by socket, and matching
+  it back to sockets would take another pass over the manifest.
+- **Escape** deselects. The gesture is only taken when it serves nothing else: an
+  open picker keeps it (that is what one wants to close), and a modal traps the
+  keyboard anyway.
+
+### Renaming and recolouring a loadout
+
+The title of a selected slot is `3 - Solar`, with the loadout's tile under it.
+That tile is composite — Bungie ships the coloured background and the glyph as
+two separate images, never assembled. Here they are stacked, and **hovering pulls
+them apart**: each then becomes its own target with its own grid of choices. The
+name is a `<select>` stripped of its chrome, which only announces itself on
+hover.
+
+The three values always travel together through `UpdateLoadoutIdentifiers`:
+sending one alone would reset the other two to the game's defaults. The order the
+choices come in is not a hash sort — it comes from the `loadoutColorHashes` /
+`loadoutIconHashes` / `loadoutNameHashes` lists of
+`DestinyLoadoutConstantsDefinition` (a single entry, hash 1).
+
+> **Adding a manifest table means bumping `MANIFEST_SCHEMA_VERSION`.** Skip it
+> and clients that already cached the previous version never fetch the new
+> table — every read of it returns `undefined`, for ever, and the interface just
+> shows nothing. `ensureManifest` now throws when a requested table has no path
+> in the manifest or comes back empty, so the next such mistake is loud instead
+> of silent.
+
+### Character stats
+
+The figures under the equipment come straight from component 200
+(`character.stats`): Bungie has already totalled armour, mods and equipped
+fragments. Recomputing them client-side would be wrong — conditional bonuses are
+not reproducible. Their icons come from `DestinyStatDefinition`.
+
+Only the six armour stats are kept, in the game's order. `character.stats` holds
+a seventh — Power — which has no place in this bar: it is already on the
+character tab. Filtering on `ARMOR_STAT_ORDER` drops it without naming its hash,
+and will drop whatever Bungie adds beside it.
+
 ## Game symbol fonts
 
 `public/fonts/destiny_symbols_common.otf` and `destiny_symbols_pc.otf` are the
@@ -745,7 +882,7 @@ In "system" mode no `data-theme` attribute is set, and the CSS
 ```
 src/
   app/[locale]/      Pages (i18n routing: "/" = FR, "/en" = EN)
-  app/api/           Server routes (auth, manifest, profile, item, health)
+  app/api/           Server routes (auth, manifest, profile, item, loadouts, health)
   proxy.ts           i18n routing middleware (named "proxy" since Next 16)
   i18n/              next-intl configuration (routing + request)
   lib/
@@ -753,6 +890,7 @@ src/
     bungie/          Bungie API wrapper (OAuth, profile, items)
     db/              Prisma client
     destiny/         Game constants, types, socket logic
+    loadouts/        In-game saved loadouts (contract + write actions)
     manifest/        Manifest download & cache (IndexedDB)
     settings/        User preferences (cookie-backed store)
   components/        UI components
@@ -1332,6 +1470,152 @@ les statistiques d'accord — elles, on ne sait pas les recalculer localement.
 > différence d'un déplacement : l'objet ne va nulle part. L'attente se montre là
 > où le clic a eu lieu — sur l'attribut.
 
+## Modes d'affichage et équipements du jeu
+
+La page d'équipement a deux modes, que basculent les boutons voisins des onglets
+de personnage ou la touche **Tab**. Le mode vit dans le cookie de préférences
+(`viewMode`) : il survit donc au rechargement — voir
+`lib/settings/constants.ts`.
+
+- **Inventaire** — la vue historique : deux colonnes d'emplacements avec leur
+  inventaire, et le coffre à droite. C'est là qu'on déplace des objets.
+- **Équipements** — une ligne par emplacement, les attributs, mods et
+  compétences de l'objet équipé à côté de lui, et les équipements sauvegardés du
+  personnage à droite.
+
+**Les deux modes restent montés**, superposés dans la même case de grille : la
+bascule est alors un simple fondu, et rien n'est à reconstruire — ni le coffre
+virtualisé, ni les définitions déjà lues. Le mode caché est sorti du flux
+(`position: absolute`, sans quoi la case garderait la hauteur du plus grand des
+deux) et marqué `inert`, ce qu'une simple opacité ne fait pas.
+
+Le mode équipements ne déplace rien — aucune zone de dépôt, aucun inventaire
+d'emplacement, nulle part où déposer. Le geste est coupé par
+`DragDisabledProvider`, un contexte à lui plutôt qu'un drapeau dans
+`MoveActionsValue` : les deux modes étant montés en même temps, un booléen
+partagé aurait interdit le geste au mode inventaire aussi.
+
+### D'où viennent les icônes d'attributs
+
+`lib/destiny/use-equipped-plugs.ts` construit toutes les lignes en **une seule**
+requête groupée dans IndexedDB, pour tout l'écran. La nature d'un plug ne se lit
+que dans sa définition (`plugCategoryIdentifier`), et une lecture par icône
+remettrait en place les dizaines de souscriptions Dexie que le projet a
+supprimées ailleurs.
+
+Par type d'objet :
+
+- **arme** — attributs équipés, puis mods, puis l'armature ;
+- **armure** — les bonus d'ensemble (affichés même hors palier, comme en jeu)
+  ou, sur une exotique, son attribut intrinsèque ; puis les mods ;
+- **doctrine** — super, compétence de classe, mouvement, grenade, mêlée et
+  aspects sur la première ligne, fragments sur la seconde ;
+- **artéfact** — les attributs réellement équipés.
+
+Les cosmétiques (revêtement, ornement, effet de frag) sont écartés : ils ne
+changent rien au comportement de l'objet. **Pièces maîtresses et catalyseurs**
+aussi — ils ne se changent pas gratuitement, et leur icône dit seulement « cet
+objet est amélioré », ce que la vignette signale déjà.
+
+> Attention au test de la pièce maîtresse. `isFixedPlug` découpe la famille du
+> plug sur les points, et en rate ainsi la grande majorité : à côté de
+> `v400.plugs.weapons.masterworks.stat.range`, le manifeste porte
+> `v300_new_auto_rifle0_masterwork` (tirets bas), `v400.new.bow0.masterwork` et
+> `v620.exotic.weapon.masterwork` (singulier), ou `generic_exotic_masterwork`.
+> `isMasterworkPlug` coupe sur les **deux** séparateurs et accepte le singulier —
+> 160 familles, 822 plugs, vérifiés sur tout le manifeste.
+
+Sans emplacement sélectionné, les lignes montrent ce que le personnage **porte**,
+et chaque socket est alors modifiable : cliquer un attribut ouvre son sélecteur,
+le même `PlugSlot` que l'infobulle — la règle du « y a-t-il quelque chose à
+choisir ici » n'est donc écrite qu'une fois. Un équipement **sélectionné** est un
+instantané : rien n'y est équipé en ce moment, ses lignes sont en lecture seule.
+
+### Équipements sauvegardés
+
+Ce sont ceux de **Bungie**, pas les nôtres : le composant de profil **206**
+(`characterLoadouts`) renvoie les emplacements numérotés de chaque personnage, et
+trois endpoints d'écriture agissent dessus (`lib/bungie/actions.ts`,
+`/api/loadouts`) :
+
+| Bouton                                      | Endpoint          |
+| ------------------------------------------- | ----------------- |
+| Équiper l'équipement n°n                    | `EquipLoadout`    |
+| Écraser cet équipement avec les objets équipés | `SnapshotLoadout` |
+| Supprimer cet équipement                    | `ClearLoadout`    |
+
+Ils ne passent **pas** par la file d'actions : Bungie assemble l'équipement côté
+serveur, transferts depuis le coffre compris, en une requête. Rien à planifier,
+donc un état d'attente local et une relecture du profil suffisent.
+
+Les points à connaître :
+
+- **Un emplacement est libre quand sa liste d'objets est vide** — c'est le seul
+  test fiable ; ce que portent alors ses trois hashes d'identifiants n'est pas
+  une chose sur laquelle s'appuyer. Un emplacement libre reste sélectionnable, et
+  son titre se réduit à son numéro suivi de « Emplacement libre » : ce numéro est
+  la seule indication de l'emplacement que l'écrasement va remplir. Des trois
+  actions, seule *créer à partir des objets équipés* lui est proposée — il n'y a
+  rien à y équiper ni à en supprimer — et le bouton dit *créer* et non *écraser*.
+- **`SnapshotLoadout` doit recevoir `colorHash` / `iconHash` / `nameHash`**,
+  sans quoi l'emplacement perd sa couleur, son glyphe et son nom. L'emplacement
+  libre est l'exception : il n'en a aucun à conserver, on les omet donc et Bungie
+  pose les siens. Les renvoyer serait au mieux inutile, au pire un refus. Le
+  renommage et le changement de couleur ne sont, de même, proposés que sur un
+  emplacement qui existe.
+- **Le `bucketHash` d'un objet sauvegardé n'est pas exploitable tel quel** : un
+  objet au coffre porte celui du coffre. L'emplacement où il s'équipe vient de sa
+  définition (`inventory.bucketTypeHash`) — voir
+  `lib/destiny/use-loadout-items.ts`.
+- Le fond et le glyphe de la vignette sont deux images distinctes du manifeste
+  (`colorImagePath`, `iconImagePath`) ; `DestinyLoadoutColorDefinition`,
+  `DestinyLoadoutIconDefinition` et `DestinyLoadoutNameDefinition` sont les
+  seules tables utilisées ici **sans** `displayProperties`.
+- Le nombre d'emplacements n'est pas codé : le composant en renvoie autant que
+  le compte en possède.
+- Un objet sauvegardé est dessiné avec ses attributs **actuels**, pas ceux
+  enregistrés dans l'équipement. `plugItemHashes` est une liste plate, non
+  indexée par socket, et la faire correspondre aux sockets demanderait une passe
+  de plus sur le manifeste.
+- **Échap** désélectionne. Le geste n'est pris que s'il ne sert à rien d'autre :
+  un sélecteur ouvert le garde pour lui (c'est lui qu'on veut refermer), et une
+  modale piège de toute façon le clavier.
+
+### Renommer et recolorer un équipement
+
+Le titre d'un emplacement sélectionné est « 3 - Solaire », avec sa vignette en
+dessous. Cette vignette est composite — Bungie livre le fond coloré et le glyphe
+en deux images distinctes, jamais assemblées. Ici elles sont superposées, et **le
+survol les écarte** : chacune devient alors sa propre cible, avec sa grille de
+choix. Le nom est un `<select>` dépouillé de son habillage, qui ne se signale
+qu'au survol.
+
+Les trois valeurs partent toujours ensemble par `UpdateLoadoutIdentifiers` : en
+envoyer une seule remettrait les deux autres aux valeurs par défaut du jeu.
+L'ordre dans lequel les choix sont proposés n'est pas un tri de hashes — il vient
+des listes `loadoutColorHashes` / `loadoutIconHashes` / `loadoutNameHashes` de
+`DestinyLoadoutConstantsDefinition` (une seule entrée, hash 1).
+
+> **Ajouter une table du manifeste, c'est incrémenter `MANIFEST_SCHEMA_VERSION`.**
+> L'oublier, et les clients qui ont déjà mis la version précédente en cache ne
+> téléchargent jamais la nouvelle table : chaque lecture y renvoie `undefined`,
+> pour toujours, et l'interface se contente d'afficher du vide. `ensureManifest`
+> lève désormais quand une table demandée n'a aucun chemin dans le manifeste ou
+> revient vide — la prochaine erreur de ce genre sera bruyante et non muette.
+
+### Statistiques du personnage
+
+Les chiffres sous l'équipement viennent tels quels du composant 200
+(`character.stats`) : Bungie a déjà totalisé armures, mods et fragments équipés.
+Les recalculer côté client donnerait un résultat faux — les bonus conditionnels
+ne sont pas reproductibles. Leurs icônes viennent de `DestinyStatDefinition`.
+
+Seules les six statistiques d'armure sont retenues, dans l'ordre du jeu.
+`character.stats` en porte une septième — la Puissance — qui n'a rien à faire
+dans cette barre : elle est déjà sur l'onglet du personnage. Un filtre sur
+`ARMOR_STAT_ORDER` l'écarte sans nommer son hash, et écartera de même ce que
+Bungie ajouterait à côté.
+
 ## Polices de symboles du jeu
 
 `public/fonts/destiny_symbols_common.otf` et `destiny_symbols_pc.otf` sont les
@@ -1545,7 +1829,7 @@ En mode « système », aucun attribut `data-theme` n'est posé et la règle CSS
 ```
 src/
   app/[locale]/      Pages (routing i18n : « / » = FR, « /en » = EN)
-  app/api/           Routes serveur (auth, manifest, profile, item, health)
+  app/api/           Routes serveur (auth, manifest, profile, item, loadouts, health)
   proxy.ts           Middleware de routing i18n (nommé « proxy » depuis Next 16)
   i18n/              Configuration next-intl (routing + request)
   lib/
@@ -1553,6 +1837,7 @@ src/
     bungie/          Wrapper API Bungie (OAuth, profil, objets)
     db/              Client Prisma
     destiny/         Constantes de jeu, types, logique des sockets
+    loadouts/        Équipements sauvegardés en jeu (contrat + écritures)
     manifest/        Téléchargement & cache du manifeste (IndexedDB)
     settings/        Préférences utilisateur (store adossé au cookie)
   components/        Composants UI

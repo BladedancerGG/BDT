@@ -41,3 +41,20 @@ export type SearchMissMode = (typeof SEARCH_MISS_MODES)[number];
 export function parseSearchMissMode(raw: unknown): SearchMissMode | undefined {
     return raw === "hide" || raw === "dim" ? raw : undefined;
 }
+
+/**
+ * Modes d'affichage de la page d'équipement.
+ *
+ *  - `inventory`  : les deux colonnes d'emplacements et le coffre — le mode
+ *                   historique, celui où l'on déplace des objets ;
+ *  - `equipment`  : une ligne par objet équipé, avec ses attributs et ses mods,
+ *                   et le panneau des équipements sauvegardés.
+ */
+export const VIEW_MODES = ["inventory", "equipment"] as const;
+export type ViewMode = (typeof VIEW_MODES)[number];
+
+export const DEFAULT_VIEW_MODE: ViewMode = "inventory";
+
+export function parseViewMode(raw: unknown): ViewMode | undefined {
+    return VIEW_MODES.includes(raw as ViewMode) ? (raw as ViewMode) : undefined;
+}

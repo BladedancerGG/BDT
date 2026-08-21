@@ -23,10 +23,9 @@ import {
 } from "@/lib/destiny/grouping";
 import {APP_VERSION, SUPPORT_EMAIL, BUNGIE_PROFILE_URL} from "@/lib/app-info";
 
-type Category = "account" | "appearance" | "inventory" | "search" | "about";
+type Category = "appearance" | "inventory" | "search" | "about";
 
 const CATEGORIES: Category[] = [
-    "account",
     "appearance",
     "inventory",
     "search",
@@ -50,7 +49,7 @@ export function SettingsModal({
 }) {
     const t = useTranslations("settings");
     const tAuth = useTranslations("auth");
-    const [category, setCategory] = useState<Category>("account");
+    const [category, setCategory] = useState<Category>("appearance");
 
     return (
         <Modal open={open} onClose={onClose} title={t("title")}>
@@ -86,12 +85,6 @@ export function SettingsModal({
 
                 {/* Colonne de droite : options de la catégorie */}
                 <div className="settings__panel">
-                    {category === "account" && (
-                        <AccountPanel
-                            bungieMembershipId={bungieMembershipId}
-                            logoutLabel={tAuth("logout")}
-                        />
-                    )}
                     {category === "appearance" && <AppearancePanel/>}
                     {category === "inventory" && <InventoryPanel/>}
                     {category === "search" && <SearchPanel/>}

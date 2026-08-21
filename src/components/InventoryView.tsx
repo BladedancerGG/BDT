@@ -3,7 +3,7 @@
 import {useMemo, useState} from "react";
 import {useTranslations} from "next-intl";
 import {useProfile, type ProfileData} from "@/lib/bungie/use-profile";
-import type {DestinyItemComponent} from "@/lib/bungie/profile";
+import type {DestinyItemComponent, DestinyLoadout} from "@/lib/bungie/profile";
 import {ItemDefsProvider, useItemDefs} from "@/lib/destiny/item-defs";
 import {
     countEquippedSets,
@@ -23,15 +23,21 @@ import {
 } from "@/lib/manifest/use-definition";
 import {useSettings} from "@/lib/settings/store";
 import {useDisplayableItems} from "@/lib/destiny/use-displayable-items";
+import {useLoadoutItems} from "@/lib/destiny/use-loadout-items";
 import {SearchProvider} from "@/lib/search/provider";
 import {SearchActionsBridge} from "./search/SearchActionsBridge";
 import {useActionRunner} from "@/lib/actions/use-action-runner";
 import {CharacterTab} from "./CharacterTab";
 import {EquipmentSlot} from "./EquipmentSlot";
+import {ViewModeTabs} from "./ViewModeTabs";
+import {CharacterSummary} from "./equipment/CharacterSummary";
+import {EquipmentModeView} from "./equipment/EquipmentModeView";
+import {LoadoutPanel, isEmptyLoadout} from "./loadouts/LoadoutPanel";
+import {LoadoutTitle} from "./loadouts/LoadoutTitle";
 import {VirtualItemGrid, type LeadSection} from "./VirtualItemGrid";
 import {ActionsPanel} from "./actions/ActionsPanel";
 import {DropZones} from "./dnd/DropZones";
-import {MoveDnd} from "./dnd/MoveDnd";
+import {DragDisabledProvider, MoveDnd} from "./dnd/MoveDnd";
 
 /**
  * Vide l'unique file d'actions.
@@ -47,6 +53,7 @@ function ActionRunner() {
 
 // Référence stable : évite de relancer le filtrage à chaque rendu
 const NO_ITEMS: DestinyItemComponent[] = [];
+const NO_LOADOUTS: DestinyLoadout[] = [];
 
 /** Une colonne d'emplacements d'équipement. */
 function SlotColumn({
@@ -109,6 +116,7 @@ function Inventory({data}: { data: ProfileData }) {
     const t = useTranslations("inventory");
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const current = selectedId ?? data.characters[0]?.characterId ?? null;
+    const viewMode = useSettings((s) => s.viewMode);
 
     const currentEquipped = current
         ? (data.equipment[current] ?? NO_ITEMS)
@@ -141,16 +149,54 @@ function Inventory({data}: { data: ProfileData }) {
     );
     const postmaster = usePostmasterSection(leftovers);
 
-    // Pièces équipées par ensemble d'armures : sert à savoir quels bonus
-    // d'ensemble sont actifs. Dépend du personnage affiché, d'où le calcul ici.
+    // —— Équipements sauvegardés ————————————————————————————————
+    const loadouts = current ? (data.loadouts?.[current] ?? NO_LOADOUTS) : NO_LOADOUTS;
+
+    // La sélection retient le personnage avec l'index : une place dans la liste
+    // d'un personnage ne désigne rien sur un autre. Le porter dans l'état plutôt
+    // que remettre la sélection à zéro dans un effet évite un rendu en cascade,
+    // et le retour sur le personnage retrouve sa sélection.
+    const [selection, setSelection] = useState<{
+        characterId: string;
+        index: number;
+    } | null>(null);
+    const selectedLoadout =
+        selection && selection.characterId === current ? selection.index : null;
+    const selectLoadout = (index: number | null) =>
+        setSelection(index === null || !current ? null : {characterId: current, index});
+
     const {defs} = useItemDefs();
-    const setCounts = useMemo(
-        () => countEquippedSets(currentEquipped, defs),
-        [currentEquipped, defs],
+    const selectedLoadoutData =
+        selectedLoadout !== null ? loadouts[selectedLoadout] : undefined;
+    const loadoutItems = useLoadoutItems(selectedLoadoutData, data, defs);
+
+    // Un emplacement libre laisse l'équipement porté à l'écran : c'est lui qu'on
+    // s'apprête à y enregistrer.
+    const shownItems = loadoutItems ?? displayedEquipped;
+
+    // Pièces équipées par ensemble d'armures : sert à savoir quels bonus
+    // d'ensemble sont actifs.
+    //
+    // Deux comptes, et non un : celui du contexte décrit ce que le personnage
+    // **porte**, car il sert aussi les infobulles du coffre et du mode
+    // inventaire, tous deux montés en même temps. Le mode équipements, lui, doit
+    // décrire ce qu'il montre — sinon les bonus d'un équipement sauvegardé
+    // seraient ceux d'une autre panoplie.
+    const equippedSetCounts = useMemo(
+        () => countEquippedSets(displayedEquipped, defs),
+        [displayedEquipped, defs],
+    );
+    const shownSetCounts = useMemo(
+        () =>
+            loadoutItems ? countEquippedSets(loadoutItems, defs) : equippedSetCounts,
+        [loadoutItems, defs, equippedSetCounts],
     );
 
+    const character = data.characters.find((c) => c.characterId === current);
+    const equipmentMode = viewMode === "equipment";
+
     return (
-        <EquippedSetsProvider counts={setCounts}>
+        <EquippedSetsProvider counts={equippedSetCounts}>
             {/* La recherche englobe toute la vue : les vignettes de
                 l'équipement s'estompent elles aussi. */}
             <SearchProvider data={data} currentCharacterId={current}>
@@ -158,7 +204,7 @@ function Inventory({data}: { data: ProfileData }) {
             <ActionRunner/>
             <SearchActionsBridge data={data}/>
             <div className="inventory-view">
-                {/* Sélecteur de personnage */}
+                {/* Sélecteur de personnage, et bascule des modes d'affichage */}
                 <div className="inventory-view__characters">
                     {data.characters.map((c) => (
                         <CharacterTab
@@ -168,50 +214,125 @@ function Inventory({data}: { data: ProfileData }) {
                             onSelect={() => setSelectedId(c.characterId)}
                         />
                     ))}
+                    <ViewModeTabs/>
                 </div>
 
-                <div className="inventory-view__body">
-                    {/* Équipement du personnage : deux colonnes d'emplacements */}
-                    <section className="equipment">
-                        {/*<h2 className="equipment__title">{t("equipment")}</h2>*/}
-                        <div className="equipment__columns">
-                            <SlotColumn
-                                buckets={WEAPON_COLUMN}
-                                side="left"
-                                equipped={equippedByBucket}
-                                inventory={inventoryByBucket}
-                                details={data.items}
-                            />
-                            <SlotColumn
-                                buckets={ARMOR_COLUMN}
-                                side="right"
-                                equipped={equippedByBucket}
-                                inventory={inventoryByBucket}
-                                details={data.items}
+                {/* Les DEUX modes sont montés en permanence, superposés dans la
+                    même case de grille : la bascule est alors un simple fondu,
+                    et rien n'est à reconstruire — ni le coffre virtualisé, ni les
+                    définitions déjà lues. `inert` retire le mode caché du clavier
+                    et du pointeur, ce qu'une simple opacité ne fait pas. */}
+                <div className="inventory-view__modes">
+                    <div
+                        className={`inventory-view__mode${
+                            equipmentMode ? " inventory-view__mode--hidden" : ""
+                        }`}
+                        inert={equipmentMode}
+                    >
+                        <div className="inventory-view__body">
+                            {/* Équipement du personnage : deux colonnes d'emplacements */}
+                            <section className="equipment">
+                                {/*<h2 className="equipment__title">{t("equipment")}</h2>*/}
+                                <div className="equipment__columns">
+                                    <SlotColumn
+                                        buckets={WEAPON_COLUMN}
+                                        side="left"
+                                        equipped={equippedByBucket}
+                                        inventory={inventoryByBucket}
+                                        details={data.items}
+                                    />
+                                    <SlotColumn
+                                        buckets={ARMOR_COLUMN}
+                                        side="right"
+                                        equipped={equippedByBucket}
+                                        inventory={inventoryByBucket}
+                                        details={data.items}
+                                    />
+                                </div>
+                                <CharacterSummary
+                                    stats={character?.stats ?? {}}
+                                    setCounts={equippedSetCounts}
+                                />
+                            </section>
+
+                            {/* Colonne de droite : le Courrier et le coffre, dans un
+                                seul défilement virtualisé. Le coffre est commun à tous
+                                les personnages et contient environ un millier d'objets. */}
+                            <div className="inventory-view__storage">
+                                <VirtualItemGrid
+                                    title={t("vault")}
+                                    items={data.vault}
+                                    details={data.items}
+                                    lead={postmaster}
+                                />
+                            </div>
+
+                            {/* Zones de dépôt : trois calques, enfants DIRECTS de
+                                __body. Ils s'accrochent à ses colonnes pour épouser
+                                exactement l'équipement et le stockage — les imbriquer
+                                romprait ce lien. */}
+                            <DropZones
+                                characters={data.characters}
+                                selectedCharacterId={current}
                             />
                         </div>
-                    </section>
-
-                    {/* Colonne de droite : le Courrier et le coffre, dans un
-                        seul défilement virtualisé. Le coffre est commun à tous
-                        les personnages et contient environ un millier d'objets. */}
-                    <div className="inventory-view__storage">
-                        <VirtualItemGrid
-                            title={t("vault")}
-                            items={data.vault}
-                            details={data.items}
-                            lead={postmaster}
-                        />
                     </div>
 
-                    {/* Zones de dépôt : trois calques, enfants DIRECTS de
-                        __body. Ils s'accrochent à ses colonnes pour épouser
-                        exactement l'équipement et le stockage — les imbriquer
-                        romprait ce lien. */}
-                    <DropZones
-                        characters={data.characters}
-                        selectedCharacterId={current}
-                    />
+                    {/* Aucune destination dans ce mode : le geste y est interdit,
+                        sans toucher à celui du mode inventaire monté à côté. */}
+                    <DragDisabledProvider value={true}>
+                        <div
+                            className={`inventory-view__mode${
+                                equipmentMode ? "" : " inventory-view__mode--hidden"
+                            }`}
+                            inert={!equipmentMode}
+                        >
+                            <div className="inventory-view__body inventory-view__body--equipment">
+                                {/* Une ligne par emplacement, ses attributs à côté */}
+                                <div className="inventory-view__equipment">
+                                    <EquipmentModeView
+                                        // Un emplacement sélectionné donne son
+                                        // titre, libre ou non : c'est la seule
+                                        // indication de celui qu'on s'apprête à
+                                        // remplir.
+                                        title={
+                                            selectedLoadoutData ? (
+                                                <LoadoutTitle
+                                                    loadout={selectedLoadoutData}
+                                                    index={selectedLoadout ?? 0}
+                                                    characterId={current}
+                                                    empty={isEmptyLoadout(selectedLoadoutData)}
+                                                />
+                                            ) : (
+                                                t("currentEquipment")
+                                            )
+                                        }
+                                        items={shownItems}
+                                        details={data.items}
+                                        defs={defs}
+                                        setCounts={shownSetCounts}
+                                        // Un équipement sauvegardé est un instantané :
+                                        // rien n'y est équipé en ce moment.
+                                        editable={!loadoutItems}
+                                    />
+                                    <CharacterSummary
+                                        stats={character?.stats ?? {}}
+                                        setCounts={shownSetCounts}
+                                    />
+                                </div>
+
+                                {/* Les emplacements du personnage, et leurs actions */}
+                                <div className="inventory-view__loadouts">
+                                    <LoadoutPanel
+                                        loadouts={loadouts}
+                                        characterId={current}
+                                        selected={selectedLoadout}
+                                        onSelect={selectLoadout}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    </DragDisabledProvider>
                 </div>
             </div>
 

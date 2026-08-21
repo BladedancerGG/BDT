@@ -155,6 +155,32 @@ export function isFixedPlug(
 const EMPTY_MEMENTO_CATEGORY = "crafting.recipes.empty_socket";
 
 /**
+ * Pièce maîtresse ou catalyseur — l'emplacement que le mode « équipements » ne
+ * montre pas.
+ *
+ * Le test ne peut pas être celui d'`isFixedPlug` : les familles de pièces
+ * maîtresses **ne sont pas** toutes découpées par des points. Relevé sur les
+ * 40 000 plugs du manifeste, on trouve `v400.plugs.weapons.masterworks.stat.range`
+ * mais aussi `v300_new_auto_rifle0_masterwork` (tirets bas), `v400.new.bow0.masterwork`
+ * et `v620.exotic.weapon.masterwork` (singulier), ou encore `generic_exotic_masterwork`.
+ * Un `split(".")` en rate la grande majorité — d'où la coupe sur les deux
+ * séparateurs, et le singulier accepté.
+ *
+ * Les catalyseurs d'exotiques, eux, tiennent dans une seule famille
+ * (`catalysts`, 40 entrées) ; `v400.empty.exotic.masterwork` est leur
+ * emplacement vide.
+ */
+const MASTERWORK_PLUG_CATEGORY =
+    /(?:^|[._])(?:masterworks?|catalysts?)(?:[._]|$)/;
+
+export function isMasterworkPlug(
+    def: InventoryItemDefinition | undefined,
+): boolean {
+    const category = def?.plug?.plugCategoryIdentifier;
+    return category ? MASTERWORK_PLUG_CATEGORY.test(category) : false;
+}
+
+/**
  * Emplacements d'arme que le jeu gère ailleurs que dans la liste des mods, et
  * qui n'ont donc rien à faire dans l'infobulle.
  *
