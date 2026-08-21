@@ -24,6 +24,7 @@ import {
 import {useSettings} from "@/lib/settings/store";
 import {useDisplayableItems} from "@/lib/destiny/use-displayable-items";
 import {useLoadoutItems} from "@/lib/destiny/use-loadout-items";
+import {isEmptyLoadout} from "@/lib/loadouts/loadout";
 import {SearchProvider} from "@/lib/search/provider";
 import {SearchActionsBridge} from "./search/SearchActionsBridge";
 import {useActionRunner} from "@/lib/actions/use-action-runner";
@@ -32,12 +33,12 @@ import {EquipmentSlot} from "./EquipmentSlot";
 import {ViewModeTabs} from "./ViewModeTabs";
 import {CharacterSummary} from "./equipment/CharacterSummary";
 import {EquipmentModeView} from "./equipment/EquipmentModeView";
-import {LoadoutPanel, isEmptyLoadout} from "./loadouts/LoadoutPanel";
+import {LoadoutPanel} from "./loadouts/LoadoutPanel";
 import {LoadoutTitle} from "./loadouts/LoadoutTitle";
 import {VirtualItemGrid, type LeadSection} from "./VirtualItemGrid";
 import {ActionsPanel} from "./actions/ActionsPanel";
 import {DropZones} from "./dnd/DropZones";
-import {DragDisabledProvider, MoveDnd} from "./dnd/MoveDnd";
+import {DragScopeProvider, MoveDnd, type DragScope} from "./dnd/MoveDnd";
 
 /**
  * Vide l'unique file d'actions.
@@ -53,6 +54,12 @@ function ActionRunner() {
 
 // Référence stable : évite de relancer le filtrage à chaque rendu
 const NO_ITEMS: DestinyItemComponent[] = [];
+
+/**
+ * Portée du glisser-déposer dans le mode « équipements » : interdit, et sous ses
+ * propres identifiants dnd-kit — voir DragScope.
+ */
+const EQUIPMENT_DRAG_SCOPE: DragScope = {disabled: true, idPrefix: "equipment:"};
 const NO_LOADOUTS: DestinyLoadout[] = [];
 
 /** Une colonne d'emplacements d'équipement. */
@@ -279,8 +286,10 @@ function Inventory({data}: { data: ProfileData }) {
                     </div>
 
                     {/* Aucune destination dans ce mode : le geste y est interdit,
-                        sans toucher à celui du mode inventaire monté à côté. */}
-                    <DragDisabledProvider value={true}>
+                        sans toucher à celui du mode inventaire monté à côté. Le
+                        préfixe, lui, empêche les deux modes de se disputer les
+                        identifiants dnd-kit des objets équipés. */}
+                    <DragScopeProvider value={EQUIPMENT_DRAG_SCOPE}>
                         <div
                             className={`inventory-view__mode${
                                 equipmentMode ? "" : " inventory-view__mode--hidden"
@@ -332,7 +341,7 @@ function Inventory({data}: { data: ProfileData }) {
                                 </div>
                             </div>
                         </div>
-                    </DragDisabledProvider>
+                    </DragScopeProvider>
                 </div>
             </div>
 

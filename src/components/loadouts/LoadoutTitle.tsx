@@ -1,6 +1,6 @@
 "use client";
 
-import {useState} from "react";
+import {useMemo, useState} from "react";
 import {useTranslations} from "next-intl";
 import {
     useFloating,
@@ -18,19 +18,19 @@ import {
     useLoadoutIdentifierChoices,
     useLoadoutIdentifiers,
     type IdentifierChoice,
+    type LoadoutIdentifierHashes,
 } from "@/lib/loadouts/use-loadout-identifiers";
-import {useLoadoutActions} from "@/lib/loadouts/use-loadout-actions";
+import {
+    useActionOutcome,
+    useLoadoutActionState,
+    useLoadoutActions,
+} from "@/lib/loadouts/use-loadout-actions";
 
 /** Lequel des deux identifiants visuels est en cours de choix. */
 type Target = "color" | "icon";
 
-/**
- * Enveloppe un emplacement dans un tableau pour la lecture groupée.
- *
- * Un littéral `[loadout]` serait recréé à chaque rendu ; le hook fait sa clé de
- * dépendance du contenu, mais autant ne pas lui donner de raison de douter.
- */
-const SINGLE = (loadout: DestinyLoadout): DestinyLoadout[] => [loadout];
+/** Les trois identifiants d'un emplacement, tels qu'on les modifie. */
+type Identifiers = LoadoutIdentifierHashes;
 
 /**
  * Grille des choix d'un identifiant, dans un panneau flottant.
@@ -92,8 +92,11 @@ function IdentifierPicker({
  * choix. Le nom, lui, est un `<select>` sans habillage, qui ne se signale qu'au
  * survol pour ne pas alourdir le titre.
  *
- * Les trois valeurs partent ensemble : l'endpoint `UpdateLoadoutIdentifiers` les
- * écrit d'un bloc, en envoyer une seule remettrait les deux autres par défaut.
+ * La modification est **explicite** : un bouton l'ouvre, les choix s'accumulent
+ * localement, un second bouton les envoie. Rien ne part avant, et tout part en
+ * **une seule requête** — `UpdateLoadoutIdentifiers` écrit les trois valeurs
+ * d'un bloc, si bien qu'un envoi par clic aurait été à la fois bavard et
+ * ambigu : chacun devait de toute façon réexpédier les deux autres.
  */
 export function LoadoutTitle({
                                  loadout,
@@ -115,16 +118,65 @@ export function LoadoutTitle({
     empty: boolean;
 }) {
     const t = useTranslations("loadouts");
+    const tActions = useTranslations("actions");
     const choices = useLoadoutIdentifierChoices();
-    // Le seul emplacement affiché ici : la lecture groupée n'en résout qu'un
-    const identifiers = useLoadoutIdentifiers(SINGLE(loadout));
-    const {run, pending, error} = useLoadoutActions();
+    const {run} = useLoadoutActions();
+    const {busy: acting, error, failure} = useLoadoutActionState(
+        characterId,
+        index,
+    );
     const [target, setTarget] = useState<Target | null>(null);
+    /**
+     * Action envoyée pour ce brouillon : on la suit jusqu'à son aboutissement.
+     *
+     * L'envoi est désormais une mise en file, il rend la main aussitôt — il ne
+     * peut donc plus dire s'il a réussi. Le brouillon reste donc à l'écran tant
+     * que la file n'a pas conclu, et un refus le laisse réessayable.
+     */
+    const [submitted, setSubmitted] = useState<string | null>(null);
+    const outcome = useActionOutcome(submitted);
 
-    const color = identifiers.colors.get(loadout.colorHash);
-    const icon = identifiers.icons.get(loadout.iconHash);
-    const name = identifiers.names.get(loadout.nameHash);
-    const busy = pending !== null || !characterId;
+    /**
+     * Identifiants en cours de modification, ou null hors édition.
+     *
+     * Un brouillon plutôt qu'un envoi par clic : les trois valeurs voyagent
+     * ensemble de toute façon, autant les rassembler avant de partir.
+     */
+    const [draft, setDraft] = useState<Identifiers | null>(null);
+
+    /**
+     * Le brouillon encore en vigueur.
+     *
+     * Une valeur **dérivée** plutôt qu'un effet qui remettrait `draft` à null :
+     * l'aboutissement de l'action suffit à conclure l'édition, et un `setState`
+     * dans un effet ne ferait qu'ajouter un rendu en cascade.
+     */
+    const activeDraft = outcome === "done" ? null : draft;
+
+    // L'enregistré ET le brouillon : c'est ce dernier que l'aperçu doit montrer
+    // dès le clic. N'avoir résolu que l'enregistré était le défaut de la
+    // première version — l'icône choisie n'apparaissait qu'une fois acceptée par
+    // Bungie, puisque son chemin n'avait jamais été lu.
+    const resolved = useMemo(
+        () => (activeDraft ? [loadout, activeDraft] : [loadout]),
+        [loadout, activeDraft],
+    );
+    const identifiers = useLoadoutIdentifiers(resolved);
+
+    // En édition, c'est le brouillon qui s'affiche : on voit ce qu'on s'apprête
+    // à appliquer, pas ce qui est encore enregistré.
+    const shown = activeDraft ?? loadout;
+    const color = identifiers.colors.get(shown.colorHash);
+    const icon = identifiers.icons.get(shown.iconHash);
+    const name = identifiers.names.get(shown.nameHash);
+    const busy = acting || !characterId;
+    const editing = activeDraft !== null;
+    // Rien à envoyer si le brouillon n'a rien changé
+    const dirty =
+        activeDraft !== null &&
+        (activeDraft.colorHash !== loadout.colorHash ||
+            activeDraft.iconHash !== loadout.iconHash ||
+            activeDraft.nameHash !== loadout.nameHash);
 
     const {refs, floatingStyles, context} = useFloating({
         open: target !== null,
@@ -151,66 +203,92 @@ export function LoadoutTitle({
         );
     }
 
-    const apply = (change: {
-        colorHash?: number;
-        iconHash?: number;
-        nameHash?: number;
-    }) => {
+    /** Note un choix dans le brouillon. Rien ne partira avant « Appliquer ». */
+    const edit = (change: Partial<Identifiers>) => {
         setTarget(null);
-        if (!characterId) return;
-        // Les trois valeurs partent ensemble, même celles qui ne changent pas :
-        // l'endpoint les écrit d'un bloc.
-        void run({
-            kind: "identifiers",
-            characterId,
-            loadoutIndex: index,
-            colorHash: change.colorHash ?? loadout.colorHash,
-            iconHash: change.iconHash ?? loadout.iconHash,
-            nameHash: change.nameHash ?? loadout.nameHash,
-        });
+        setDraft((current) => ({
+            colorHash: change.colorHash ?? current?.colorHash ?? loadout.colorHash,
+            iconHash: change.iconHash ?? current?.iconHash ?? loadout.iconHash,
+            nameHash: change.nameHash ?? current?.nameHash ?? loadout.nameHash,
+        }));
+    };
+
+    /** Met les trois identifiants en file, d'un bloc. */
+    const submit = () => {
+        if (!characterId || !activeDraft) return;
+        setTarget(null);
+        setSubmitted(
+            run(
+                {
+                    kind: "identifiers",
+                    characterId,
+                    loadoutIndex: index,
+                    colorHash: activeDraft.colorHash,
+                    iconHash: activeDraft.iconHash,
+                    nameHash: activeDraft.nameHash,
+                },
+                // Ceux du brouillon : c'est l'apparence que l'emplacement aura,
+                // et c'est elle que la carte du panneau doit montrer.
+                activeDraft,
+            ),
+        );
     };
 
     return (
         <div className="loadout-title">
             <p className="loadout-title__name">
                 <span className="loadout-title__number">{index + 1} -</span>
-                {/* Un select plutôt qu'une grille : les noms sont du texte, une
-                    liste déroulante native les présente mieux qu'un panneau —
-                    et reste utilisable au clavier sans rien écrire pour ça. */}
-                <select
-                    className="loadout-title__select"
-                    value={loadout.nameHash}
-                    disabled={busy || choices.names.length === 0}
-                    aria-label={t("pickName")}
-                    onChange={(event) =>
-                        apply({nameHash: Number(event.target.value)})
-                    }
-                >
-                    {/* Le nom courant peut manquer des constantes (nom retiré
-                        d'une saison à l'autre) : sans cette option, le select
-                        afficherait le premier de la liste à sa place. */}
-                    {!choices.names.some((c) => c.hash === loadout.nameHash) && (
-                        <option value={loadout.nameHash}>{name ?? ""}</option>
-                    )}
-                    {choices.names.map((choice) => (
-                        <option key={choice.hash} value={choice.hash}>
-                            {choice.value}
-                        </option>
-                    ))}
-                </select>
+                {/* Hors édition le nom est du texte : un contrôle désactivé
+                    n'apporterait rien qu'une cible morte dans un titre. */}
+                {editing ? (
+                    // Un select plutôt qu'une grille : les noms sont du texte, une
+                    // liste déroulante native les présente mieux qu'un panneau —
+                    // et reste utilisable au clavier sans rien écrire pour ça.
+                    <select
+                        className="loadout-title__select"
+                        value={shown.nameHash}
+                        disabled={busy || choices.names.length === 0}
+                        aria-label={t("pickName")}
+                        onChange={(event) =>
+                            edit({nameHash: Number(event.target.value)})
+                        }
+                    >
+                        {/* Le nom courant peut manquer des constantes (nom retiré
+                            d'une saison à l'autre) : sans cette option, le select
+                            afficherait le premier de la liste à sa place. */}
+                        {!choices.names.some((c) => c.hash === shown.nameHash) && (
+                            <option value={shown.nameHash}>{name ?? ""}</option>
+                        )}
+                        {choices.names.map((choice) => (
+                            <option key={choice.hash} value={choice.hash}>
+                                {choice.value}
+                            </option>
+                        ))}
+                    </select>
+                ) : (
+                    <span className="loadout-title__value">{name ?? ""}</span>
+                )}
             </p>
 
             <div
                 // setReference est un callback ref stable de Floating UI
                 ref={refs.setReference}
-                className={`loadout-title__tile${
-                    target ? " loadout-title__tile--open" : ""
-                }`}
+                className={[
+                    "loadout-title__tile",
+                    // L'écartement au survol n'a de sens qu'en édition : hors
+                    // édition il annoncerait deux cibles qui ne s'ouvrent pas.
+                    editing ? "loadout-title__tile--editing" : null,
+                    target ? "loadout-title__tile--open" : null,
+                ]
+                    .filter(Boolean)
+                    .join(" ")}
             >
                 <button
                     type="button"
                     className="loadout-title__part loadout-title__part--color"
-                    disabled={busy}
+                    // Hors édition la vignette n'est qu'une image : rien ne
+                    // s'ouvre, et le curseur ne le promet pas.
+                    disabled={busy || !editing}
                     aria-label={t("pickColor")}
                     aria-expanded={target === "color"}
                     onClick={() => setTarget((c) => (c === "color" ? null : "color"))}
@@ -224,7 +302,7 @@ export function LoadoutTitle({
                 <button
                     type="button"
                     className="loadout-title__part loadout-title__part--icon"
-                    disabled={busy}
+                    disabled={busy || !editing}
                     aria-label={t("pickIcon")}
                     aria-expanded={target === "icon"}
                     onClick={() => setTarget((c) => (c === "icon" ? null : "icon"))}
@@ -236,10 +314,54 @@ export function LoadoutTitle({
                 </button>
             </div>
 
+            {/* Ouvrir la modification, puis l'appliquer — une seule requête. */}
+            <div className="loadout-title__actions">
+                {editing ? (
+                    <>
+                        <button
+                            type="button"
+                            className="btn btn--small"
+                            disabled={busy || !dirty}
+                            onClick={submit}
+                        >
+                            {t("applyIdentifiers")}
+                        </button>
+                        <button
+                            type="button"
+                            className="btn btn--small"
+                            disabled={busy}
+                            onClick={() => {
+                                setTarget(null);
+                                setDraft(null);
+                                setSubmitted(null);
+                            }}
+                        >
+                            {t("cancelIdentifiers")}
+                        </button>
+                    </>
+                ) : (
+                    <button
+                        type="button"
+                        className="btn btn--small"
+                        disabled={busy}
+                        onClick={() => {
+                            setSubmitted(null);
+                            setDraft({
+                                colorHash: loadout.colorHash,
+                                iconHash: loadout.iconHash,
+                                nameHash: loadout.nameHash,
+                            });
+                        }}
+                    >
+                        {t("editIdentifiers")}
+                    </button>
+                )}
+            </div>
+
             {/* Le refus de Bungie est déjà localisé — voir /api/loadouts. */}
-            {error && (
+            {(error || failure) && (
                 <p className="loadout-title__error">
-                    {error.message ?? t("failed")}
+                    {failure ? tActions(`failure.${failure}`) : error}
                 </p>
             )}
 
@@ -247,7 +369,6 @@ export function LoadoutTitle({
                 <FloatingPortal>
                     <div
                         // setFloating est un callback ref stable de Floating UI
-                        // eslint-disable-next-line react-hooks/refs
                         ref={refs.setFloating}
                         style={floatingStyles}
                         {...getFloatingProps()}
@@ -257,10 +378,10 @@ export function LoadoutTitle({
                             kind={target}
                             choices={target === "color" ? choices.colors : choices.icons}
                             current={
-                                target === "color" ? loadout.colorHash : loadout.iconHash
+                                target === "color" ? shown.colorHash : shown.iconHash
                             }
                             onPick={(hash) =>
-                                apply(
+                                edit(
                                     target === "color"
                                         ? {colorHash: hash}
                                         : {iconHash: hash},

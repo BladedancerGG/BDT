@@ -2,7 +2,7 @@
 
 import {useLiveQuery} from "dexie-react-hooks";
 import {manifestDb} from "@/lib/manifest/db";
-import type {DestinyLoadout} from "@/lib/bungie/profile";
+import {isRealHash} from "./loadout";
 import {
     LOADOUT_CONSTANTS_HASH,
     type LoadoutColorDefinition,
@@ -19,6 +19,19 @@ import {
 // `iconImagePath`, le libellé dans `name`. Et elles sont indexées par hash :
 // l'ordre dans lequel le jeu les propose ne vient que des listes de
 // `DestinyLoadoutConstantsDefinition`.
+
+/**
+ * Le strict nécessaire pour résoudre des identifiants.
+ *
+ * Pas `DestinyLoadout` : un **brouillon** de modification n'a que ces trois
+ * champs, et c'est lui qu'il faut pouvoir résoudre pour que l'aperçu montre le
+ * choix en cours plutôt que ce qui est enregistré.
+ */
+export interface LoadoutIdentifierHashes {
+    colorHash: number;
+    iconHash: number;
+    nameHash: number;
+}
 
 export interface LoadoutIdentifiers {
     colors: Map<number, string>;
@@ -38,7 +51,9 @@ async function readIdentifiers<T>(
     hashes: readonly number[],
     pick: (def: T) => string | undefined,
 ): Promise<Map<number, string>> {
-    const unique = [...new Set(hashes.filter(Boolean))];
+    // `isRealHash` et non `Boolean` : un identifiant absent vaut la sentinelle
+    // `INVALID_HASH`, qui est parfaitement truthy et n'a aucune définition.
+    const unique = [...new Set(hashes.filter(isRealHash))];
     const values = new Map<number, string>();
     if (unique.length === 0) return values;
 
@@ -58,7 +73,7 @@ async function readIdentifiers<T>(
  * Une lecture par vignette en ferait soixante pour vingt emplacements.
  */
 export function useLoadoutIdentifiers(
-    loadouts: readonly DestinyLoadout[],
+    loadouts: readonly LoadoutIdentifierHashes[],
 ): LoadoutIdentifiers {
     return (
         useLiveQuery(

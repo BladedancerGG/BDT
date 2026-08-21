@@ -78,7 +78,14 @@ export async function POST(request: Request) {
         status: err.errorStatus,
         message: err.message,
       };
-      console.error(`Équipement ${body.kind} refusé:`, err.message);
+      // Le message de Bungie est souvent générique sur ces endpoints
+      // (« Your request was invalid. ») : c'est le code symbolique et le corps
+      // envoyé qui disent quoi corriger. Les deux vont donc au journal.
+      console.error(
+        `Équipement ${body.kind} refusé: ${err.errorStatus ?? "?"}` +
+          ` (${err.errorCode ?? "?"}) — ${err.message}`,
+        JSON.stringify(body),
+      );
       return NextResponse.json(
         { error },
         { status: err.errorCode !== undefined ? 409 : 502 },

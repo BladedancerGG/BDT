@@ -2,6 +2,11 @@
 
 import { create } from "zustand";
 import type { MoveFailure, MoveTarget, PlannedStep } from "@/lib/destiny/moves";
+import type {
+  LoadoutActionKind,
+  LoadoutFailure,
+  LoadoutStepRequest,
+} from "@/lib/loadouts/types";
 import type { InsertFailure, InsertStepRequest } from "./sockets";
 
 /**
@@ -14,7 +19,8 @@ import type { InsertFailure, InsertStepRequest } from "./sockets";
  * un attribut) ; ses « étapes » sont les requêtes Bungie que cela coûte — d'où
  * l'affichage en « n / total » dans le panneau.
  *
- * Deux natures d'action, discriminées par `kind`. Elles partagent la file
+ * Trois natures d'action, discriminées par `kind` : déplacer un objet, équiper
+ * un attribut, agir sur un emplacement d'équipement. Elles partagent la file
  * plutôt que d'avoir chacune la sienne, et ce n'est pas qu'une commodité
  * d'affichage : l'exécuteur n'envoie **qu'une requête à la fois**, or Bungie
  * limite le débit des écritures par compte, toutes routes confondues.
@@ -35,7 +41,10 @@ export interface MoveActionStep extends ActionStepBase, PlannedStep {}
 /** L'unique requête d'une insertion d'attribut. */
 export interface InsertActionStep extends ActionStepBase, InsertStepRequest {}
 
-export type ActionStep = MoveActionStep | InsertActionStep;
+/** L'unique requête d'une action sur un emplacement d'équipement. */
+export interface LoadoutActionStep extends ActionStepBase, LoadoutStepRequest {}
+
+export type ActionStep = MoveActionStep | InsertActionStep | LoadoutActionStep;
 
 /**
  * L'objet d'une action : de quoi l'identifier, et de quoi **redessiner** sa
@@ -56,7 +65,7 @@ export interface QueuedItem {
   gearTier?: number;
 }
 
-interface QueuedActionBase extends QueuedItem {
+interface ActionBase {
   id: string;
   steps: ActionStep[];
   status: ActionStatus;
@@ -64,6 +73,12 @@ interface QueuedActionBase extends QueuedItem {
   error?: string;
   createdAt: number;
 }
+
+/**
+ * Les actions qui portent sur un objet. Un équipement, lui, n'en a pas : il
+ * désigne un emplacement numéroté, pas une instance.
+ */
+interface QueuedActionBase extends ActionBase, QueuedItem {}
 
 /** Déplacer un objet : plan à plusieurs requêtes, replanifié avant l'envoi. */
 export interface QueuedMoveAction extends QueuedActionBase {
@@ -85,7 +100,43 @@ export interface QueuedInsertAction extends QueuedActionBase {
   failure?: InsertFailure;
 }
 
-export type QueuedAction = QueuedMoveAction | QueuedInsertAction;
+/**
+ * Agir sur un emplacement d'équipement : une requête, rien à planifier.
+ *
+ * Bungie fait tout le travail côté serveur — pour un `equip`, les transferts
+ * depuis le coffre compris. Les identifiants sont recopiés à la mise en file :
+ * la carte du panneau redessine la vignette de l'emplacement, et celle-ci
+ * survit à la disparition de l'emplacement (un `clear` le vide).
+ */
+export interface QueuedLoadoutAction extends ActionBase {
+  kind: "loadout";
+  /** Ce que l'action fait : équiper, enregistrer, vider, renommer */
+  action: LoadoutActionKind;
+  characterId: string;
+  /** Place de l'emplacement dans la liste du personnage, à partir de 0 */
+  loadoutIndex: number;
+  colorHash: number;
+  iconHash: number;
+  nameHash: number;
+  /**
+   * Instances que l'équipement va mettre en place, recopiées à la mise en file.
+   *
+   * Elles ne servent qu'à griser les vignettes pendant l'attente : Bungie
+   * n'annonce pas ce qu'il déplacera, et `useItemBusy` doit rester un sélecteur
+   * booléen — les centaines de vignettes montées y sont abonnées, il ne peut pas
+   * aller relire l'emplacement dans le profil. Vide pour les autres natures, qui
+   * ne touchent à aucun objet.
+   */
+  itemInstanceIds: readonly string[];
+  steps: LoadoutActionStep[];
+  /** Refus détecté avant tout envoi */
+  failure?: LoadoutFailure;
+}
+
+export type QueuedAction =
+  | QueuedMoveAction
+  | QueuedInsertAction
+  | QueuedLoadoutAction;
 
 /** Filtre du panneau : reprend les trois états visibles par l'utilisateur. */
 export type ActionFilter = "all" | "pending" | "running" | "done";
@@ -120,6 +171,14 @@ interface ActionQueueState {
     },
   ) => string;
 
+  /** Met une action d'emplacement en file et renvoie son identifiant. */
+  enqueueLoadout: (
+    action: Omit<
+      QueuedLoadoutAction,
+      "id" | "steps" | "status" | "createdAt" | "kind"
+    > & { step?: LoadoutStepRequest },
+  ) => string;
+
   /** Remplace le plan d'un déplacement, replanifié juste avant son exécution. */
   setSteps: (actionId: string, steps: PlannedStep[]) => void;
   setActionStatus: (
@@ -144,6 +203,29 @@ const nextId = (prefix: string) => `${prefix}-${(counter += 1)}`;
 
 const toSteps = (steps: PlannedStep[]): MoveActionStep[] =>
   steps.map((step) => ({ ...step, id: nextId("step"), status: "pending" }));
+
+/**
+ * Rend l'action avec le statut d'une de ses étapes mis à jour.
+ *
+ * Une fonction générique et un `as A` plutôt que le `map` réécrit une fois par
+ * nature d'action : sur une **union de tableaux**, TypeScript ne sait pas qu'un
+ * `MoveActionStep[]` reste un `MoveActionStep[]` après un `map`, et il y a
+ * désormais trois natures. Seuls les champs de `ActionStepBase` sont touchés,
+ * communs aux trois — la conversion ne masque donc aucun écart réel.
+ */
+function withStepStatus<A extends QueuedAction>(
+  action: A,
+  stepId: string,
+  status: ActionStatus,
+  error?: string,
+): A {
+  return {
+    ...action,
+    steps: (action.steps as ActionStepBase[]).map((step) =>
+      step.id === stepId ? { ...step, status, error } : step,
+    ),
+  } as A;
+}
 
 export const useActionQueue = create<ActionQueueState>()((set) => ({
   actions: [],
@@ -220,6 +302,43 @@ export const useActionQueue = create<ActionQueueState>()((set) => ({
     return id;
   },
 
+  enqueueLoadout: ({
+    action,
+    characterId,
+    loadoutIndex,
+    colorHash,
+    iconHash,
+    nameHash,
+    itemInstanceIds,
+    step,
+    failure,
+  }) => {
+    const id = nextId("action");
+    set((state) => ({
+      actions: [
+        ...state.actions,
+        {
+          kind: "loadout",
+          id,
+          action,
+          characterId,
+          loadoutIndex,
+          colorHash,
+          iconHash,
+          nameHash,
+          itemInstanceIds,
+          steps: step
+            ? [{ ...step, id: nextId("step"), status: "pending" }]
+            : [],
+          status: failure ? "error" : "pending",
+          failure,
+          createdAt: Date.now(),
+        },
+      ],
+    }));
+    return id;
+  },
+
   setSteps: (actionId, steps) =>
     set((state) => ({
       actions: state.actions.map((action) =>
@@ -239,24 +358,9 @@ export const useActionQueue = create<ActionQueueState>()((set) => ({
 
   setStepStatus: (actionId, stepId, status, error) =>
     set((state) => ({
-      actions: state.actions.map((action) => {
-        if (action.id !== actionId) return action;
-        // Le `map` est écrit deux fois : sur une union de tableaux, TypeScript
-        // ne sait pas qu'un `MoveActionStep[]` reste un `MoveActionStep[]`.
-        return action.kind === "move"
-          ? {
-              ...action,
-              steps: action.steps.map((step) =>
-                step.id === stepId ? { ...step, status, error } : step,
-              ),
-            }
-          : {
-              ...action,
-              steps: action.steps.map((step) =>
-                step.id === stepId ? { ...step, status, error } : step,
-              ),
-            };
-      }),
+      actions: state.actions.map((action) =>
+        action.id === actionId ? withStepStatus(action, stepId, status, error) : action,
+      ),
     })),
 
   clearFinished: () =>
@@ -282,16 +386,26 @@ export const useActionQueue = create<ActionQueueState>()((set) => ({
  * Le sélecteur renvoie un booléen, pas un ensemble : les centaines de vignettes
  * montées y sont abonnées, et seules celles dont la réponse change re-rendent.
  *
+ * Un **équipement d'ensemble** grise de même toutes les vignettes qu'il va
+ * mettre en place. Elles sont connues d'avance — recopiées à la mise en file —
+ * alors que Bungie, lui, n'annonce rien de ce qu'il déplacera : sans cette
+ * anticipation, une requête qui dure une seconde ne se voyait nulle part.
+ *
  * Les insertions d'attribut sont ignorées : l'objet ne bouge pas, et l'attente
  * se signale là où le clic a eu lieu — sur l'attribut, dans l'infobulle.
  */
 export function useItemBusy(itemInstanceId?: string): boolean {
   return useActionQueue((state) =>
     itemInstanceId
-      ? state.actions.some(
-          (action) =>
+      ? state.actions.some((action) => {
+          if (action.status !== "pending" && action.status !== "running") {
+            return false;
+          }
+          if (action.kind === "loadout") {
+            return action.itemInstanceIds.includes(itemInstanceId);
+          }
+          return (
             action.kind === "move" &&
-            (action.status === "pending" || action.status === "running") &&
             (action.itemInstanceId === itemInstanceId ||
               action.steps.some(
                 (step) =>
@@ -299,8 +413,9 @@ export function useItemBusy(itemInstanceId?: string): boolean {
                     step.displaced === itemInstanceId) &&
                   step.status !== "done" &&
                   step.status !== "error",
-              )),
-        )
+              ))
+          );
+        })
       : false,
   );
 }

@@ -4,12 +4,15 @@ import {useEffect} from "react";
 import {useTranslations} from "next-intl";
 import type {DestinyLoadout} from "@/lib/bungie/profile";
 import {BUNGIE_ROOT} from "@/lib/destiny/display";
-import {useLoadoutIdentifiers} from "@/lib/loadouts/use-loadout-identifiers";
-import {useLoadoutActions} from "@/lib/loadouts/use-loadout-actions";
-
-/** Un emplacement est libre quand il ne contient aucun objet — voir DestinyLoadout. */
-export const isEmptyLoadout = (loadout: DestinyLoadout | undefined): boolean =>
-    !loadout || loadout.items.length === 0;
+import {isEmptyLoadout, isRealHash} from "@/lib/loadouts/loadout";
+import {
+    useLoadoutIdentifierChoices,
+    useLoadoutIdentifiers,
+} from "@/lib/loadouts/use-loadout-identifiers";
+import {
+    useLoadoutActionState,
+    useLoadoutActions,
+} from "@/lib/loadouts/use-loadout-actions";
 
 /**
  * Les emplacements d'équipement du personnage, et les actions du sélectionné.
@@ -35,7 +38,16 @@ export function LoadoutPanel({
 }) {
     const t = useTranslations("loadouts");
     const identifiers = useLoadoutIdentifiers(loadouts);
-    const {run, pending, error} = useLoadoutActions();
+    // Sert à donner des identifiants à un emplacement qui n'en a pas — voir
+    // `defaults` plus bas.
+    const choices = useLoadoutIdentifierChoices();
+    const {run} = useLoadoutActions();
+    // L'attente et le refus se lisent dans la file : le panneau n'a pas d'état à
+    // lui, et l'action lui survit — voir useLoadoutActionState.
+    const {busy: acting, error, failure} = useLoadoutActionState(
+        characterId,
+        selected,
+    );
 
     // Échap désélectionne. Le geste n'est pris que s'il ne sert à rien d'autre :
     // un sélecteur ouvert le garde pour lui (c'est lui qu'on veut refermer), et
@@ -55,23 +67,71 @@ export function LoadoutPanel({
 
     const current = selected !== null ? loadouts[selected] : undefined;
     const empty = isEmptyLoadout(current);
-    const busy = pending !== null;
+    const busy = acting;
+
+    /**
+     * Identifiants d'un premier enregistrement : le premier choix de chaque
+     * liste du jeu.
+     *
+     * `SnapshotLoadout` **exige les trois**, contrairement à ce que laisse croire
+     * leur `nullable` dans le schéma OpenAPI : omis, l'appel repart en
+     * `DestinyInvalidRequest` (1622). Et ceux d'un emplacement libre ne
+     * conviennent pas davantage — ils valent la sentinelle `INVALID_HASH`, que
+     * Bungie refuse tout autant. Il faut donc en fournir de vrais, et l'ordre des
+     * constantes est le seul qui ait un sens ici. Le titre permet ensuite de les
+     * changer.
+     */
+    const defaults = {
+        colorHash: choices.colors[0]?.hash,
+        iconHash: choices.icons[0]?.hash,
+        nameHash: choices.names[0]?.hash,
+    };
+    const hasDefaults =
+        defaults.colorHash !== undefined &&
+        defaults.iconHash !== undefined &&
+        defaults.nameHash !== undefined;
+
+    /** Un identifiant ne part que s'il en est un — voir INVALID_HASH. */
+    const keepHash = (hash: number | undefined, fallback: number | undefined) =>
+        isRealHash(hash) ? hash : fallback;
 
     const act = (kind: "equip" | "snapshot" | "clear") => {
         if (!characterId || selected === null) return;
-        void run({
-            kind,
-            characterId,
-            loadoutIndex: selected,
-            // Écraser sans les identifiants ferait perdre couleur, glyphe et nom.
-            // Un emplacement libre, lui, n'en a aucun à conserver : on les omet
-            // et Bungie pose les siens. Les renvoyer serait au mieux inutile, au
-            // pire un refus — rien ne garantit que le jeu remplisse ces trois
-            // champs sur un emplacement qu'il considère vide.
-            colorHash: empty ? undefined : current?.colorHash,
-            iconHash: empty ? undefined : current?.iconHash,
-            nameHash: empty ? undefined : current?.nameHash,
-        });
+        // Enregistrer sur un emplacement libre sans identifiants à lui donner
+        // partirait pour être refusé : l'action entre en file marquée comme
+        // telle, et dit pourquoi, plutôt que d'aller chercher un refus.
+        const failure =
+            kind === "snapshot" && empty && !hasDefaults ? "noIdentifiers" : undefined;
+        run(
+            {
+                kind,
+                characterId,
+                loadoutIndex: selected,
+            // Écraser sans les identifiants ferait perdre couleur, glyphe et
+            // nom : ceux en place sont donc réexpédiés. Un emplacement libre n'en
+            // a aucun de valide à conserver, il reçoit les valeurs par défaut.
+                colorHash: keepHash(current?.colorHash, defaults.colorHash),
+                iconHash: keepHash(current?.iconHash, defaults.iconHash),
+                nameHash: keepHash(current?.nameHash, defaults.nameHash),
+            },
+            {
+                // Recopiés dans l'action : la carte du panneau redessine la
+                // vignette de l'emplacement, et survit à un `clear` qui le vide.
+                colorHash: current?.colorHash ?? 0,
+                iconHash: current?.iconHash ?? 0,
+                nameHash: current?.nameHash ?? 0,
+                // Les vignettes à griser pendant l'attente. Seul un équipement
+                // déplace des objets ; les entrées « 0 » d'un emplacement
+                // partiellement enregistré n'en désignent aucun.
+                itemInstanceIds:
+                    kind === "equip"
+                        ? (current?.items ?? [])
+                            .map((item) => item.itemInstanceId)
+                            .filter((id) => id && id !== "0")
+                        : [],
+                failure,
+            },
+        );
     };
 
     // Le composant 206 n'a rien renvoyé pour ce personnage. Une grille vide
@@ -181,9 +241,9 @@ export function LoadoutPanel({
 
                     {/* Le refus de Bungie est déjà localisé : plus utile que le
                         nôtre — voir /api/loadouts. */}
-                    {error && (
+                    {(error || failure) && (
                         <p className="loadout-panel__error">
-                            {error.message ?? t("failed")}
+                            {failure ? t(`failure.${failure}`) : error}
                         </p>
                     )}
 

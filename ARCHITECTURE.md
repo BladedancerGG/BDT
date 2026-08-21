@@ -390,6 +390,31 @@ Two things happen so the UI stays fast:
   and one action costs up to four steps; the real refetch happens once the queue
   drains.
 
+Three kinds of action share the queue — move an item, equip a perk, act on a
+loadout slot — and sharing it is not a display convenience: the throttle Bungie
+applies to writes counts **every route together**, so a button that posted
+directly would have escaped the serialisation. A loadout action carries no item,
+only a numbered slot, so it sits on its own base and its card shows the slot's
+tile on both sides of the arrow. Its identifiers are copied when queued, which is
+what lets the card survive a `clear` that empties the slot.
+
+`EquipLoadout` deserves its own replay (`lib/destiny/loadout-equip.ts`): Bungie
+assembles the loadout server-side and says nothing about what it moved, so the
+effect is simulated from the rules the game follows — an item in the vault is
+transferred then equipped **if the bucket has room**, one already on the
+character is just equipped, and one that is missing or held by **another
+character** cannot be moved at all. The steps are handed to `applyStep`, the very
+same one moves use, so the effect of a transfer or an equip on the profile is
+written once and the displaced item is already handled there.
+
+The loadout's item instance ids are copied into the action when queued, so
+`useItemBusy` can grey those tiles for the whole wait — Bungie announces nothing
+about what it will move, and a request that takes a second showed up nowhere
+otherwise. Copying them is what keeps that selector a plain boolean over the
+queue: hundreds of mounted tiles subscribe to it, it cannot go and re-read the
+slot from the profile. Only an `equip` carries any; changing a slot's appearance
+moves nothing.
+
 `ErrorCode` is checked in `bungieFetch`: Bungie reports its refusals with
 **HTTP 200**, so a rejected `EquipItem` used to look exactly like a success.
 
@@ -561,9 +586,17 @@ the definitions already read. The hidden one is taken out of the flow
 two) and marked `inert`, which an opacity alone would not do.
 
 The loadouts mode does not move items — no drop zone, no per-slot inventory,
-nothing to drag onto. Drag is switched off by `DragDisabledProvider`, a context
-of its own rather than a flag on `MoveActionsValue`: both modes being mounted at
-once, a shared flag would have disabled the gesture in the inventory mode too.
+nothing to drag onto. That is what `DragScopeProvider` carries: a context of its
+own rather than a flag on `MoveActionsValue`, since both modes are mounted at
+once and what holds for one does not hold for the other.
+
+> **Mounting both modes means each needs its own dnd-kit id prefix.** dnd-kit's
+> `draggableNodes` is a Map keyed on the id **alone**, and `useDraggable`
+> registers into it even when disabled. Both modes render the same equipped
+> items, so their two tiles fought over one entry: the last mounted won, and
+> *its* rect became the drag overlay's origin — an equipped item jumped to the
+> position it holds in the other mode the moment the gesture started. Hence
+> `DragScope.idPrefix`.
 
 ### Where the plug icons come from
 
@@ -618,17 +651,30 @@ a local pending state plus a profile refetch is enough.
 
 Points worth knowing:
 
-- **A slot is free when its item list is empty** — the only reliable test; what
-  its three identifier hashes hold in that case is not something to rely on. A
-  free slot is still selectable, and its title is reduced to its number plus
+- **`2166136261` is Bungie's "no hash" sentinel** — `0x811C9DC5`, the FNV-1a
+  offset basis. It is *not* zero, and it is what an unset identifier holds. A
+  free slot carries it on all three of `colorHash`, `iconHash` and `nameHash`,
+  and ten `items` entries whose `itemInstanceId` is `"0"`. Two bugs came out of
+  taking it for a real hash: empty slots were drawn as full ones (no definition
+  at that hash, so no tile art, but a slot judged occupied — every action
+  offered, and selecting one blanked the ten rows), and `SnapshotLoadout`
+  received it as an identifier, which is what answered *"Your request was
+  invalid."* on creation. Nothing but a real hash is ever sent now.
+- **A slot is free when no item has a real instance, or when none of its three
+  identifiers is a real hash** — either signal is enough, and `items.length` is
+  not one of them. See `lib/loadouts/loadout.ts`.
+  A free slot is still selectable, and its title is reduced to its number plus
   "free slot": that number is the only sign of which slot a snapshot is about to
   fill. Of the three actions only *create from the equipped items* is offered —
   there is nothing to equip and nothing to delete — and the button says *create*
   rather than *overwrite*.
-- **`SnapshotLoadout` must be given `colorHash` / `iconHash` / `nameHash`**,
-  otherwise the slot loses its colour, glyph and name. A free slot is the
-  exception: it has none to preserve, so they are omitted and Bungie assigns its
-  own. Sending them back would be useless at best and refused at worst.
+- **`SnapshotLoadout` requires `colorHash` / `iconHash` / `nameHash`** — all
+  three, always, whatever their `nullable` in the OpenAPI schema suggests.
+  Omitting them answers `DestinyInvalidRequest` (1622), and so does passing the
+  sentinel a free slot carries. An existing slot therefore resends its own, so
+  as not to lose its colour, glyph and name; a free slot is given the **first
+  entry of each list** in `DestinyLoadoutConstantsDefinition` — the only order
+  that means anything here — and the title lets them be changed straight after.
   Renaming and recolouring are likewise offered only on a slot that exists.
 - **A saved item's `bucketHash` is not usable as-is**: an item sitting in the
   vault carries the vault's. The slot it equips into comes from its definition
@@ -655,9 +701,17 @@ them apart**: each then becomes its own target with its own grid of choices. The
 name is a `<select>` stripped of its chrome, which only announces itself on
 hover.
 
-The three values always travel together through `UpdateLoadoutIdentifiers`:
-sending one alone would reset the other two to the game's defaults. The order the
-choices come in is not a hash sort — it comes from the `loadoutColorHashes` /
+Editing is **explicit**: one button opens it, the choices pile up in a local
+draft, a second one sends them. The preview follows the draft, which means the
+draft's hashes have to be resolved against the manifest too — reading only the
+saved ones left a freshly picked glyph invisible until Bungie had accepted it.
+Nothing leaves before that, and everything
+leaves in **one request** — `UpdateLoadoutIdentifiers` writes the three values as
+a block, so a request per click would have been both chatty and ambiguous, each
+one having to resend the other two anyway. The draft only closes on success; a
+refusal leaves the choices on screen. Outside editing the name is plain text and
+the tile is just an image — a disabled control in a title would only be a dead
+target. The order the choices come in is not a hash sort — it comes from the `loadoutColorHashes` /
 `loadoutIconHashes` / `loadoutNameHashes` lists of
 `DestinyLoadoutConstantsDefinition` (a single entry, hash 1).
 
@@ -1306,6 +1360,34 @@ Deux choix gardent l'interface vive :
   pèse ~1,6 Mo et une action coûte jusqu'à quatre étapes ; le vrai rechargement
   n'a lieu qu'une fois la file vidée.
 
+Trois natures d'action partagent la file — déplacer un objet, équiper un
+attribut, agir sur un emplacement d'équipement — et ce partage n'est pas une
+commodité d'affichage : la limitation de débit que Bungie applique aux écritures
+compte **toutes les routes ensemble**, si bien qu'un bouton qui postait
+directement échappait à la sérialisation. Une action d'emplacement ne porte aucun
+objet, seulement un emplacement numéroté : elle a donc sa propre base, et sa
+carte montre la vignette de l'emplacement des deux côtés de la flèche. Ses
+identifiants sont recopiés à la mise en file, ce qui lui permet de survivre à un
+`clear` qui vide l'emplacement.
+
+`EquipLoadout` mérite son propre rejeu (`lib/destiny/loadout-equip.ts`) : Bungie
+assemble l'équipement côté serveur et ne dit rien de ce qu'il a déplacé, l'effet
+est donc simulé d'après les règles du jeu — un objet du coffre est transféré puis
+équipé **s'il reste de la place dans l'emplacement**, un objet déjà sur le
+personnage est simplement équipé, et un objet introuvable ou détenu par un
+**autre personnage** ne peut pas être déplacé du tout. Les étapes sont confiées à
+`applyStep`, celui-là même des déplacements : l'effet d'un transfert ou d'un
+équipement sur le profil n'est donc écrit qu'une fois, et l'objet chassé de
+l'emplacement y est déjà géré.
+
+Les identifiants d'instance de l'ensemble sont recopiés dans l'action à la mise
+en file, ce qui permet à `useItemBusy` de griser ces vignettes pendant toute
+l'attente — Bungie n'annonce rien de ce qu'il va déplacer, et une requête d'une
+seconde ne se voyait sinon nulle part. C'est cette recopie qui garde le sélecteur
+booléen : les centaines de vignettes montées y sont abonnées, il ne peut pas
+aller relire l'emplacement dans le profil. Seul un `equip` en porte ; changer
+l'apparence d'un emplacement ne déplace rien.
+
 `ErrorCode` est contrôlé dans `bungieFetch` : Bungie signale ses refus en
 **HTTP 200**, un `EquipItem` rejeté ressemblait donc exactement à un succès.
 
@@ -1490,10 +1572,18 @@ virtualisé, ni les définitions déjà lues. Le mode caché est sorti du flux
 deux) et marqué `inert`, ce qu'une simple opacité ne fait pas.
 
 Le mode équipements ne déplace rien — aucune zone de dépôt, aucun inventaire
-d'emplacement, nulle part où déposer. Le geste est coupé par
-`DragDisabledProvider`, un contexte à lui plutôt qu'un drapeau dans
-`MoveActionsValue` : les deux modes étant montés en même temps, un booléen
-partagé aurait interdit le geste au mode inventaire aussi.
+d'emplacement, nulle part où déposer. C'est ce que porte `DragScopeProvider` :
+un contexte à lui plutôt qu'un drapeau dans `MoveActionsValue`, les deux modes
+étant montés en même temps et ce qui vaut pour l'un ne valant pas pour l'autre.
+
+> **Monter les deux modes, c'est donner à chacun son préfixe d'identifiants
+> dnd-kit.** `draggableNodes` de dnd-kit est une Map indexée par le **seul**
+> identifiant, et `useDraggable` s'y enregistre même désactivé. Les deux modes
+> rendant les mêmes objets équipés, leurs deux vignettes se disputaient une
+> unique entrée : la dernière montée l'emportait, et c'est SA position qui
+> servait d'origine au calque de déplacement — un objet équipé sautait à
+> l'emplacement qu'il occupe dans l'autre mode dès le début du geste. D'où
+> `DragScope.idPrefix`.
 
 ### D'où viennent les icônes d'attributs
 
@@ -1550,17 +1640,32 @@ donc un état d'attente local et une relecture du profil suffisent.
 
 Les points à connaître :
 
-- **Un emplacement est libre quand sa liste d'objets est vide** — c'est le seul
-  test fiable ; ce que portent alors ses trois hashes d'identifiants n'est pas
-  une chose sur laquelle s'appuyer. Un emplacement libre reste sélectionnable, et
+- **`2166136261` est la sentinelle « pas de hash » de Bungie** — `0x811C9DC5`,
+  la base de l'algorithme FNV-1a. Elle ne vaut *pas* zéro, et c'est ce que porte
+  un identifiant non renseigné. Un emplacement libre l'a sur ses trois
+  `colorHash`, `iconHash` et `nameHash`, et dix entrées `items` dont
+  l'`itemInstanceId` vaut « 0 ». La prendre pour un vrai hash donnait deux bugs :
+  les emplacements vides s'affichaient comme pleins (aucune définition à ce hash,
+  donc aucune vignette, mais un emplacement jugé occupé — toutes les actions
+  offertes, et une sélection qui vidait les dix lignes), et `SnapshotLoadout` la
+  recevait en identifiant, ce qui répondait *« Your request was invalid. »* à la
+  création. Seul un vrai hash est désormais transmis.
+- **Un emplacement est libre quand aucun de ses objets n'a d'instance réelle, ou
+  qu'aucun de ses trois identifiants n'est un vrai hash** — l'un ou l'autre
+  signal suffit, et `items.length` n'en est pas un. Voir
+  `lib/loadouts/loadout.ts`. Un emplacement libre reste sélectionnable, et
   son titre se réduit à son numéro suivi de « Emplacement libre » : ce numéro est
   la seule indication de l'emplacement que l'écrasement va remplir. Des trois
   actions, seule *créer à partir des objets équipés* lui est proposée — il n'y a
   rien à y équiper ni à en supprimer — et le bouton dit *créer* et non *écraser*.
-- **`SnapshotLoadout` doit recevoir `colorHash` / `iconHash` / `nameHash`**,
-  sans quoi l'emplacement perd sa couleur, son glyphe et son nom. L'emplacement
-  libre est l'exception : il n'en a aucun à conserver, on les omet donc et Bungie
-  pose les siens. Les renvoyer serait au mieux inutile, au pire un refus. Le
+- **`SnapshotLoadout` exige `colorHash` / `iconHash` / `nameHash`** — les trois,
+  toujours, quoi qu'en laisse croire leur `nullable` dans le schéma OpenAPI. Les
+  omettre répond `DestinyInvalidRequest` (1622), et transmettre la sentinelle
+  d'un emplacement libre tout autant. Un emplacement existant réexpédie donc les
+  siens, pour ne pas perdre sa couleur, son glyphe et son nom ; un emplacement
+  libre reçoit le **premier de chaque liste** de
+  `DestinyLoadoutConstantsDefinition` — le seul ordre qui ait un sens ici — et le
+  titre permet de les changer aussitôt. Le
   renommage et le changement de couleur ne sont, de même, proposés que sur un
   emplacement qui existe.
 - **Le `bucketHash` d'un objet sauvegardé n'est pas exploitable tel quel** : un
@@ -1590,9 +1695,18 @@ survol les écarte** : chacune devient alors sa propre cible, avec sa grille de
 choix. Le nom est un `<select>` dépouillé de son habillage, qui ne se signale
 qu'au survol.
 
-Les trois valeurs partent toujours ensemble par `UpdateLoadoutIdentifiers` : en
-envoyer une seule remettrait les deux autres aux valeurs par défaut du jeu.
-L'ordre dans lequel les choix sont proposés n'est pas un tri de hashes — il vient
+La modification est **explicite** : un bouton l'ouvre, les choix s'accumulent
+dans un brouillon local, un second les envoie. L'aperçu suit le brouillon, ce
+qui oblige à résoudre ses hashes contre le manifeste eux aussi — n'avoir lu que
+ceux enregistrés laissait un glyphe fraîchement choisi invisible jusqu'à ce que
+Bungie l'accepte. Rien ne part avant, et tout part
+en **une seule requête** — `UpdateLoadoutIdentifiers` écrit les trois valeurs
+d'un bloc, si bien qu'un envoi par clic aurait été à la fois bavard et ambigu :
+chacun devait de toute façon réexpédier les deux autres. Le brouillon ne se
+referme qu'en cas de succès ; un refus laisse les choix à l'écran. Hors édition
+le nom est du texte et la vignette une simple image — un contrôle désactivé dans
+un titre ne serait qu'une cible morte. L'ordre dans lequel les choix sont
+proposés n'est pas un tri de hashes — il vient
 des listes `loadoutColorHashes` / `loadoutIconHashes` / `loadoutNameHashes` de
 `DestinyLoadoutConstantsDefinition` (une seule entrée, hash 1).
 

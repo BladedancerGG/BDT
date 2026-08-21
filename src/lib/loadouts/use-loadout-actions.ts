@@ -1,67 +1,120 @@
 "use client";
 
-import { useCallback, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
-import type {
-  LoadoutActionError,
-  LoadoutActionKind,
-  LoadoutActionRequest,
-} from "./types";
+import { useCallback } from "react";
+import {
+  useActionQueue,
+  type QueuedAction,
+  type QueuedLoadoutAction,
+} from "@/lib/actions/store";
+import type { LoadoutActionRequest, LoadoutFailure } from "./types";
+
+/** Ce que l'action porte en plus de sa requête. */
+export interface LoadoutActionExtra {
+  /** Apparence de l'emplacement, pour la vignette de la carte du panneau */
+  colorHash: number;
+  iconHash: number;
+  nameHash: number;
+  /**
+   * Instances que l'action va mettre en place — les vignettes à griser pendant
+   * l'attente. Seul un `equip` en a.
+   */
+  itemInstanceIds?: readonly string[];
+  /** Refus connu avant tout envoi : l'action entre en file en le disant */
+  failure?: LoadoutFailure;
+}
 
 /**
- * Les trois écritures sur un emplacement d'équipement.
+ * Les quatre écritures sur un emplacement d'équipement, mises en file.
  *
- * Elles ne passent PAS par la file d'actions : celle-ci existe pour enchaîner
- * des déplacements planifiés dans le navigateur, alors qu'ici une seule requête
- * suffit et que Bungie ne dit rien de ce qu'il a déplacé. Un état local — en
- * cours / motif de refus — et une relecture du profil au retour couvrent le
- * besoin.
+ * Elles passent par la file d'actions comme les déplacements et les insertions,
+ * et ce n'est pas qu'une question d'affichage : l'exécuteur n'envoie qu'une
+ * requête à la fois, or Bungie limite le débit des écritures sur un compte
+ * **toutes routes confondues**. Un envoi direct depuis le bouton court-circuitait
+ * cette sérialisation.
  *
- * La relecture est un `refetchQueries` et non une invalidation : la file
- * d'actions muselle les rechargements automatiques, et l'équipement vient de
- * changer sous nos pieds.
+ * Rien à planifier en revanche : Bungie assemble l'équipement côté serveur,
+ * transferts depuis le coffre compris — une action, une requête.
  */
 export function useLoadoutActions() {
-  const queryClient = useQueryClient();
-  /** Action en cours, ou null : le panneau grise ses boutons pendant l'attente */
-  const [pending, setPending] = useState<LoadoutActionKind | null>(null);
-  const [error, setError] = useState<LoadoutActionError | null>(null);
+  const enqueueLoadout = useActionQueue((s) => s.enqueueLoadout);
 
+  /** Met l'action en file et renvoie son identifiant, pour la suivre. */
   const run = useCallback(
-    async (request: LoadoutActionRequest) => {
-      setPending(request.kind);
-      setError(null);
-      try {
-        const res = await fetch("/api/loadouts", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(request),
-        });
-        if (!res.ok) {
-          const payload = (await res.json().catch(() => null)) as {
-            error?: LoadoutActionError | string;
-          } | null;
-          const refusal = payload?.error;
-          setError(
-            typeof refusal === "object" && refusal !== null
-              ? refusal
-              : { message: typeof refusal === "string" ? refusal : undefined },
-          );
-          return false;
-        }
-        // Équiper déplace des objets, écraser et vider changent la liste : dans
-        // les trois cas le profil affiché est périmé.
-        await queryClient.refetchQueries({ queryKey: ["profile"] });
-        return true;
-      } catch {
-        setError({ message: "loadout_failed" });
-        return false;
-      } finally {
-        setPending(null);
-      }
-    },
-    [queryClient],
+    (request: LoadoutActionRequest, extra: LoadoutActionExtra) =>
+      enqueueLoadout({
+        action: request.kind,
+        characterId: request.characterId,
+        loadoutIndex: request.loadoutIndex,
+        colorHash: extra.colorHash,
+        iconHash: extra.iconHash,
+        nameHash: extra.nameHash,
+        itemInstanceIds: extra.itemInstanceIds ?? [],
+        step: extra.failure ? undefined : { kind: "loadout", request },
+        failure: extra.failure,
+      }),
+    [enqueueLoadout],
   );
 
-  return { run, pending, error, clearError: () => setError(null) };
+  return { run };
+}
+
+/** La dernière action de la file portant sur cet emplacement, s'il y en a une. */
+function findLoadoutAction(
+  actions: readonly QueuedAction[],
+  characterId: string | null,
+  loadoutIndex: number | null,
+): QueuedLoadoutAction | undefined {
+  if (!characterId || loadoutIndex === null) return undefined;
+  return actions.findLast(
+    (action): action is QueuedLoadoutAction =>
+      action.kind === "loadout" &&
+      action.characterId === characterId &&
+      action.loadoutIndex === loadoutIndex,
+  );
+}
+
+export interface LoadoutActionState {
+  /** Une action attend ou s'exécute sur cet emplacement */
+  busy: boolean;
+  /** Motif du dernier refus, à afficher près du bouton qui l'a demandé */
+  error?: string;
+  failure?: LoadoutFailure;
+}
+
+/**
+ * État des actions portant sur un emplacement, lu depuis la file.
+ *
+ * Le panneau n'a pas d'état à lui : il se remonte au changement de personnage,
+ * et l'action, elle, survit dans la file. C'est donc la file qui dit ce qu'il
+ * doit montrer — attente comme refus. Le même raisonnement que
+ * `usePlugActionState` pour les infobulles.
+ */
+export function useLoadoutActionState(
+  characterId: string | null,
+  loadoutIndex: number | null,
+): LoadoutActionState {
+  const actions = useActionQueue((s) => s.actions);
+  const last = findLoadoutAction(actions, characterId, loadoutIndex);
+
+  if (!last) return { busy: false };
+  if (last.status === "pending" || last.status === "running") {
+    return { busy: true };
+  }
+  return last.status === "error"
+    ? { busy: false, error: last.error, failure: last.failure }
+    : { busy: false };
+}
+
+/** Statut d'une action précise, pour savoir si elle a abouti. */
+export function useActionOutcome(
+  actionId: string | null,
+): "pending" | "done" | "error" | null {
+  return useActionQueue((s) => {
+    if (!actionId) return null;
+    const action = s.actions.find((a) => a.id === actionId);
+    if (!action) return null;
+    if (action.status === "done") return "done";
+    if (action.status === "error") return "error";
+    return "pending";
+  });
 }

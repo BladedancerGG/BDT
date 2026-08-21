@@ -5,10 +5,20 @@ import { useTranslations } from "next-intl";
 import type { Character } from "@/lib/bungie/use-profile";
 import { useSharedDefinition } from "@/lib/destiny/item-defs";
 import { useDefinition } from "@/lib/manifest/use-definition";
-import type { InventoryItemDefinition } from "@/lib/destiny/types";
+import type {
+  InventoryItemDefinition,
+  LoadoutColorDefinition,
+  LoadoutIconDefinition,
+  LoadoutNameDefinition,
+} from "@/lib/destiny/types";
+import { isRealHash } from "@/lib/loadouts/loadout";
 import { BUNGIE_ROOT } from "@/lib/destiny/display";
 import type { MoveTarget } from "@/lib/destiny/moves";
-import type { ActionStep, QueuedAction } from "@/lib/actions/store";
+import type {
+  ActionStep,
+  QueuedAction,
+  QueuedLoadoutAction,
+} from "@/lib/actions/store";
 import { ItemThumb } from "../ItemThumb";
 import { ActionStatusIcon } from "./ActionStatusIcon";
 import { DestinationIcon } from "./DestinationIcon";
@@ -67,6 +77,61 @@ function usePlugName(hash: number | undefined): string {
   return def?.displayProperties?.name ?? "…";
 }
 
+/** Nom d'un emplacement d'équipement, ou undefined s'il n'en a pas. */
+function useLoadoutName(nameHash: number | undefined): string | undefined {
+  const def = useDefinition<LoadoutNameDefinition>(
+    "DestinyLoadoutNameDefinition",
+    nameHash ?? null,
+  );
+  return def?.name;
+}
+
+/**
+ * Vignette d'un emplacement d'équipement : son fond coloré et son glyphe.
+ *
+ * Les deux images sont lues à l'unité, comme l'icône d'un attribut : le panneau
+ * en affiche une poignée, et les identifiants viennent de l'action elle-même —
+ * elle survit donc à un `clear` qui vide l'emplacement.
+ */
+function LoadoutMark({
+  loadout,
+  label,
+}: {
+  loadout: QueuedLoadoutAction;
+  label: string;
+}) {
+  const color = useDefinition<LoadoutColorDefinition>(
+    "DestinyLoadoutColorDefinition",
+    isRealHash(loadout.colorHash) ? loadout.colorHash : null,
+  );
+  const icon = useDefinition<LoadoutIconDefinition>(
+    "DestinyLoadoutIconDefinition",
+    isRealHash(loadout.iconHash) ? loadout.iconHash : null,
+  );
+
+  return (
+    <span className="loadout-mark" title={label}>
+      {color?.colorImagePath && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={`${BUNGIE_ROOT}${color.colorImagePath}`}
+          alt=""
+          className="loadout-mark__color"
+        />
+      )}
+      {icon?.iconImagePath && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={`${BUNGIE_ROOT}${icon.iconImagePath}`}
+          alt=""
+          className="loadout-mark__icon"
+        />
+      )}
+      <span className="loadout-mark__number">{loadout.loadoutIndex + 1}</span>
+    </span>
+  );
+}
+
 /** Une étape du plan, telle qu'elle se lit dans le détail déplié. */
 function StepRow({
   step,
@@ -78,9 +143,14 @@ function StepRow({
   names: ReadonlyMap<string, string>;
 }) {
   const t = useTranslations("actions.step");
-  const def = useSharedDefinition(step.itemHash);
+  // Une action d'emplacement ne porte aucun objet : `0` n'est le hash d'aucune
+  // définition, rien n'est lu.
+  const def = useSharedDefinition(step.kind === "loadout" ? 0 : step.itemHash);
   const item = def?.displayProperties?.name ?? "";
-  const character = names.get(step.characterId) ?? "";
+  const character =
+    names.get(
+      step.kind === "loadout" ? step.request.characterId : step.characterId,
+    ) ?? "";
   const perk = usePlugName(
     step.kind === "insert" ? step.plugItemHash : undefined,
   );
@@ -88,19 +158,24 @@ function StepRow({
   // Le rôle prime sur le type de requête : un `equip` qui sert à déséquiper
   // n'a rien à voir, pour l'utilisateur, avec l'équipement final.
   const label =
-    step.kind === "insert"
-      ? t("insert", { perk })
-      : step.role === "unequip"
-        ? t("unequip", { item })
-        : step.role === "evict"
-          ? t("evict", { item })
-          : step.kind === "pull"
-            ? t("pull", { character })
-            : step.kind === "toVault"
-              ? t("toVault")
-              : step.kind === "fromVault"
-                ? t("fromVault", { character })
-                : t("equip", { character });
+    step.kind === "loadout"
+      ? t(`loadout.${step.request.kind}`, {
+          number: step.request.loadoutIndex + 1,
+          character,
+        })
+      : step.kind === "insert"
+        ? t("insert", { perk })
+        : step.role === "unequip"
+          ? t("unequip", { item })
+          : step.role === "evict"
+            ? t("evict", { item })
+            : step.kind === "pull"
+              ? t("pull", { character })
+              : step.kind === "toVault"
+                ? t("toVault")
+                : step.kind === "fromVault"
+                  ? t("fromVault", { character })
+                  : t("equip", { character });
 
   return (
     <li className="action-card__step">
@@ -119,10 +194,14 @@ function StepRow({
  * Une action de la file : l'objet, sa destination, l'avancement en
  * « requêtes envoyées / total », et le détail des étapes au dépliage.
  *
- * Une insertion d'attribut se lit sur le même gabarit qu'un déplacement — même
- * vignette, même flèche, même avancement. Seule la « destination » change de
- * nature : ce n'est plus un lieu mais l'attribut qui va prendre la place, dont
- * on montre l'icône.
+ * Les trois natures d'action partagent le gabarit — même flèche, même
+ * avancement — et n'en changent que les deux extrémités :
+ *
+ *  - **déplacement** : la vignette de l'objet, puis le lieu visé ;
+ *  - **insertion** : la vignette de l'objet, puis l'attribut qui prend la place ;
+ *  - **équipement** : la vignette de l'emplacement, à gauche comme à droite. Il
+ *    n'y a pas d'objet ici, et pas de lieu : l'emplacement est les deux à la
+ *    fois, et c'est ce qu'on lui fait qui est écrit dans le sous-titre.
  */
 export function ActionCard({
   action,
@@ -134,20 +213,36 @@ export function ActionCard({
   names: ReadonlyMap<string, string>;
 }) {
   const t = useTranslations("actions");
+  const tLoadout = useTranslations("loadouts");
   const [expanded, setExpanded] = useState(false);
-  const def = useSharedDefinition(action.itemHash);
+  const loadout = action.kind === "loadout" ? action : undefined;
+  // `0` n'est le hash d'aucune définition : une action d'emplacement ne lit rien.
+  // Le test porte sur `action.kind` et non sur `loadout` : c'est lui qui restreint
+  // le type de l'union, une variable intermédiaire ne le fait pas.
+  const def = useSharedDefinition(
+    action.kind === "loadout" ? 0 : action.itemHash,
+  );
+  const loadoutName = useLoadoutName(loadout?.nameHash);
 
   const plugHash =
     action.kind === "insert" ? action.steps[0]?.plugItemHash : undefined;
   const perk = usePlugName(plugHash);
-  // Les hooks ne se conditionnent pas : les deux libellés sont calculés, un
-  // seul est retenu. Le déplacement fictif ne coûte qu'une lecture de messages.
+  // Les hooks ne se conditionnent pas : les libellés sont tous calculés, un seul
+  // est retenu. Le déplacement fictif ne coûte qu'une lecture de messages.
   const moveLabel = useTargetLabel(
     action.kind === "move" ? action.target : { kind: "vault" },
     names,
   );
-  const targetLabel =
-    action.kind === "insert" ? t("target.perk", { perk }) : moveLabel;
+  const targetLabel = loadout
+    ? t(`target.loadout.${loadout.action}`)
+    : action.kind === "insert"
+      ? t("target.perk", { perk })
+      : moveLabel;
+
+  // Le titre : le nom de l'objet, ou celui de l'emplacement et son numéro.
+  const title = loadout
+    ? `${loadout.loadoutIndex + 1} - ${loadoutName ?? tLoadout("freeSlot")}`
+    : (def?.displayProperties?.name ?? "…");
 
   const done = action.steps.filter((s) => s.status === "done").length;
   const total = action.steps.length;
@@ -156,9 +251,7 @@ export function ActionCard({
     <li className={`action-card action-card--${action.status}`}>
       <div className="action-card__header">
         <div className="action-card__titles">
-          <span className="action-card__name">
-            {def?.displayProperties?.name ?? "…"}
-          </span>
+          <span className="action-card__name">{title}</span>
           <span className="action-card__target">{targetLabel}</span>
         </div>
         <ActionStatusIcon status={action.status} />
@@ -167,18 +260,26 @@ export function ActionCard({
       <div className="action-card__flow">
         {/* .item-thumb se dimensionne sur son parent : il lui en faut un */}
         <span className="action-card__thumb">
-          <ItemThumb
-            itemHash={action.itemHash}
-            itemInstanceId={action.itemInstanceId}
-            state={action.state}
-            versionNumber={action.versionNumber}
-            gearTier={action.gearTier}
-          />
+          {action.kind === "loadout" ? (
+            <LoadoutMark loadout={action} label={title} />
+          ) : (
+            <ItemThumb
+              itemHash={action.itemHash}
+              itemInstanceId={action.itemInstanceId}
+              state={action.state}
+              versionNumber={action.versionNumber}
+              gearTier={action.gearTier}
+            />
+          )}
         </span>
         <span className="action-card__arrow" aria-hidden>
           →
         </span>
-        {action.kind === "insert" ? (
+        {action.kind === "loadout" ? (
+          <span className="destination-icon" title={targetLabel}>
+            <LoadoutMark loadout={action} label={targetLabel} />
+          </span>
+        ) : action.kind === "insert" ? (
           <PlugDestination hash={plugHash ?? 0} />
         ) : (
           <DestinationIcon

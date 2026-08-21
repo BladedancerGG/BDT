@@ -147,7 +147,13 @@
       "vault": "Transfert vers le coffre",
       "inventory": "Transfert vers {character}",
       "equip": "Équipement sur {character}",
-      "perk": "Attribut : {perk}"
+      "perk": "Attribut : {perk}",
+      "loadout": {
+        "equip": "Équiper cet équipement",
+        "snapshot": "Enregistrer les objets équipés",
+        "clear": "Vider cet emplacement",
+        "identifiers": "Changer l'apparence"
+      }
     },
     "step": {
       "pull": "Retrait des objets perdus vers {character}",
@@ -156,7 +162,13 @@
       "equip": "Équipement sur {character}",
       "unequip": "Déséquipement : « {item} » prend sa place",
       "evict": "Rangement de « {item} » au coffre pour faire de la place",
-      "insert": "Équipement de l’attribut « {perk} »"
+      "insert": "Équipement de l’attribut « {perk} »",
+      "loadout": {
+        "equip": "Équiper l'équipement n°{number} sur {character}",
+        "snapshot": "Enregistrer les objets équipés dans l'emplacement n°{number}",
+        "clear": "Vider l'emplacement n°{number}",
+        "identifiers": "Changer l'apparence de l'emplacement n°{number}"
+      }
     },
     "zone": {
       "equipHere": "Équiper",
@@ -176,7 +188,8 @@
       "postmasterSideEffects": "Bungie refuse de sortir cet objet des objets perdus.",
       "vaultFull": "Le coffre est plein.",
       "bucketFull": "L'emplacement de destination est plein.",
-      "noCharacter": "Aucun personnage sur ce compte."
+      "noCharacter": "Aucun personnage sur ce compte.",
+      "noIdentifiers": "Identifiants du manifeste indisponibles : l'enregistrement serait refusé."
     }
   },
   "manifest": {
@@ -254,6 +267,9 @@
     "pickName": "Choisir le nom",
     "noSlots": "Aucun emplacement d'équipement renvoyé par l'API pour ce personnage.",
     "create": "Créer cet équipement à partir des objets équipés",
-    "freeSlot": "Emplacement libre"
+    "freeSlot": "Emplacement libre",
+    "editIdentifiers": "Modifier",
+    "applyIdentifiers": "Appliquer",
+    "cancelIdentifiers": "Annuler"
   }
 }

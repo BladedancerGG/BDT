@@ -18,7 +18,7 @@ import { useSearchMiss } from "@/lib/search/provider";
 import { useItemBusy } from "@/lib/actions/store";
 import { subclassKind } from "@/lib/destiny/subclass";
 import {
-  useDragDisabled,
+  useDragScope,
   useMoveActions,
   type DraggedItem,
 } from "./dnd/MoveDnd";
@@ -70,9 +70,9 @@ export function ItemIcon({
   // déplacement en est volontairement absent, il re-rendrait toutes les
   // vignettes montées à chaque saisie.
   const { equipOnSelected } = useMoveActions();
-  // Contexte à part : les deux modes d'affichage sont montés ensemble, seul
-  // celui des équipements interdit le geste.
-  const dragDisabled = useDragDisabled();
+  // Contexte à part : les deux modes d'affichage sont montés ensemble, et ni le
+  // geste ni les identifiants dnd-kit ne peuvent être communs — voir DragScope.
+  const { disabled: dragDisabled, idPrefix } = useDragScope();
 
   // L'objet tel qu'il part en déplacement — par glisser-déposer comme par
   // double-clic. Les habillages en font partie : les vignettes du DragOverlay
@@ -85,13 +85,17 @@ export function ItemIcon({
   // Un objet non instancié n'a pas d'identité côté API : il ne se déplace pas.
   // Le mode « équipements » désactive le geste pour tout le monde : il n'y a ni
   // inventaire d'emplacement ni coffre où déposer.
+  //
+  // L'identifiant est préfixé par le mode d'affichage : sans quoi les deux
+  // vignettes d'un même objet équipé se disputent l'entrée de `draggableNodes`
+  // — voir DragScope.idPrefix.
   const {
     attributes,
     listeners,
     setNodeRef: setDragRef,
     isDragging,
   } = useDraggable({
-    id: itemInstanceId ?? `${itemHash}-static`,
+    id: `${idPrefix}${itemInstanceId ?? `${itemHash}-static`}`,
     disabled: !dragged || dragDisabled,
     data: dragged,
   });

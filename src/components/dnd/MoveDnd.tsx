@@ -119,20 +119,39 @@ const MoveActionsContext = createContext<MoveActionsValue>({
 });
 
 /**
- * Sous-arbre où aucune vignette ne se saisit.
+ * Ce que le glisser-déposer devient dans un sous-arbre donné.
  *
- * C'est le mode « équipements » : il n'affiche ni inventaire d'emplacement ni
- * coffre, donc aucune destination — un geste n'aurait nulle part à aboutir.
- *
- * Un contexte à lui, et non un drapeau dans `MoveActionsValue` : les deux modes
- * sont montés en même temps (le fondu de bascule l'exige), et seul l'un des deux
- * doit interdire le geste. Un booléen porté par le contexte des actions
- * l'aurait imposé aux deux.
+ * Un contexte à part, et non un drapeau dans `MoveActionsValue` : les deux modes
+ * d'affichage sont montés en même temps (le fondu de bascule l'exige), et ce qui
+ * vaut pour l'un ne vaut pas pour l'autre.
  */
-const DragDisabledContext = createContext(false);
+export interface DragScope {
+  /**
+   * Aucune vignette ne se saisit ici. C'est le mode « équipements » : il
+   * n'affiche ni inventaire d'emplacement ni coffre, donc aucune destination —
+   * un geste n'aurait nulle part à aboutir.
+   */
+  disabled: boolean;
+  /**
+   * Préfixe des identifiants dnd-kit de ce sous-arbre.
+   *
+   * Indispensable, et c'est un piège déjà payé : `draggableNodes` de dnd-kit est
+   * une Map indexée par le SEUL identifiant, et `useDraggable` s'y enregistre
+   * même désactivé. Les deux modes rendant les mêmes objets équipés, leurs deux
+   * vignettes se disputaient la même entrée — la dernière montée l'emportait, et
+   * c'est SA position qui servait d'origine au calque de déplacement. D'où une
+   * vignette qui sautait à l'emplacement qu'elle occupe dans l'autre mode dès le
+   * début du geste.
+   */
+  idPrefix: string;
+}
 
-export const DragDisabledProvider = DragDisabledContext.Provider;
-export const useDragDisabled = () => useContext(DragDisabledContext);
+const DEFAULT_SCOPE: DragScope = {disabled: false, idPrefix: ""};
+
+const DragScopeContext = createContext<DragScope>(DEFAULT_SCOPE);
+
+export const DragScopeProvider = DragScopeContext.Provider;
+export const useDragScope = () => useContext(DragScopeContext);
 
 /**
  * Deux contextes plutôt qu'un : l'objet saisi change au début et à la fin du

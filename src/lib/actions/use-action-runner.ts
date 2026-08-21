@@ -11,12 +11,14 @@ import {
 import { useItemDefs } from "@/lib/destiny/item-defs";
 import { useBucketCapacities } from "@/lib/destiny/use-bucket-capacities";
 import { applyStep, planMove } from "@/lib/destiny/moves";
+import { applyEquippedLoadout } from "@/lib/destiny/loadout-equip";
 import { socketsAfterInsert } from "@/lib/destiny/sockets";
 import { sendStep } from "./api";
 import {
   useActionQueue,
   type ActionStep,
   type QueuedInsertAction,
+  type QueuedLoadoutAction,
   type QueuedMoveAction,
 } from "./store";
 import { PROFILE_KEY } from "./use-move-planner";
@@ -140,6 +142,57 @@ export function useActionRunner() {
       setActionStatus(action.id, "done");
     };
 
+    /**
+     * Agir sur un emplacement d'équipement : une requête, rien à planifier.
+     *
+     * Pour un `equip`, l'effet local est rejoué sur le cache du profil : Bungie
+     * ne dit rien de ce qu'il a déplacé, et sans cette simulation l'écran
+     * garderait l'ancien équipement jusqu'au rechargement — lequel peut de
+     * surcroît ramener un instantané antérieur, d'où le marquage des objets
+     * déplacés. Les autres natures ne touchent pas aux objets : l'emplacement
+     * lui-même n'est relu qu'au rechargement final.
+     */
+    const runLoadout = async (action: QueuedLoadoutAction) => {
+      const { setActionStatus, setStepStatus } = queue();
+      const step = action.steps[0];
+      if (!step) {
+        setActionStatus(action.id, "done");
+        return;
+      }
+
+      setActionStatus(action.id, "running");
+      setStepStatus(action.id, step.id, "running");
+
+      const error = await send(step);
+      if (error) {
+        setStepStatus(action.id, step.id, "error", error.message);
+        setActionStatus(action.id, "error", error.message);
+        return;
+      }
+
+      setStepStatus(action.id, step.id, "done");
+
+      if (action.action === "equip") {
+        const snapshot = queryClient.getQueryData<ProfileData>(PROFILE_KEY);
+        const loadout = snapshot?.loadouts?.[action.characterId]?.[
+          action.loadoutIndex
+        ];
+        if (snapshot && loadout) {
+          const result = applyEquippedLoadout(
+            snapshot,
+            loadout,
+            action.characterId,
+            defs,
+            capacities,
+          );
+          for (const id of result.moved) moved.add(id);
+          queryClient.setQueryData<ProfileData>(PROFILE_KEY, result.profile);
+        }
+      }
+
+      setActionStatus(action.id, "done");
+    };
+
     const runMove = async (action: QueuedMoveAction) => {
       const { setSteps, setActionStatus, setStepStatus } = queue();
       const snapshot = queryClient.getQueryData<ProfileData>(PROFILE_KEY);
@@ -211,6 +264,7 @@ export function useActionRunner() {
         const next = queue().actions.find((a) => a.status === "pending");
         if (!next) break;
         if (next.kind === "insert") await runInsert(next);
+        else if (next.kind === "loadout") await runLoadout(next);
         else await runMove(next);
       }
     };

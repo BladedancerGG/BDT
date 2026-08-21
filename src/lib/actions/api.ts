@@ -1,15 +1,19 @@
 "use client";
 
+import type { LoadoutStepRequest } from "@/lib/loadouts/types";
 import type { InsertStepRequest } from "./sockets";
 import type { MoveStepError, MoveStepRequest } from "./types";
 
 /** Une requête d'écriture, quelle que soit sa nature. */
-export type StepRequest = MoveStepRequest | InsertStepRequest;
+export type StepRequest =
+  | MoveStepRequest
+  | InsertStepRequest
+  | LoadoutStepRequest;
 
 /**
  * Envoie une étape à la route qui sait l'exécuter.
  *
- * Les deux routes partagent la forme de leur refus : l'exécuteur n'a donc pas à
+ * Les trois routes partagent la forme de leur refus : l'exécuteur n'a donc pas à
  * savoir laquelle il vient d'appeler.
  *
  * Ne lève jamais : un refus de Bungie est une information à afficher dans la
@@ -19,18 +23,26 @@ export type StepRequest = MoveStepRequest | InsertStepRequest;
 export async function sendStep(
   step: StepRequest,
 ): Promise<MoveStepError | null> {
-  const insert = step.kind === "insert";
-  const url = insert ? "/api/sockets" : "/api/actions";
+  const url =
+    step.kind === "insert"
+      ? "/api/sockets"
+      : step.kind === "loadout"
+        ? "/api/loadouts"
+        : "/api/actions";
+
   // L'étape porte de quoi s'afficher dans le panneau (`kind`, `itemHash`) ;
   // seul le contrat de la route part sur le réseau.
-  const body: unknown = insert
-    ? {
-        itemInstanceId: step.itemInstanceId,
-        socketIndex: step.socketIndex,
-        plugItemHash: step.plugItemHash,
-        characterId: step.characterId,
-      }
-    : step;
+  const body: unknown =
+    step.kind === "insert"
+      ? {
+          itemInstanceId: step.itemInstanceId,
+          socketIndex: step.socketIndex,
+          plugItemHash: step.plugItemHash,
+          characterId: step.characterId,
+        }
+      : step.kind === "loadout"
+        ? step.request
+        : step;
 
   let res: Response;
   try {

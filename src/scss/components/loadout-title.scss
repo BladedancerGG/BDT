@@ -116,8 +116,11 @@
   // deux se séparent. Le sélecteur ouvert les maintient écartés — il est rendu
   // dans un portail, donc hors de la vignette, et aller le cliquer ferait sinon
   // se refermer ce qu'on est en train de modifier.
-  &__tile:hover &__part--icon,
-  &__tile:focus-within &__part--icon,
+  //
+  // Réservé à l'édition : hors édition, écarter les deux moitiés annoncerait
+  // deux cibles qui ne s'ouvrent pas.
+  &__tile--editing:hover &__part--icon,
+  &__tile--editing:focus-within &__part--icon,
   &__tile--open &__part--icon {
     margin-left: 0.5rem;
   }
@@ -126,6 +129,19 @@
     &__part {
       transition: none;
     }
+  }
+
+  // Le nom hors édition : du texte, pas un contrôle désactivé.
+  &__value {
+    padding: 0.0625rem 0.25rem;
+  }
+
+  // « Modifier », puis « Appliquer » / « Annuler »
+  &__actions {
+    display: flex;
+    gap: 0.375rem;
+    letter-spacing: normal;
+    text-transform: none;
   }
 
   // Emplacement libre : le titre n'a que son numéro et cette mention. Elle

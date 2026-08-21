@@ -147,7 +147,13 @@
       "vault": "Transfer to the vault",
       "inventory": "Transfer to {character}",
       "equip": "Equip on {character}",
-      "perk": "Perk: {perk}"
+      "perk": "Perk: {perk}",
+      "loadout": {
+        "equip": "Equip this loadout",
+        "snapshot": "Save the equipped items",
+        "clear": "Clear this slot",
+        "identifiers": "Change the appearance"
+      }
     },
     "step": {
       "pull": "Pull from the postmaster to {character}",
@@ -156,7 +162,13 @@
       "equip": "Equip on {character}",
       "unequip": "Unequip: “{item}” takes its place",
       "evict": "Move “{item}” to the vault to free a slot",
-      "insert": "Equipping the “{perk}” perk"
+      "insert": "Equipping the “{perk}” perk",
+      "loadout": {
+        "equip": "Equip loadout #{number} on {character}",
+        "snapshot": "Save the equipped items into slot #{number}",
+        "clear": "Clear slot #{number}",
+        "identifiers": "Change the appearance of slot #{number}"
+      }
     },
     "zone": {
       "equipHere": "Equip",
@@ -176,7 +188,8 @@
       "postmasterSideEffects": "Bungie refuses to pull this item from the postmaster.",
       "vaultFull": "The vault is full.",
       "bucketFull": "The destination slot is full.",
-      "noCharacter": "No character on this account."
+      "noCharacter": "No character on this account.",
+      "noIdentifiers": "Manifest identifiers unavailable: saving would be refused."
     }
   },
   "manifest": {
@@ -254,6 +267,9 @@
     "pickName": "Pick the name",
     "noSlots": "The API returned no loadout slots for this character.",
     "create": "Create this loadout from the equipped items",
-    "freeSlot": "Free slot"
+    "freeSlot": "Free slot",
+    "editIdentifiers": "Edit",
+    "applyIdentifiers": "Apply",
+    "cancelIdentifiers": "Cancel"
   }
 }

@@ -61,3 +61,25 @@ export function isLoadoutActionRequest(
                 typeof body.nameHash === "number"))
     );
 }
+
+/**
+ * L'action sur un emplacement telle qu'elle vit dans la file d'actions.
+ *
+ * La requête est **enveloppée** plutôt qu'étendue : `LoadoutActionRequest` porte
+ * déjà un `kind` — ce qu'on fait à l'emplacement — et la file a besoin du sien,
+ * celui qui aiguille l'envoi vers `/api/loadouts` plutôt que vers les routes de
+ * déplacement ou de socket.
+ */
+export interface LoadoutStepRequest {
+    kind: "loadout";
+    request: LoadoutActionRequest;
+}
+
+/**
+ * Refus détecté avant tout envoi.
+ *
+ * `noIdentifiers` couvre l'enregistrement sur un emplacement libre alors que les
+ * constantes du manifeste ne sont pas lues : `SnapshotLoadout` exige les trois
+ * identifiants, l'appel partirait pour être refusé.
+ */
+export type LoadoutFailure = "noCharacter" | "noIdentifiers";

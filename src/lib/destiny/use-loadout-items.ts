@@ -3,6 +3,7 @@
 import {useMemo} from "react";
 import type {DestinyItemComponent, DestinyLoadout} from "@/lib/bungie/profile";
 import type {ProfileData} from "@/lib/bungie/use-profile";
+import {isEmptyLoadout} from "@/lib/loadouts/loadout";
 import type {InventoryItemDefinition} from "./types";
 
 /**
@@ -19,6 +20,11 @@ import type {InventoryItemDefinition} from "./types";
  *
  * Une entrée dont l'instance a disparu (objet démantelé depuis l'enregistrement)
  * est simplement absente : la ligne se montre alors vide, comme en jeu.
+ *
+ * Renvoie `undefined` pour un emplacement **libre**, et c'est ce qui fait
+ * retomber l'affichage sur l'équipement porté. Un emplacement libre porte
+ * pourtant des entrées dans `items` (voir `isEmptyLoadout`) : sans ce test, elles
+ * ne résolvaient rien et la vue se vidait de ses dix lignes.
  */
 export function useLoadoutItems(
     loadout: DestinyLoadout | undefined,
@@ -38,7 +44,9 @@ export function useLoadoutItems(
     }, [data]);
 
     return useMemo(() => {
-        if (!loadout || loadout.items.length === 0) return undefined;
+        // Le `!loadout` est là pour l'analyse de types, que le prédicat ne
+        // porte pas jusqu'ici.
+        if (!loadout || isEmptyLoadout(loadout)) return undefined;
         return loadout.items.flatMap((entry) => {
             const item = index.get(entry.itemInstanceId);
             if (!item) return [];

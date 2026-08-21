@@ -110,7 +110,9 @@ ne pas être rognées par le conteneur de défilement.
   Exemples relevés ainsi, contre-intuitifs : les artéfacts ont `itemType: 0` et ne sont
   identifiables que par leur emplacement ; l'élément d'une doctrine est dans
   `talentGrid.hudDamageType` (son `defaultDamageType` vaut toujours 0) ; les attributs intrinsèques
-  d'armure exotique partagent la famille `intrinsics` des armatures d'armes.
+  d'armure exotique partagent la famille `intrinsics` des armatures d'armes ; un identifiant non
+  renseigné vaut la sentinelle `2166136261` (base FNV-1a) et non zéro, si bien qu'un test de
+  vérité le prend pour un vrai hash.
 - **`docker compose down -v` détruit le volume de la base.** En production il emporte aussi les
   certificats et le compte ACME de Caddy, soumis à des quotas Let's Encrypt. `make clean` fait
   exactement ça — ne pas le lancer sur un serveur.
