@@ -200,7 +200,7 @@ function Inventory({data}: { data: ProfileData }) {
     );
 
     const character = data.characters.find((c) => c.characterId === current);
-    const equipmentMode = viewMode === "equipment";
+    const equipmentMode = viewMode === "loadouts";
 
     return (
         <EquippedSetsProvider counts={equippedSetCounts}>
@@ -212,15 +212,17 @@ function Inventory({data}: { data: ProfileData }) {
             <SearchActionsBridge data={data}/>
             <div className="inventory-view">
                 {/* Sélecteur de personnage, et bascule des modes d'affichage */}
-                <div className="inventory-view__characters">
-                    {data.characters.map((c) => (
-                        <CharacterTab
-                            key={c.characterId}
-                            character={c}
-                            selected={c.characterId === current}
-                            onSelect={() => setSelectedId(c.characterId)}
-                        />
-                    ))}
+                <div className="inventory-view__header">
+                    <div className="inventory-view__characters">
+                        {data.characters.map((c) => (
+                            <CharacterTab
+                                key={c.characterId}
+                                character={c}
+                                selected={c.characterId === current}
+                                onSelect={() => setSelectedId(c.characterId)}
+                            />
+                        ))}
+                    </div>
                     <ViewModeTabs/>
                 </div>
 
@@ -320,13 +322,10 @@ function Inventory({data}: { data: ProfileData }) {
                                         details={data.items}
                                         defs={defs}
                                         setCounts={shownSetCounts}
-                                        // Un équipement sauvegardé est un instantané :
-                                        // rien n'y est équipé en ce moment.
+                                        characterStats={
+                                            loadoutItems ? undefined : character?.stats
+                                        }
                                         editable={!loadoutItems}
-                                    />
-                                    <CharacterSummary
-                                        stats={character?.stats ?? {}}
-                                        setCounts={shownSetCounts}
                                     />
                                 </div>
 

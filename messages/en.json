@@ -217,9 +217,9 @@
     "mode": {
       "label": "Display mode",
       "inventory": "Inventory",
-      "equipment": "Loadouts"
+      "loadouts": "Loadouts"
     },
-    "currentEquipment": "Current loadout"
+    "currentEquipment": "Currently equipped"
   },
   "subclass": {
     "abilities": "Abilities",

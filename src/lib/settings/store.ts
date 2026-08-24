@@ -118,7 +118,7 @@ export const useSettings = create<SettingsState>()(
             setViewMode: (viewMode) => set({viewMode}),
             toggleViewMode: () =>
                 set((state) => ({
-                    viewMode: state.viewMode === "inventory" ? "equipment" : "inventory",
+                    viewMode: state.viewMode === "inventory" ? "loadouts" : "inventory",
                 })),
 
             toggleSort: (id) =>

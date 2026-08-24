@@ -217,9 +217,9 @@
     "mode": {
       "label": "Mode d'affichage",
       "inventory": "Inventaire",
-      "equipment": "Équipements"
+      "loadouts": "Équipements"
     },
-    "currentEquipment": "Équipement actuel"
+    "currentEquipment": "Objets équipés"
   },
   "subclass": {
     "abilities": "Compétences",

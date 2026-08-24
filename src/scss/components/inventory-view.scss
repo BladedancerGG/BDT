@@ -7,8 +7,6 @@
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
-  gap: 1.5rem;
-  padding: 1rem;
   overflow: visible;
 
   // Maillon de la chaîne de hauteurs (voir .app-main)
@@ -17,12 +15,20 @@
     min-height: 0;
   }
 
+  &__header {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    flex-shrink: 0; // ne se comprime pas au profit du coffre
+    padding: 0 1rem 1rem;
+
+    border-bottom: 1px solid var(--color-border);
+  }
+
   &__characters {
     display: flex;
-    justify-content: left;
-    flex-wrap: wrap;
     gap: 0.75rem;
-    flex-shrink: 0; // ne se comprime pas au profit du coffre
+    flex-wrap: wrap;
   }
 
   // Les deux modes d'affichage, superposés.
@@ -87,6 +93,7 @@
   // Équipement à gauche, coffre à droite. Empilés sous 1024 px : les deux
   // colonnes d'emplacements et leurs panneaux dépliants demandent de la largeur.
   &__body {
+    padding: 1rem 1rem 0;
     display: grid;
     grid-template-columns: 1fr;
     // Lignes de rangée **explicites**, même quand il n'y a qu'une seule

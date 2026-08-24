@@ -7,10 +7,12 @@ import type {ItemDetail} from "@/lib/bungie/item-components";
 import type {InventoryItemDefinition} from "@/lib/destiny/types";
 import {ARMOR_COLUMN, WEAPON_COLUMN, type SlotSide} from "@/lib/destiny/buckets";
 import {useEquippedPlugs} from "@/lib/destiny/use-equipped-plugs";
+import {useShownStats} from "@/lib/destiny/use-shown-stats";
 import type {EquippedSetCounts} from "@/lib/destiny/set-bonus";
 import type {QueuedItem} from "@/lib/actions/store";
 import {ItemIcon} from "../ItemIcon";
 import {EquipmentPlugs} from "./EquipmentPlugs";
+import {CharacterSummary} from "@/components/equipment/CharacterSummary";
 
 /**
  * Mode « équipements » : une ligne par emplacement, ses attributs alignés à
@@ -30,6 +32,7 @@ export function EquipmentModeView({
                                       details,
                                       defs,
                                       setCounts,
+                                      characterStats,
                                       editable,
                                   }: {
     /** Titre de la vue : l'équipement porté, ou l'emplacement sélectionné */
@@ -38,7 +41,17 @@ export function EquipmentModeView({
     items: readonly DestinyItemComponent[];
     details: Record<string, ItemDetail>;
     defs: Map<number, InventoryItemDefinition>;
+    /** Bonus d'ensemble des objets **montrés**, pas de ceux qui sont portés */
     setCounts: EquippedSetCounts;
+    /**
+     * Totaux du composant 200, faisant autorité : Bungie y a déjà additionné
+     * armures, mods, fragments et artéfact, bonus conditionnels compris.
+     *
+     * N'a de sens que si la vue montre l'équipement porté — d'où l'absence
+     * lorsqu'un équipement sauvegardé est sélectionné, qui fait retomber
+     * l'affichage sur des totaux reconstitués depuis les objets montrés.
+     */
+    characterStats?: Record<string, number>;
     /**
      * Les attributs s'y changent. Faux pour un équipement sauvegardé : c'est un
      * instantané, rien n'y est équipé en ce moment.
@@ -47,6 +60,12 @@ export function EquipmentModeView({
 }) {
     const t = useTranslations("inventory");
     const plugs = useEquippedPlugs(items, details, defs, setCounts);
+
+    // Le résumé décrit ce que la vue **montre**, et non ce que le personnage
+    // porte : sélectionner un équipement sauvegardé doit en donner les
+    // statistiques et les bonus d'ensemble, pas ceux de la panoplie actuelle.
+    const computedStats = useShownStats(items, details);
+    const stats = characterStats ?? computedStats;
 
     // Un emplacement ne porte qu'un objet équipé : un simple index suffit.
     const byBucket = useMemo(() => {
@@ -89,6 +108,8 @@ export function EquipmentModeView({
                     </div>
                 ))}
             </div>
+
+            <CharacterSummary stats={stats} setCounts={setCounts}/>
 
             {items.length === 0 && (
                 <p className="equipment-mode__message">{t("loading")}</p>

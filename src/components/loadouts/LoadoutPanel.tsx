@@ -13,6 +13,8 @@ import {
     useLoadoutActionState,
     useLoadoutActions,
 } from "@/lib/loadouts/use-loadout-actions";
+import {PlusIcon} from "@heroicons/react/24/solid"
+import {EmptySlotIcon} from "@/components/icons";
 
 /**
  * Les emplacements d'équipement du personnage, et les actions du sélectionné.
@@ -188,6 +190,12 @@ export function LoadoutPanel({
                                     alt={name ?? ""}
                                     className="loadout-slot__icon"
                                 />
+                            )}
+                            {free && (
+                                <>
+                                    <EmptySlotIcon />
+                                    <PlusIcon/>
+                                </>
                             )}
                             <span className="loadout-slot__number">{index + 1}</span>
                         </button>

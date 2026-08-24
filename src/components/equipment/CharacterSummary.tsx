@@ -140,7 +140,7 @@ export function CharacterSummary({
                                 />
                             )}
                             <span className="character-summary__stat-value">
-                                {line.value}
+                                {line.value < 0 ? "0" : line.value}
                             </span>
                         </span>
                     ))}

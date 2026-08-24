@@ -10,15 +10,16 @@
 
 .loadout-title {
   display: flex;
-  flex-direction: column;
   align-items: center;
   gap: 0.25rem;
+
+  height: 50px;
 
   &__name {
     display: flex;
     align-items: baseline;
     gap: 0.375rem;
-    font-size: 1rem;
+    font-size: 1.5rem;
     font-weight: 600;
     letter-spacing: normal;
     text-transform: none;
@@ -131,17 +132,29 @@
     }
   }
 
-  // Le nom hors édition : du texte, pas un contrôle désactivé.
-  &__value {
-    padding: 0.0625rem 0.25rem;
-  }
-
   // « Modifier », puis « Appliquer » / « Annuler »
   &__actions {
     display: flex;
-    gap: 0.375rem;
-    letter-spacing: normal;
-    text-transform: none;
+    button {
+      padding: 0.5rem;
+      border: none;
+      background: none;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      transition: color 120ms ease-in-out;
+      cursor: pointer;
+      &:hover {
+        color: var(--color-text);
+      }
+
+      svg {
+        width: 20px;
+        height: 20px;
+      }
+    }
   }
 
   // Emplacement libre : le titre n'a que son numéro et cette mention. Elle

@@ -4,6 +4,8 @@ import { useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { VIEW_MODES } from "@/lib/settings/constants";
 import { useSettings } from "@/lib/settings/store";
+import {LoadoutsIcon, VaultIcon} from "@/components/icons";
+import {DestinySymbol} from "@/components/DestinySymbol";
 
 /**
  * Bascule entre les deux modes d'affichage : inventaire et équipements.
@@ -44,6 +46,7 @@ export function ViewModeTabs() {
 
     return (
         <div className="view-mode-tabs" role="tablist" aria-label={t("label")}>
+            <div className="view-mode-tabs__hint">(<DestinySymbol name={"tab"}/>&nbsp;to cycle)</div>
             {VIEW_MODES.map((mode) => (
                 <button
                     key={mode}
@@ -55,7 +58,9 @@ export function ViewModeTabs() {
                     }`}
                     onClick={() => setViewMode(mode)}
                 >
-                    {t(mode)}
+                    {mode === "inventory" &&  <VaultIcon/> }
+                    {mode === "loadouts" &&  <LoadoutsIcon/> }
+                    <span>{t(mode)}</span>
                 </button>
             ))}
         </div>

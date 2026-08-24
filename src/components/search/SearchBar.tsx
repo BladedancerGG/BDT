@@ -81,8 +81,7 @@ export function SearchBar() {
     const onGlobalKeyDown = (event: globalThis.KeyboardEvent) => {
       if (event.defaultPrevented) return;
       if (event.ctrlKey || event.metaKey || event.altKey) return;
-      if (event.key !== "Enter" && !/^[a-z]$/i.test(event.key)) return;
-
+      if (event.key !== "Enter") return;
       const target = event.target as HTMLElement | null;
       const input = inputRef.current;
       if (!target || !input || target === input) return;

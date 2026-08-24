@@ -50,7 +50,7 @@ export function parseSearchMissMode(raw: unknown): SearchMissMode | undefined {
  *  - `equipment`  : une ligne par objet équipé, avec ses attributs et ses mods,
  *                   et le panneau des équipements sauvegardés.
  */
-export const VIEW_MODES = ["inventory", "equipment"] as const;
+export const VIEW_MODES = ["inventory", "loadouts"] as const;
 export type ViewMode = (typeof VIEW_MODES)[number];
 
 export const DEFAULT_VIEW_MODE: ViewMode = "inventory";

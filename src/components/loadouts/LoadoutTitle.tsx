@@ -26,6 +26,8 @@ import {
     useLoadoutActions,
 } from "@/lib/loadouts/use-loadout-actions";
 
+import {PencilIcon, XMarkIcon, CheckIcon} from "@heroicons/react/24/solid"
+
 /** Lequel des deux identifiants visuels est en cours de choix. */
 type Target = "color" | "icon";
 
@@ -236,39 +238,6 @@ export function LoadoutTitle({
 
     return (
         <div className="loadout-title">
-            <p className="loadout-title__name">
-                <span className="loadout-title__number">{index + 1} -</span>
-                {/* Hors édition le nom est du texte : un contrôle désactivé
-                    n'apporterait rien qu'une cible morte dans un titre. */}
-                {editing ? (
-                    // Un select plutôt qu'une grille : les noms sont du texte, une
-                    // liste déroulante native les présente mieux qu'un panneau —
-                    // et reste utilisable au clavier sans rien écrire pour ça.
-                    <select
-                        className="loadout-title__select"
-                        value={shown.nameHash}
-                        disabled={busy || choices.names.length === 0}
-                        aria-label={t("pickName")}
-                        onChange={(event) =>
-                            edit({nameHash: Number(event.target.value)})
-                        }
-                    >
-                        {/* Le nom courant peut manquer des constantes (nom retiré
-                            d'une saison à l'autre) : sans cette option, le select
-                            afficherait le premier de la liste à sa place. */}
-                        {!choices.names.some((c) => c.hash === shown.nameHash) && (
-                            <option value={shown.nameHash}>{name ?? ""}</option>
-                        )}
-                        {choices.names.map((choice) => (
-                            <option key={choice.hash} value={choice.hash}>
-                                {choice.value}
-                            </option>
-                        ))}
-                    </select>
-                ) : (
-                    <span className="loadout-title__value">{name ?? ""}</span>
-                )}
-            </p>
 
             <div
                 // setReference est un callback ref stable de Floating UI
@@ -314,21 +283,55 @@ export function LoadoutTitle({
                 </button>
             </div>
 
+            <p className="loadout-title__name">
+                {/* Hors édition le nom est du texte : un contrôle désactivé
+                    n'apporterait rien qu'une cible morte dans un titre. */}
+                {editing ? (
+                    // Un select plutôt qu'une grille : les noms sont du texte, une
+                    // liste déroulante native les présente mieux qu'un panneau —
+                    // et reste utilisable au clavier sans rien écrire pour ça.
+                    <select
+                        className="loadout-title__select"
+                        value={shown.nameHash}
+                        disabled={busy || choices.names.length === 0}
+                        aria-label={t("pickName")}
+                        onChange={(event) =>
+                            edit({nameHash: Number(event.target.value)})
+                        }
+                    >
+                        {/* Le nom courant peut manquer des constantes (nom retiré
+                            d'une saison à l'autre) : sans cette option, le select
+                            afficherait le premier de la liste à sa place. */}
+                        {!choices.names.some((c) => c.hash === shown.nameHash) && (
+                            <option value={shown.nameHash}>{name ?? ""}</option>
+                        )}
+                        {choices.names.map((choice) => (
+                            <option key={choice.hash} value={choice.hash}>
+                                {choice.value}
+                            </option>
+                        ))}
+                    </select>
+                ) : (
+                    <>
+                        <span className="loadout-title__number">{index + 1} -</span>
+                        <span className="loadout-title__value">{name ?? ""}</span>
+                    </>
+                )}
+            </p>
+
             {/* Ouvrir la modification, puis l'appliquer — une seule requête. */}
             <div className="loadout-title__actions">
                 {editing ? (
                     <>
                         <button
                             type="button"
-                            className="btn btn--small"
                             disabled={busy || !dirty}
                             onClick={submit}
                         >
-                            {t("applyIdentifiers")}
+                            <CheckIcon />
                         </button>
                         <button
                             type="button"
-                            className="btn btn--small"
                             disabled={busy}
                             onClick={() => {
                                 setTarget(null);
@@ -336,13 +339,12 @@ export function LoadoutTitle({
                                 setSubmitted(null);
                             }}
                         >
-                            {t("cancelIdentifiers")}
+                            <XMarkIcon />
                         </button>
                     </>
                 ) : (
                     <button
                         type="button"
-                        className="btn btn--small"
                         disabled={busy}
                         onClick={() => {
                             setSubmitted(null);
@@ -353,7 +355,7 @@ export function LoadoutTitle({
                             });
                         }}
                     >
-                        {t("editIdentifiers")}
+                        <PencilIcon />
                     </button>
                 )}
             </div>

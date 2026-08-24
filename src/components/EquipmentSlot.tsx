@@ -11,6 +11,7 @@ import {
     type SlotSide,
 } from "@/lib/destiny/buckets";
 import { ItemIcon } from "./ItemIcon";
+import {EmptySlotIcon} from "@/components/icons";
 
 interface BucketDefinition {
     displayProperties: DisplayProperties;
@@ -95,7 +96,9 @@ export function EquipmentSlot({
                                     key={`empty-${index}`}
                                     className="slot-cell slot-cell--empty"
                                     aria-hidden
-                                />
+                                >
+                                    <EmptySlotIcon />
+                                </span>
                             );
                         }
                         return (
