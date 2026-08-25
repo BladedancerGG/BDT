@@ -6,8 +6,10 @@
   "header": {
     "refresh": "Rafraîchir",
     "refreshing": "Rafraîchissement…",
-    "refreshHint": "Recharger l'état des objets depuis l'API Bungie",
-    "settings": "Paramètres"
+    "settings": "Paramètres",
+    "refreshForce": "Forcer depuis l'API",
+    "shiftKey": "Maj",
+    "holdHint": "ou appui long (1 s)"
   },
   "menu": {
     "signedInAs": "Connecté en tant que",

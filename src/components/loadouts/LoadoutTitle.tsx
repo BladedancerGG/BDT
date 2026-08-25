@@ -371,6 +371,7 @@ export function LoadoutTitle({
                 <FloatingPortal>
                     <div
                         // setFloating est un callback ref stable de Floating UI
+                        // eslint-disable-next-line react-hooks/refs
                         ref={refs.setFloating}
                         style={floatingStyles}
                         {...getFloatingProps()}

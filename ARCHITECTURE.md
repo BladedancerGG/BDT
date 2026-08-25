@@ -398,7 +398,17 @@ only a numbered slot, so it sits on its own base and its card shows the slot's
 tile on both sides of the arrow. Its identifiers are copied when queued, which is
 what lets the card survive a `clear` that empties the slot.
 
-`EquipLoadout` deserves its own replay (`lib/destiny/loadout-equip.ts`): Bungie
+`lib/destiny/loadout-effects.ts` replays each of them locally, because Bungie
+says nothing about what it changed:
+
+| Action     | Local effect |
+| ---------- | ------------ |
+| `equip`    | see below — items move |
+| `snapshot` | the slot takes what the character wears, each item's **current** sockets copied into `plugItemHashes` (which is indexed by socket, so they transfer as-is) |
+| `clear`    | the slot goes back to free |
+| `identifiers` | nothing to replay — the title already shows the draft that was just sent |
+
+`EquipLoadout` deserves its own replay: Bungie
 assembles the loadout server-side and says nothing about what it moved, so the
 effect is simulated from the rules the game follows — an item in the vault is
 transferred then equipped **if the bucket has room**, one already on the
@@ -609,7 +619,8 @@ Per item type:
 
 - **weapon** — equipped perks, then mods, then the intrinsic frame;
 - **armor** — set-bonus perks (shown even below their piece threshold, as in
-  game) or, on an exotic, its intrinsic; then mods;
+  game) or, on an exotic, its intrinsic, drawn **square** like a weapon's frame:
+  same role, and the game presents it the same way; then mods;
 - **subclass** — super, class ability, movement, grenade, melee and aspects on
   the first line, fragments on the second;
 - **artifact** — the perks actually slotted.
@@ -685,9 +696,14 @@ Points worth knowing:
   tables used here **without** `displayProperties`.
 - The number of slots is not hard-coded: the component returns as many as the
   account owns.
-- A saved item is drawn with its **current** plugs, not the ones recorded in the
-  loadout. `plugItemHashes` is a flat list, not indexed by socket, and matching
-  it back to sockets would take another pass over the manifest.
+- **`plugItemHashes` is indexed by socket index** — one entry per socket, not a
+  flat list, so a saved loadout is drawn with the perks and mods it actually
+  recorded. Two values mean "nothing here", and both are the `INVALID_HASH`
+  sentinel: a socket that was not recorded, and — the trap — **a socket that
+  offers only one option**, which the game deliberately leaves unset. Taking
+  those for empty slots would erase perks that are very much in place, so the
+  item's current value stands in for them: on a single-option socket it *is* the
+  recorded plug. See `savedSockets` in `lib/destiny/use-loadout-items.ts`.
 - **Escape** deselects. The gesture is only taken when it serves nothing else: an
   open picker keeps it (that is what one wants to close), and a modal traps the
   keyboard anyway.
@@ -721,6 +737,33 @@ target. The order the choices come in is not a hash sort — it comes from the `
 > shows nothing. `ensureManifest` now throws when a requested table has no path
 > in the manifest or comes back empty, so the next such mistake is loud instead
 > of silent.
+
+### Keyboard shortcuts
+
+| Key | Effect |
+| --- | ------ |
+| `Tab` | switch display mode |
+| `Esc` | deselect the current loadout slot |
+| `R` | refresh |
+| `Shift`+`R` | force a refresh from the API — same as a 1 s press on the button |
+| `F1` | open the settings |
+
+`lib/ui/use-global-shortcut.ts` holds what they share, and one point of it is not
+obvious: the listener is registered in the **capture** phase. The search bar puts
+its own `keydown` on `document` to grab focus as soon as a letter is typed
+anywhere (see SearchBar), and between two listeners of the same phase the order
+is the mount order — `R` would have landed in the search field. In capture, the
+shortcut runs first and its `preventDefault` makes the other give up, since that
+one tests `defaultPrevented` before anything else. The usual guards apply on top:
+a text field or a modal keeps its keys.
+
+The two refreshes do not do the same thing. A **normal** one goes through the
+stale-snapshot guard: a response that does not yet reflect our writes is
+discarded and the local state, which is faithful, is kept. A **forced** one
+drops that guard first (`clearLocalWrites`), so Bungie's answer becomes
+authoritative whatever it holds. That is what is needed when the game moved in
+parallel, or when the guard got it wrong — it cannot tell "Bungie is lagging"
+from "the player touched the same item in game".
 
 ### Character stats
 
@@ -1370,7 +1413,17 @@ carte montre la vignette de l'emplacement des deux côtés de la flèche. Ses
 identifiants sont recopiés à la mise en file, ce qui lui permet de survivre à un
 `clear` qui vide l'emplacement.
 
-`EquipLoadout` mérite son propre rejeu (`lib/destiny/loadout-equip.ts`) : Bungie
+`lib/destiny/loadout-effects.ts` rejoue chacune d'elles localement, Bungie ne
+disant rien de ce qu'il a changé :
+
+| Action     | Effet local |
+| ---------- | ----------- |
+| `equip`    | voir ci-dessous — des objets bougent |
+| `snapshot` | l'emplacement prend ce que le personnage porte, les sockets **courants** de chaque objet recopiés dans `plugItemHashes` (indexé par socket, ils s'y transfèrent tels quels) |
+| `clear`    | l'emplacement redevient libre |
+| `identifiers` | rien à rejouer — le titre affiche déjà le brouillon qu'on vient d'envoyer |
+
+`EquipLoadout` mérite son propre rejeu : Bungie
 assemble l'équipement côté serveur et ne dit rien de ce qu'il a déplacé, l'effet
 est donc simulé d'après les règles du jeu — un objet du coffre est transféré puis
 équipé **s'il reste de la place dans l'emplacement**, un objet déjà sur le
@@ -1597,7 +1650,9 @@ Par type d'objet :
 
 - **arme** — attributs équipés, puis mods, puis l'armature ;
 - **armure** — les bonus d'ensemble (affichés même hors palier, comme en jeu)
-  ou, sur une exotique, son attribut intrinsèque ; puis les mods ;
+  ou, sur une exotique, son attribut intrinsèque, dessiné **carré** comme
+  l'armature d'une arme : c'est le même rôle, et le jeu le présente de même ;
+  puis les mods ;
 - **doctrine** — super, compétence de classe, mouvement, grenade, mêlée et
   aspects sur la première ligne, fragments sur la seconde ;
 - **artéfact** — les attributs réellement équipés.
@@ -1678,10 +1733,16 @@ Les points à connaître :
   seules tables utilisées ici **sans** `displayProperties`.
 - Le nombre d'emplacements n'est pas codé : le composant en renvoie autant que
   le compte en possède.
-- Un objet sauvegardé est dessiné avec ses attributs **actuels**, pas ceux
-  enregistrés dans l'équipement. `plugItemHashes` est une liste plate, non
-  indexée par socket, et la faire correspondre aux sockets demanderait une passe
-  de plus sur le manifeste.
+- **`plugItemHashes` est indexé par index de socket** — une entrée par socket, et
+  non une liste libre : un équipement sauvegardé est donc dessiné avec les
+  attributs et les mods qu'il a réellement enregistrés. Deux valeurs n'y
+  désignent rien, et toutes deux sont la sentinelle `INVALID_HASH` : un socket
+  non enregistré, et — c'est le piège — **un socket qui n'offre qu'un seul
+  choix**, que le jeu laisse délibérément vide. Les prendre pour des
+  emplacements libres effacerait des attributs bel et bien en place : la valeur
+  courante de l'objet y supplée donc, puisque sur un socket à choix unique elle
+  *est* le plug enregistré. Voir `savedSockets` dans
+  `lib/destiny/use-loadout-items.ts`.
 - **Échap** désélectionne. Le geste n'est pris que s'il ne sert à rien d'autre :
   un sélecteur ouvert le garde pour lui (c'est lui qu'on veut refermer), et une
   modale piège de toute façon le clavier.
@@ -1716,6 +1777,33 @@ des listes `loadoutColorHashes` / `loadoutIconHashes` / `loadoutNameHashes` de
 > pour toujours, et l'interface se contente d'afficher du vide. `ensureManifest`
 > lève désormais quand une table demandée n'a aucun chemin dans le manifeste ou
 > revient vide — la prochaine erreur de ce genre sera bruyante et non muette.
+
+### Raccourcis clavier
+
+| Touche | Effet |
+| ------ | ----- |
+| `Tab` | basculer de mode d'affichage |
+| `Échap` | désélectionner l'emplacement d'équipement |
+| `R` | rafraîchir |
+| `Maj`+`R` | forcer le rafraîchissement depuis l'API — comme un appui d'une seconde sur le bouton |
+| `F1` | ouvrir les paramètres |
+
+`lib/ui/use-global-shortcut.ts` porte ce qu'ils ont en commun, dont un point qui
+ne va pas de soi : l'écouteur est posé en phase de **capture**. La barre de
+recherche pose le sien sur `document` pour prendre le focus dès qu'une lettre est
+tapée n'importe où (voir SearchBar), et entre deux écouteurs de même phase
+l'ordre est celui du montage — `R` serait allé se loger dans le champ de
+recherche. En capture, le raccourci passe d'abord et son `preventDefault` fait
+renoncer l'autre, qui teste `defaultPrevented` avant tout. Les gardes habituelles
+s'y ajoutent : une saisie ou une modale garde ses touches.
+
+Les deux rafraîchissements ne font pas la même chose. Le **normal** passe par la
+garde anti-instantané-périmé : une réponse qui ne reflète pas encore nos
+écritures est écartée, et l'état local — fidèle, lui — est conservé. Le **forcé**
+abandonne cette garde d'abord (`clearLocalWrites`), et la réponse de Bungie fait
+alors autorité quoi qu'elle contienne. C'est ce qu'il faut quand le jeu a bougé
+en parallèle, ou quand la garde s'est trompée : elle ne peut pas distinguer
+« Bungie retarde » de « le joueur a touché au même objet en jeu ».
 
 ### Statistiques du personnage
 

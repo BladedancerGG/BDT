@@ -175,11 +175,14 @@ function Inventory({data}: { data: ProfileData }) {
     const {defs} = useItemDefs();
     const selectedLoadoutData =
         selectedLoadout !== null ? loadouts[selectedLoadout] : undefined;
-    const loadoutItems = useLoadoutItems(selectedLoadoutData, data, defs);
+    const loadoutContents = useLoadoutItems(selectedLoadoutData, data, defs);
 
     // Un emplacement libre laisse l'équipement porté à l'écran : c'est lui qu'on
     // s'apprête à y enregistrer.
-    const shownItems = loadoutItems ?? displayedEquipped;
+    const shownItems = loadoutContents?.items ?? displayedEquipped;
+    // Les attributs **enregistrés** dans l'équipement, quand il y en a un : ce
+    // sont eux que la vue doit montrer, pas ceux que l'objet porte aujourd'hui.
+    const shownSockets = loadoutContents?.sockets;
 
     // Pièces équipées par ensemble d'armures : sert à savoir quels bonus
     // d'ensemble sont actifs.
@@ -195,8 +198,10 @@ function Inventory({data}: { data: ProfileData }) {
     );
     const shownSetCounts = useMemo(
         () =>
-            loadoutItems ? countEquippedSets(loadoutItems, defs) : equippedSetCounts,
-        [loadoutItems, defs, equippedSetCounts],
+            loadoutContents
+                ? countEquippedSets(loadoutContents.items, defs)
+                : equippedSetCounts,
+        [loadoutContents, defs, equippedSetCounts],
     );
 
     const character = data.characters.find((c) => c.characterId === current);
@@ -323,9 +328,10 @@ function Inventory({data}: { data: ProfileData }) {
                                         defs={defs}
                                         setCounts={shownSetCounts}
                                         characterStats={
-                                            loadoutItems ? undefined : character?.stats
+                                            loadoutContents ? undefined : character?.stats
                                         }
-                                        editable={!loadoutItems}
+                                        sockets={shownSockets}
+                                        editable={!loadoutContents}
                                     />
                                 </div>
 

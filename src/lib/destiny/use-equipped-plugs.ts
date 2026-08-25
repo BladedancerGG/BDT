@@ -89,6 +89,13 @@ export function useEquippedPlugs(
     details: Record<string, ItemDetail>,
     defs: Map<number, InventoryItemDefinition>,
     setCounts: EquippedSetCounts,
+    /**
+     * Sockets **enregistrés** dans un équipement sauvegardé, par
+     * itemInstanceId. Absent : c'est l'état courant des objets qui fait foi.
+     * Voir `savedSockets` — un équipement enregistre ses attributs, et montrer
+     * ceux que l'objet porte aujourd'hui décrirait un autre instantané.
+     */
+    savedSockets?: ReadonlyMap<string, number[]>,
 ): ReadonlyMap<number, PlugChipRows> {
     return (
         useLiveQuery(
@@ -106,7 +113,10 @@ export function useEquippedPlugs(
                     const detail = item.itemInstanceId
                         ? details[item.itemInstanceId]
                         : undefined;
-                    for (const hash of detail?.sockets ?? []) {
+                    const saved = item.itemInstanceId
+                        ? savedSockets?.get(item.itemInstanceId)
+                        : undefined;
+                    for (const hash of saved ?? detail?.sockets ?? []) {
                         if (hash > 0) plugHashes.add(hash);
                     }
                     for (const entry of def?.sockets?.socketEntries ?? []) {
@@ -150,7 +160,13 @@ export function useEquippedPlugs(
                     const detail = item.itemInstanceId
                         ? details[item.itemInstanceId]
                         : undefined;
-                    const sockets = detail?.sockets ?? [];
+                    // L'équipement sauvegardé fait foi quand il y en a un.
+                    const sockets =
+                        (item.itemInstanceId
+                            ? savedSockets?.get(item.itemInstanceId)
+                            : undefined) ??
+                        detail?.sockets ??
+                        [];
                     const hidden = new Set(detail?.hiddenSockets ?? []);
                     const disabled = new Set(detail?.disabledSockets ?? []);
 
@@ -297,7 +313,10 @@ export function useEquippedPlugs(
                                     key: `intrinsic-${index}`,
                                     hash,
                                     socketIndex: index,
-                                    square: false,
+                                    // Carré, comme l'armature d'une arme : c'est
+                                    // le même rôle — l'attribut qui définit
+                                    // l'objet — et le jeu le présente de même.
+                                    square: true,
                                     active: true,
                                 });
                                 break;
@@ -333,6 +352,10 @@ export function useEquippedPlugs(
                 defs,
                 details,
                 [...setCounts].flat().join(","),
+                // Map recréée à chaque rendu : la dépendance porte sur le contenu
+                savedSockets
+                    ? [...savedSockets].map(([id, s]) => `${id}:${s.join("/")}`).join(",")
+                    : "",
             ],
             EMPTY,
         ) ?? EMPTY

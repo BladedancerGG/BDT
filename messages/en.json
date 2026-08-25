@@ -6,8 +6,10 @@
   "header": {
     "refresh": "Refresh",
     "refreshing": "Refreshing…",
-    "refreshHint": "Reload item state from the Bungie API",
-    "settings": "Settings"
+    "settings": "Settings",
+    "refreshForce": "Force from the API",
+    "shiftKey": "Shift",
+    "holdHint": "or press and hold (1 s)"
   },
   "menu": {
     "signedInAs": "Signed in as",

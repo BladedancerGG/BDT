@@ -11,7 +11,11 @@ import {
 import { useItemDefs } from "@/lib/destiny/item-defs";
 import { useBucketCapacities } from "@/lib/destiny/use-bucket-capacities";
 import { applyStep, planMove } from "@/lib/destiny/moves";
-import { applyEquippedLoadout } from "@/lib/destiny/loadout-equip";
+import {
+  applyClearedLoadout,
+  applyEquippedLoadout,
+  applySnapshotLoadout,
+} from "@/lib/destiny/loadout-effects";
 import { socketsAfterInsert } from "@/lib/destiny/sockets";
 import { sendStep } from "./api";
 import {
@@ -145,12 +149,15 @@ export function useActionRunner() {
     /**
      * Agir sur un emplacement d'équipement : une requête, rien à planifier.
      *
-     * Pour un `equip`, l'effet local est rejoué sur le cache du profil : Bungie
-     * ne dit rien de ce qu'il a déplacé, et sans cette simulation l'écran
-     * garderait l'ancien équipement jusqu'au rechargement — lequel peut de
-     * surcroît ramener un instantané antérieur, d'où le marquage des objets
-     * déplacés. Les autres natures ne touchent pas aux objets : l'emplacement
-     * lui-même n'est relu qu'au rechargement final.
+     * L'effet local est rejoué sur le cache du profil : Bungie ne dit rien de
+     * ce qu'il a changé, et sans cette simulation l'écran garderait l'état
+     * d'avant jusqu'au rechargement — lequel peut de surcroît ramener un
+     * instantané antérieur.
+     *
+     * Un `equip` déplace des objets, d'où le marquage qui protège le
+     * rechargement ; enregistrer ou vider ne touche qu'à l'emplacement. Le
+     * changement d'identifiants, lui, n'a pas d'effet à rejouer : le titre
+     * affiche déjà le brouillon qu'on vient d'envoyer.
      */
     const runLoadout = async (action: QueuedLoadoutAction) => {
       const { setActionStatus, setStepStatus } = queue();
@@ -172,21 +179,50 @@ export function useActionRunner() {
 
       setStepStatus(action.id, step.id, "done");
 
-      if (action.action === "equip") {
-        const snapshot = queryClient.getQueryData<ProfileData>(PROFILE_KEY);
-        const loadout = snapshot?.loadouts?.[action.characterId]?.[
-          action.loadoutIndex
-        ];
-        if (snapshot && loadout) {
-          const result = applyEquippedLoadout(
-            snapshot,
-            loadout,
-            action.characterId,
-            defs,
-            capacities,
+      const snapshot = queryClient.getQueryData<ProfileData>(PROFILE_KEY);
+      if (snapshot) {
+        if (action.action === "equip") {
+          const loadout =
+            snapshot.loadouts?.[action.characterId]?.[action.loadoutIndex];
+          if (loadout) {
+            const result = applyEquippedLoadout(
+              snapshot,
+              loadout,
+              action.characterId,
+              defs,
+              capacities,
+            );
+            for (const id of result.moved) moved.add(id);
+            queryClient.setQueryData<ProfileData>(PROFILE_KEY, result.profile);
+          }
+        } else if (action.action === "snapshot") {
+          // Les identifiants réellement envoyés, et non ceux recopiés pour la
+          // vignette : sur un emplacement libre, la requête porte les valeurs
+          // par défaut du jeu que le panneau lui a données.
+          const sent = step.request;
+          queryClient.setQueryData<ProfileData>(
+            PROFILE_KEY,
+            applySnapshotLoadout(
+              snapshot,
+              action.characterId,
+              action.loadoutIndex,
+              {
+                colorHash: sent.colorHash ?? action.colorHash,
+                iconHash: sent.iconHash ?? action.iconHash,
+                nameHash: sent.nameHash ?? action.nameHash,
+              },
+              defs,
+            ),
           );
-          for (const id of result.moved) moved.add(id);
-          queryClient.setQueryData<ProfileData>(PROFILE_KEY, result.profile);
+        } else if (action.action === "clear") {
+          queryClient.setQueryData<ProfileData>(
+            PROFILE_KEY,
+            applyClearedLoadout(
+              snapshot,
+              action.characterId,
+              action.loadoutIndex,
+            ),
+          );
         }
       }
 

@@ -32,6 +32,7 @@ export function EquipmentModeView({
                                       details,
                                       defs,
                                       setCounts,
+                                      sockets,
                                       characterStats,
                                       editable,
                                   }: {
@@ -43,6 +44,12 @@ export function EquipmentModeView({
     defs: Map<number, InventoryItemDefinition>;
     /** Bonus d'ensemble des objets **montrés**, pas de ceux qui sont portés */
     setCounts: EquippedSetCounts;
+    /**
+     * Sockets **enregistrés** dans l'équipement affiché, par itemInstanceId.
+     * Absent quand la vue montre l'équipement porté : c'est alors l'état courant
+     * des objets qui fait foi.
+     */
+    sockets?: ReadonlyMap<string, number[]>;
     /**
      * Totaux du composant 200, faisant autorité : Bungie y a déjà additionné
      * armures, mods, fragments et artéfact, bonus conditionnels compris.
@@ -59,7 +66,7 @@ export function EquipmentModeView({
     editable: boolean;
 }) {
     const t = useTranslations("inventory");
-    const plugs = useEquippedPlugs(items, details, defs, setCounts);
+    const plugs = useEquippedPlugs(items, details, defs, setCounts, sockets);
 
     // Le résumé décrit ce que la vue **montre**, et non ce que le personnage
     // porte : sélectionner un équipement sauvegardé doit en donner les

@@ -1,10 +1,12 @@
-// Effet local d'un `EquipLoadout`.
+// Effets locaux des actions sur un emplacement d'équipement.
 //
-// Bungie assemble l'équipement côté serveur en une requête, et ne dit rien de ce
-// qu'il a réellement déplacé. On rejoue donc l'effet sur le cache du profil,
-// comme pour une étape de déplacement — sans quoi l'écran garderait l'ancien
-// équipement jusqu'au rechargement, et le rechargement lui-même pourrait
-// ramener un instantané antérieur (voir profile-freshness).
+// Bungie fait tout le travail côté serveur en une requête, et ne dit rien de ce
+// qu'il a changé. On rejoue donc l'effet sur le cache du profil, comme pour une
+// étape de déplacement — sans quoi l'écran garderait l'état d'avant jusqu'au
+// rechargement, et le rechargement lui-même pourrait ramener un instantané
+// antérieur (voir profile-freshness).
+//
+// —— Équiper ————————————————————————————————————————————————
 //
 // Les règles du jeu, dans l'ordre où elles s'appliquent :
 //
@@ -15,8 +17,14 @@
 //    un **autre personnage** ne peut pas être déplacé par l'API : il est laissé
 //    où il est.
 
-import type {DestinyItemComponent, DestinyLoadout} from "@/lib/bungie/profile";
+import type {
+    DestinyItemComponent,
+    DestinyLoadout,
+    DestinyLoadoutItem,
+} from "@/lib/bungie/profile";
 import type {ProfileData} from "@/lib/bungie/use-profile";
+import {INVALID_HASH} from "@/lib/loadouts/loadout";
+import {EQUIPMENT_BUCKETS} from "./buckets";
 import {applyStep, locateItem, type PlannedStep} from "./moves";
 import type {InventoryItemDefinition} from "./types";
 
@@ -138,4 +146,84 @@ export function applyEquippedLoadout(
     }
 
     return {profile: next, moved, skipped};
+}
+
+// —— Enregistrer et vider ————————————————————————————————————
+
+/** Remplace un emplacement dans le cache, sans toucher aux autres. */
+function withLoadout(
+    profile: ProfileData,
+    characterId: string,
+    loadoutIndex: number,
+    loadout: DestinyLoadout,
+): ProfileData {
+    const list = profile.loadouts?.[characterId];
+    // Sans liste connue, il n'y a pas d'emplacement à remplacer : le
+    // rechargement final la fournira.
+    if (!list || loadoutIndex >= list.length) return profile;
+
+    return {
+        ...profile,
+        loadouts: {
+            ...profile.loadouts,
+            [characterId]: list.map((entry, index) =>
+                index === loadoutIndex ? loadout : entry,
+            ),
+        },
+    };
+}
+
+/**
+ * Rejoue un `SnapshotLoadout` : l'emplacement prend ce que le personnage porte.
+ *
+ * Les attributs enregistrés sont ceux des objets **à cet instant** — c'est
+ * exactement ce que le jeu retient. `plugItemHashes` est indexé par index de
+ * socket (voir `savedSockets`), donc les sockets courants s'y recopient tels
+ * quels.
+ *
+ * Seuls les emplacements d'équipement comptent : le Courrier et le reste de
+ * l'inventaire n'entrent pas dans un équipement sauvegardé.
+ */
+export function applySnapshotLoadout(
+    profile: ProfileData,
+    characterId: string,
+    loadoutIndex: number,
+    identifiers: {colorHash: number; iconHash: number; nameHash: number},
+    defs: ReadonlyMap<number, InventoryItemDefinition>,
+): ProfileData {
+    const items: DestinyLoadoutItem[] = (profile.equipment[characterId] ?? [])
+        .filter((item) => {
+            const bucketHash =
+                defs.get(item.itemHash)?.inventory?.bucketTypeHash ?? item.bucketHash;
+            return Boolean(item.itemInstanceId) && EQUIPMENT_BUCKETS.has(bucketHash);
+        })
+        .map((item) => ({
+            itemInstanceId: item.itemInstanceId as string,
+            plugItemHashes: [...(profile.items[item.itemInstanceId as string]?.sockets ?? [])],
+        }));
+
+    return withLoadout(profile, characterId, loadoutIndex, {
+        ...identifiers,
+        items,
+    });
+}
+
+/**
+ * Rejoue un `ClearLoadout` : l'emplacement redevient libre.
+ *
+ * L'API rend alors dix entrées d'`itemInstanceId` « 0 » et la sentinelle sur les
+ * trois identifiants. On se contente d'une liste vide : `isEmptyLoadout` la
+ * reconnaît tout autant, et rien ne lit ces entrées de remplissage.
+ */
+export function applyClearedLoadout(
+    profile: ProfileData,
+    characterId: string,
+    loadoutIndex: number,
+): ProfileData {
+    return withLoadout(profile, characterId, loadoutIndex, {
+        colorHash: INVALID_HASH,
+        iconHash: INVALID_HASH,
+        nameHash: INVALID_HASH,
+        items: [],
+    });
 }

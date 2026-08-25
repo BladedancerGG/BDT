@@ -83,3 +83,45 @@
     transform: rotate(360deg);
   }
 }
+
+// Appui long sur le bouton de rafraîchissement : jauge de progression.
+//
+// Une seconde sans retour passerait pour un bouton mort. La jauge est un
+// pseudo-élément dont la largeur passe de 0 à 100 % en une animation — et non
+// une transition : celle-ci se rejouerait à l'envers au relâchement, alors que
+// l'appui doit repartir de zéro à chaque fois.
+//
+// $hold-duration doit rester égale à HOLD_MS dans HeaderActions.tsx.
+$hold-duration: 1000ms;
+
+.btn--holding {
+  position: relative;
+
+  &::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    height: 2px;
+    background-color: var(--color-accent);
+    animation: btn-hold $hold-duration linear forwards;
+  }
+
+  // Respecte la préférence système : l'appui long fonctionne toujours, il ne
+  // s'annonce simplement plus par une jauge animée.
+  @media (prefers-reduced-motion: reduce) {
+    &::after {
+      animation: none;
+      width: 100%;
+    }
+  }
+}
+
+@keyframes btn-hold {
+  from {
+    width: 0;
+  }
+  to {
+    width: 100%;
+  }
+}
