@@ -125,6 +125,7 @@ $slot-columns: 3;
     gap: var(--item-gap);
     transform: scale(var(--slot-reduced));
     transition: transform 100ms ease-in-out;
+    backdrop-filter: blur(5px);
 
     // Respecte la préférence système : pas d'animation, mais l'effet demeure
     @media (prefers-reduced-motion: reduce) {
