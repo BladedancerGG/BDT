@@ -4,6 +4,8 @@ import { useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import type { ProfileData } from "@/lib/bungie/use-profile";
 import {
+  loadoutKey,
+  markLocalLoadouts,
   markLocalMoves,
   markLocalPlugs,
   socketKey,
@@ -14,6 +16,7 @@ import { applyStep, planMove } from "@/lib/destiny/moves";
 import {
   applyClearedLoadout,
   applyEquippedLoadout,
+  applyLoadoutIdentifiers,
   applySnapshotLoadout,
 } from "@/lib/destiny/loadout-effects";
 import { socketsAfterInsert } from "@/lib/destiny/sockets";
@@ -62,6 +65,9 @@ export function useActionRunner() {
 
     /** Sockets effectivement remplis, à confronter de la même façon. */
     const inserted = new Set<string>();
+
+    /** Emplacements d'équipement réécrits, à confronter de la même façon. */
+    const rewritten = new Set<string>();
 
     /** Envoi d'une étape, avec les reprises imposées par une limitation de débit. */
     const send = async (step: ActionStep) => {
@@ -155,9 +161,9 @@ export function useActionRunner() {
      * instantané antérieur.
      *
      * Un `equip` déplace des objets, d'où le marquage qui protège le
-     * rechargement ; enregistrer ou vider ne touche qu'à l'emplacement. Le
-     * changement d'identifiants, lui, n'a pas d'effet à rejouer : le titre
-     * affiche déjà le brouillon qu'on vient d'envoyer.
+     * rechargement ; les trois autres réécrivent l'emplacement lui-même, et
+     * demandent leur propre marquage — sans quoi le rechargement de fin de file
+     * ramène l'instantané d'avant.
      */
     const runLoadout = async (action: QueuedLoadoutAction) => {
       const { setActionStatus, setStepStatus } = queue();
@@ -195,6 +201,8 @@ export function useActionRunner() {
             for (const id of result.moved) moved.add(id);
             queryClient.setQueryData<ProfileData>(PROFILE_KEY, result.profile);
           }
+          // Rien à marquer ici : équiper ne réécrit pas l'emplacement, ce sont
+          // les objets qui bougent — et `moved` s'en charge.
         } else if (action.action === "snapshot") {
           // Les identifiants réellement envoyés, et non ceux recopiés pour la
           // vignette : sur un emplacement libre, la requête porte les valeurs
@@ -214,6 +222,7 @@ export function useActionRunner() {
               defs,
             ),
           );
+          rewritten.add(loadoutKey(action.characterId, action.loadoutIndex));
         } else if (action.action === "clear") {
           queryClient.setQueryData<ProfileData>(
             PROFILE_KEY,
@@ -223,6 +232,23 @@ export function useActionRunner() {
               action.loadoutIndex,
             ),
           );
+          rewritten.add(loadoutKey(action.characterId, action.loadoutIndex));
+        } else if (action.action === "identifiers") {
+          const sent = step.request;
+          queryClient.setQueryData<ProfileData>(
+            PROFILE_KEY,
+            applyLoadoutIdentifiers(
+              snapshot,
+              action.characterId,
+              action.loadoutIndex,
+              {
+                colorHash: sent.colorHash ?? action.colorHash,
+                iconHash: sent.iconHash ?? action.iconHash,
+                nameHash: sent.nameHash ?? action.nameHash,
+              },
+            ),
+          );
+          rewritten.add(loadoutKey(action.characterId, action.loadoutIndex));
         }
       }
 
@@ -329,6 +355,7 @@ export function useActionRunner() {
       const local = queryClient.getQueryData<ProfileData>(PROFILE_KEY);
       if (local && moved.size > 0) markLocalMoves(local, moved);
       if (local && inserted.size > 0) markLocalPlugs(local, inserted);
+      if (local && rewritten.size > 0) markLocalLoadouts(local, rewritten);
 
       void queryClient.invalidateQueries({ queryKey: PROFILE_KEY });
     })();

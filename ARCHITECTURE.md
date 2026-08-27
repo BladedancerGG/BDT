@@ -406,7 +406,7 @@ says nothing about what it changed:
 | `equip`    | see below — items move |
 | `snapshot` | the slot takes what the character wears, each item's **current** sockets copied into `plugItemHashes` (which is indexed by socket, so they transfer as-is) |
 | `clear`    | the slot goes back to free |
-| `identifiers` | nothing to replay — the title already shows the draft that was just sent |
+| `identifiers` | the slot's appearance changes, its contents do not |
 
 `EquipLoadout` deserves its own replay: Bungie
 assembles the loadout server-side and says nothing about what it moved, so the
@@ -429,6 +429,17 @@ moves nothing.
 **HTTP 200**, so a rejected `EquipItem` used to look exactly like a success.
 
 #### Stale snapshots
+> **Replaying an action locally is only half the job: the guard has to know
+> about it too.** The three slot-rewriting actions were corrected in the cache
+> and then reverted a second later — the end-of-queue refetch brought back
+> Bungie's earlier snapshot, and `isStaleProfile`, which only ever looked at
+> items, had nothing to object. Hence `markLocalLoadouts` and the third table.
+> A slot's signature is its three identifiers plus the **sorted set** of its real
+> item instance ids: the API returns ten entries in its own order, padding with
+> `"0"`, so comparing the list as-is would never have matched what the local
+> replay wrote and the guard would never have lifted.
+
+
 
 That final refetch is the trap. `GetProfile` sits behind a cache whose
 **contents** lag a few seconds behind the writes we just issued: reloading right
@@ -1421,7 +1432,7 @@ disant rien de ce qu'il a changé :
 | `equip`    | voir ci-dessous — des objets bougent |
 | `snapshot` | l'emplacement prend ce que le personnage porte, les sockets **courants** de chaque objet recopiés dans `plugItemHashes` (indexé par socket, ils s'y transfèrent tels quels) |
 | `clear`    | l'emplacement redevient libre |
-| `identifiers` | rien à rejouer — le titre affiche déjà le brouillon qu'on vient d'envoyer |
+| `identifiers` | l'apparence de l'emplacement change, son contenu non |
 
 `EquipLoadout` mérite son propre rejeu : Bungie
 assemble l'équipement côté serveur et ne dit rien de ce qu'il a déplacé, l'effet
@@ -1445,6 +1456,19 @@ l'apparence d'un emplacement ne déplace rien.
 **HTTP 200**, un `EquipItem` rejeté ressemblait donc exactement à un succès.
 
 #### Instantanés périmés
+> **Rejouer une action localement n'est que la moitié du travail : la garde doit
+> en être avertie aussi.** Les trois actions qui réécrivent un emplacement
+> étaient bien corrigées dans le cache, puis revenaient en arrière une seconde
+> plus tard — le rechargement de fin de file ramenait l'instantané antérieur de
+> Bungie, et `isStaleProfile`, qui ne regardait que les objets, n'avait rien à y
+> redire. D'où `markLocalLoadouts` et la troisième table. La signature d'un
+> emplacement est ses trois identifiants et l'**ensemble trié** de ses vrais
+> identifiants d'instance : l'API rend dix entrées dans son propre ordre, comblées
+> par des « 0 », si bien que comparer la liste telle quelle n'aurait jamais
+> concordé avec ce que le rejeu local a écrit et que la garde ne se serait jamais
+> levée.
+
+
 
 Ce rechargement final est le piège. `GetProfile` est servi derrière un cache
 dont le **contenu** retarde de quelques secondes sur les écritures qu'on vient

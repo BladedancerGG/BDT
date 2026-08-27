@@ -16,9 +16,15 @@
 // positif si le joueur touche au même objet en jeu au même moment ; la garde se
 // lève alors d'elle-même après quelques tentatives.
 //
-// Deux natures d'écriture à surveiller, et il en faut bien deux : un
+// Trois natures d'écriture à surveiller, et il en faut bien trois : un
 // déplacement change la place de l'objet sans toucher à ses sockets, une
-// insertion d'attribut fait l'inverse.
+// insertion d'attribut fait l'inverse, et une action sur un emplacement
+// d'équipement ne touche à aucun objet — elle réécrit l'emplacement lui-même.
+//
+// L'oubli de la troisième se voyait ainsi : créer, écraser ou supprimer un
+// équipement le corrigeait bien dans le cache local, puis le rechargement de fin
+// de file ramenait l'instantané d'avant. Rien ne le retenait, `isStaleProfile`
+// ne regardant alors que les objets.
 //
 // Pas de "use client" : ce module n'a pas de dépendance React, mais son état
 // mutable n'a de sens que dans l'onglet qui a émis les écritures.
@@ -31,6 +37,9 @@ let expectedPlaces = new Map<string, string>();
 
 /** Attribut attendu dans chaque socket touché, par `itemInstanceId:socketIndex`. */
 let expectedPlugs = new Map<string, number | undefined>();
+
+/** État attendu de chaque emplacement d'équipement touché, par `loadoutKey`. */
+let expectedLoadouts = new Map<string, string>();
 
 /** Position réduite à une chaîne comparable — `null` = objet introuvable. */
 function placeKey(place: ItemPlace | null): string {
@@ -48,6 +57,39 @@ function placeOf(profile: ProfileData, itemInstanceId: string): string {
 /** Identifie un socket dans les deux tables. */
 export function socketKey(itemInstanceId: string, socketIndex: number): string {
   return `${itemInstanceId}:${socketIndex}`;
+}
+
+/** Identifie un emplacement d'équipement. */
+export function loadoutKey(
+  characterId: string,
+  loadoutIndex: number,
+): string {
+  return `${characterId}#${loadoutIndex}`;
+}
+
+/**
+ * Réduit un emplacement à une chaîne comparable : ses trois identifiants et
+ * l'**ensemble** de ses objets.
+ *
+ * Trié, et les entrées de remplissage écartées : l'API rend dix entrées dans son
+ * propre ordre, dont des `itemInstanceId` à « 0 » sur les emplacements
+ * partiellement enregistrés (voir isEmptyLoadout). Comparer la liste telle
+ * quelle n'aurait jamais concordé avec ce que le rejeu local a écrit, et la
+ * garde ne se serait jamais levée.
+ */
+function loadoutSignature(profile: ProfileData, key: string): string {
+  const separator = key.lastIndexOf("#");
+  const characterId = key.slice(0, separator);
+  const loadoutIndex = Number(key.slice(separator + 1));
+  const loadout = profile.loadouts?.[characterId]?.[loadoutIndex];
+  if (!loadout) return "absent";
+
+  const items = loadout.items
+    .map((item) => item.itemInstanceId)
+    .filter((id) => id && id !== "0")
+    .sort()
+    .join(",");
+  return `${loadout.colorHash}/${loadout.iconHash}/${loadout.nameHash}/${items}`;
 }
 
 /**
@@ -87,6 +129,19 @@ export function markLocalPlugs(
   }
 }
 
+/**
+ * Même chose pour les emplacements d'équipement : dans quel état chacun doit se
+ * retrouver. Les clés sont celles de `loadoutKey`.
+ */
+export function markLocalLoadouts(
+  profile: ProfileData,
+  keys: Iterable<string>,
+) {
+  for (const key of keys) {
+    expectedLoadouts.set(key, loadoutSignature(profile, key));
+  }
+}
+
 /** Vrai quand la réponse ne reflète pas encore nos écritures. */
 export function isStaleProfile(fresh: ProfileData): boolean {
   for (const [itemInstanceId, place] of expectedPlaces) {
@@ -95,6 +150,9 @@ export function isStaleProfile(fresh: ProfileData): boolean {
   for (const [key, plugHash] of expectedPlugs) {
     if (plugOf(fresh, key) !== plugHash) return true;
   }
+  for (const [key, signature] of expectedLoadouts) {
+    if (loadoutSignature(fresh, key) !== signature) return true;
+  }
   return false;
 }
 
@@ -102,4 +160,5 @@ export function isStaleProfile(fresh: ProfileData): boolean {
 export function clearLocalWrites() {
   expectedPlaces = new Map();
   expectedPlugs = new Map();
+  expectedLoadouts = new Map();
 }

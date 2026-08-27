@@ -209,6 +209,27 @@ export function applySnapshotLoadout(
 }
 
 /**
+ * Rejoue un `UpdateLoadoutIdentifiers` : l'apparence change, le contenu non.
+ *
+ * Sans ce rejeu l'emplacement revenait à son ancien nom sitôt l'action aboutie :
+ * le titre cesse alors d'afficher son brouillon, et retombe donc sur ce que le
+ * cache porte encore.
+ */
+export function applyLoadoutIdentifiers(
+    profile: ProfileData,
+    characterId: string,
+    loadoutIndex: number,
+    identifiers: {colorHash: number; iconHash: number; nameHash: number},
+): ProfileData {
+    const current = profile.loadouts?.[characterId]?.[loadoutIndex];
+    if (!current) return profile;
+    return withLoadout(profile, characterId, loadoutIndex, {
+        ...current,
+        ...identifiers,
+    });
+}
+
+/**
  * Rejoue un `ClearLoadout` : l'emplacement redevient libre.
  *
  * L'API rend alors dix entrées d'`itemInstanceId` « 0 » et la sentinelle sur les

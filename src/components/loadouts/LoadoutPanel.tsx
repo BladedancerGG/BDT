@@ -247,14 +247,6 @@ export function LoadoutPanel({
                         </button>
                     </div>
 
-                    {/* Le refus de Bungie est déjà localisé : plus utile que le
-                        nôtre — voir /api/loadouts. */}
-                    {(error || failure) && (
-                        <p className="loadout-panel__error">
-                            {failure ? t(`failure.${failure}`) : error}
-                        </p>
-                    )}
-
                     <button
                         type="button"
                         className="btn btn--small loadout-panel__action loadout-panel__action--link"

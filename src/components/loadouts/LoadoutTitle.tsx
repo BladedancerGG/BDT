@@ -360,13 +360,6 @@ export function LoadoutTitle({
                 )}
             </div>
 
-            {/* Le refus de Bungie est déjà localisé — voir /api/loadouts. */}
-            {(error || failure) && (
-                <p className="loadout-title__error">
-                    {failure ? tActions(`failure.${failure}`) : error}
-                </p>
-            )}
-
             {target && (
                 <FloatingPortal>
                     <div
