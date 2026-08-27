@@ -10,6 +10,7 @@ import {useEquippedPlugs} from "@/lib/destiny/use-equipped-plugs";
 import {useShownStats} from "@/lib/destiny/use-shown-stats";
 import type {EquippedSetCounts} from "@/lib/destiny/set-bonus";
 import type {QueuedItem} from "@/lib/actions/store";
+import {EmptySlotIcon} from "../icons";
 import {ItemIcon} from "../ItemIcon";
 import {EquipmentPlugs} from "./EquipmentPlugs";
 import {CharacterSummary} from "@/components/equipment/CharacterSummary";
@@ -35,6 +36,7 @@ export function EquipmentModeView({
                                       sockets,
                                       characterStats,
                                       editable,
+                                      preview = false,
                                   }: {
     /** Titre de la vue : l'équipement porté, ou l'emplacement sélectionné */
     title: ReactNode;
@@ -64,6 +66,14 @@ export function EquipmentModeView({
      * instantané, rien n'y est équipé en ce moment.
      */
     editable: boolean;
+    /**
+     * L'emplacement sélectionné est **libre** : la vue montre alors des cases
+     * vides, et les objets équipés — ceux qu'un enregistrement y mettrait — ne
+     * se dévoilent qu'au survol du bouton de création (voir
+     * `LoadoutCreateButton`). Le fondu est en CSS : un état React re-rendrait
+     * les dix lignes et leurs attributs à chaque passage du curseur.
+     */
+    preview?: boolean;
 }) {
     const t = useTranslations("inventory");
     const plugs = useEquippedPlugs(items, details, defs, setCounts, sockets);
@@ -88,7 +98,9 @@ export function EquipmentModeView({
     const rowCount = Math.max(WEAPON_COLUMN.length, ARMOR_COLUMN.length);
 
     return (
-        <section className="equipment-mode">
+        <section
+            className={`equipment-mode${preview ? " equipment-mode--preview" : ""}`}
+        >
             <div className="equipment-mode__title">{title}</div>
 
             <div className="equipment-mode__rows">
@@ -102,6 +114,7 @@ export function EquipmentModeView({
                             plugs={plugs}
                             side="left"
                             editable={editable}
+                            preview={preview}
                         />
                         <EquipmentSide
                             bucketHash={ARMOR_COLUMN[row]}
@@ -111,6 +124,7 @@ export function EquipmentModeView({
                             plugs={plugs}
                             side="right"
                             editable={editable}
+                            preview={preview}
                         />
                     </div>
                 ))}
@@ -134,6 +148,7 @@ function EquipmentSide({
                            plugs,
                            side,
                            editable,
+                           preview,
                        }: {
     bucketHash: number | undefined;
     item: DestinyItemComponent | undefined;
@@ -142,6 +157,14 @@ function EquipmentSide({
     plugs: ReturnType<typeof useEquippedPlugs>;
     side: SlotSide;
     editable: boolean;
+    /**
+     * L'emplacement sélectionné est **libre** : la vue montre alors des cases
+     * vides, et les objets équipés — ceux qu'un enregistrement y mettrait — ne
+     * se dévoilent qu'au survol du bouton de création (voir
+     * `LoadoutCreateButton`). Le fondu est en CSS : un état React re-rendrait
+     * les dix lignes et leurs attributs à chaque passage du curseur.
+     */
+    preview?: boolean;
 }) {
     if (bucketHash === undefined) return null;
 
@@ -172,10 +195,21 @@ function EquipmentSide({
         />
     );
 
+    const emptyCell = (
+        <span className="slot-cell slot-cell--empty" aria-hidden>
+            <EmptySlotIcon/>
+        </span>
+    );
+
     // La vignette reste au centre dans les deux cas : c'est l'ordre des deux
     // enfants que le côté inverse, pas leur alignement.
     const thumb = (
         <div className="equipment-mode__item">
+            {/* En aperçu, la case vide est posée SOUS la vignette : c'est elle
+                qu'on voit tant que le bouton de création n'est pas survolé. */}
+            {preview && (
+                <span className="equipment-mode__placeholder">{emptyCell}</span>
+            )}
             {item ? (
                 <ItemIcon
                     itemHash={item.itemHash}
@@ -186,7 +220,7 @@ function EquipmentSide({
                     equipped
                 />
             ) : (
-                <span className="slot-cell slot-cell--empty" aria-hidden/>
+                emptyCell
             )}
         </div>
     );

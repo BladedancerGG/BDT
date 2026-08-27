@@ -325,6 +325,8 @@ export function LoadoutTitle({
                     <>
                         <button
                             type="button"
+                            aria-label={t("applyIdentifiers")}
+                            title={t("applyIdentifiers")}
                             disabled={busy || !dirty}
                             onClick={submit}
                         >
@@ -332,6 +334,8 @@ export function LoadoutTitle({
                         </button>
                         <button
                             type="button"
+                            aria-label={t("cancelIdentifiers")}
+                            title={t("cancelIdentifiers")}
                             disabled={busy}
                             onClick={() => {
                                 setTarget(null);
@@ -345,6 +349,8 @@ export function LoadoutTitle({
                 ) : (
                     <button
                         type="button"
+                        aria-label={t("editIdentifiers")}
+                        title={t("editIdentifiers")}
                         disabled={busy}
                         onClick={() => {
                             setSubmitted(null);

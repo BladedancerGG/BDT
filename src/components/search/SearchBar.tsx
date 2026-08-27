@@ -38,6 +38,7 @@ type Menu = "history" | "actions" | null;
  */
 export function SearchBar() {
   const t = useTranslations("search");
+  const tMove = useTranslations("actions.move");
   const query = useSearchStore((s) => s.query);
   const setQuery = useSearchStore((s) => s.setQuery);
   const remember = useSearchStore((s) => s.remember);
@@ -276,7 +277,7 @@ export function SearchBar() {
                 setMenu(null);
               }}
             >
-              {t("moveTo", { character: character.label })}
+              {tMove("toCharacter", { character: character.label })}
             </button>
           ))}
           <button
@@ -288,7 +289,7 @@ export function SearchBar() {
               setMenu(null);
             }}
           >
-            {t("moveToVault")}
+            {tMove("vault")}
           </button>
         </div>
       )}

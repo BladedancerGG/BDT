@@ -142,3 +142,42 @@
   color: var(--color-text-muted);
   font-size: 0.8125rem;
 }
+
+// —— Créer un équipement depuis les objets équipés ————————————
+//
+// Posé au centre de l'équipement plutôt que dans le panneau : c'est là que
+// l'emplacement libre a laissé le vide, et le survol y dévoile l'aperçu.
+.loadout-create {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+
+  // Le calque couvre toute la colonne : seuls ses enfants captent le pointeur,
+  // sinon il volerait les survols des vignettes qu'il recouvre.
+  pointer-events: none;
+
+  &__button {
+    pointer-events: auto;
+    max-width: 16rem;
+    text-align: center;
+    white-space: normal;
+
+    &:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+  }
+
+  &__error {
+    max-width: 18rem;
+    color: var(--color-danger);
+    font-size: 0.8125rem;
+    text-align: center;
+  }
+}

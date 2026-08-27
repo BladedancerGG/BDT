@@ -1,39 +1,53 @@
 {
-  "auth": {
-    "login": "Se connecter avec Bungie",
+  "common": {
+    "inventory": "Inventaire",
+    "loadouts": "Équipements",
+    "settings": "Paramètres",
+    "open": "Ouvrir",
+    "equip": "Équiper",
     "logout": "Se déconnecter"
+  },
+  "auth": {
+    "login": "Se connecter avec Bungie"
   },
   "header": {
     "refresh": "Rafraîchir",
-    "refreshing": "Rafraîchissement…",
-    "settings": "Paramètres",
-    "refreshForce": "Forcer depuis l'API",
+    "refreshForce": "Forcer depuis l’API",
     "shiftKey": "Maj",
     "holdHint": "ou appui long (1 s)"
   },
   "menu": {
-    "signedInAs": "Connecté en tant que",
     "label": "Menu principal",
     "open": "Ouvrir le menu",
-    "inventory": "Inventaire",
-    "loadouts": "Équipements",
     "soon": "à venir",
-    "settings": "Paramètres"
+    "signedInAs": "Connecté en tant que"
+  },
+  "criteria": {
+    "none": "Aucun",
+    "rarity": "Rareté",
+    "power": "Niveau de puissance",
+    "type": "Type",
+    "name": "Nom de l’objet",
+    "gearTier": "Palier d’équipement",
+    "class": "Classe",
+    "damageType": "Type de dégâts",
+    "ammoType": "Type de munitions",
+    "weaponType": "Type d’arme",
+    "weaponFrame": "Armature d’arme",
+    "armorArchetype": "Archétype d’armure",
+    "setBonus": "Bonus d’ensemble",
+    "masterwork": "Pièce maîtresse",
+    "crafted": "Façonnée / améliorée"
   },
   "settings": {
-    "title": "Paramètres",
     "close": "Fermer",
     "categories": {
-      "account": "Compte",
       "appearance": "Apparence",
-      "inventory": "Inventaire",
-      "about": "À propos",
-      "search": "Recherche"
+      "search": "Recherche",
+      "about": "À propos"
     },
     "account": {
-      "logout": "Déconnexion",
-      "profile": "Profil Bungie",
-      "openProfile": "Ouvrir"
+      "profile": "Profil Bungie"
     },
     "appearance": {
       "theme": "Thème",
@@ -43,10 +57,10 @@
         "system": "Système"
       },
       "language": "Langue",
-      "languageHint": "Changer la langue d'affichage rechargera complètement l'application",
+      "languageHint": "Changer la langue d’affichage rechargera complètement l’application",
       "ornaments": "Afficher les ornements",
-      "ornamentsHint": "Utilise l'ornement équipé au lieu de l'icône de base",
-      "originalOnHover": "Apparence d'origine au survol",
+      "ornamentsHint": "Utilise l’ornement équipé au lieu de l’icône de base",
+      "originalOnHover": "Apparence d’origine au survol",
       "originalOnHoverHint": "Survoler une armure ornementée révèle son icône de base",
       "iconSize": "Taille des icônes",
       "iconSizeHint": "Objets équipés et inventaire du personnage",
@@ -57,38 +71,12 @@
       "weaponGrouping": "Regroupement des armes",
       "armorGrouping": "Regroupement des armures",
       "groupingHint": "Le coffre est toujours séparé par emplacement ; ce réglage choisit le sous-groupe, un seul à la fois.",
-      "weaponGroupings": {
-        "none": "Aucun",
-        "ammoType": "Type de munitions",
-        "weaponType": "Type d'arme",
-        "damageType": "Type de dégâts"
-      },
-      "armorGroupings": {
-        "none": "Aucun",
-        "class": "Classe",
-        "setBonus": "Bonus d'ensemble",
-        "armorArchetype": "Archétype d'armure"
-      },
       "sort": "Tri des objets",
-      "sortHint": "Le critère du haut départage en premier ; les suivants ne servent qu'en cas d'égalité. Glissez la poignée pour changer l'ordre.",
+      "sortHint": "Le critère du haut départage en premier ; les suivants ne servent qu’en cas d’égalité. Glissez la poignée pour changer l’ordre.",
       "sortReset": "Réinitialiser le tri",
       "sortMove": "Déplacer « {name} », position {position} sur {total}",
       "sortReverse": "Inverser « {name} », actuellement {direction}",
       "sortEnable": "Activer le tri par « {name} »",
-      "sortCriteria": {
-        "rarity": "Rareté",
-        "power": "Niveau de puissance",
-        "type": "Type",
-        "name": "Nom de l'objet",
-        "gearTier": "Palier d'équipement",
-        "damageType": "Type de dégâts",
-        "ammoType": "Type de munitions",
-        "armorArchetype": "Archétype d'armure",
-        "setBonus": "Bonus d’ensemble",
-        "weaponFrame": "Armature d'arme",
-        "masterwork": "Pièce maîtresse",
-        "crafted": "Façonnée / améliorée"
-      },
       "sortDirection": {
         "text": {
           "asc": "A → Z",
@@ -108,19 +96,18 @@
       "historySize": "Recherches mémorisées",
       "historySizeHint": "Nombre de recherches proposées par le chevron de la barre (0 à 30)",
       "missMode": "Objets écartés par la recherche",
-      "missModeHint": "Ne concerne que le coffre et les objets perdus : l'inventaire des personnages se contente toujours d'estomper.",
+      "missModeHint": "Ne concerne que le coffre et les objets perdus : l’inventaire des personnages se contente toujours d’estomper.",
       "missModes": {
         "hide": "Les masquer",
         "dim": "Les estomper"
       },
       "syntax": "Syntaxe",
-      "syntaxHint": "Celle de Destiny Item Manager : is:, stat:, basestat:, perkname:, power:, id:… combinables avec and, or, not et des parenthèses. Un mot seul cherche dans le nom de l'objet et de ses attributs."
+      "syntaxHint": "Celle de Destiny Item Manager : is:, stat:, basestat:, perkname:, power:, id:… combinables avec and, or, not et des parenthèses. Un mot seul cherche dans le nom de l’objet et de ses attributs."
     },
     "about": {
       "version": "Version du site",
       "support": "Contact",
-      "bungieApi": "API Bungie",
-      "openLink": "Ouvrir"
+      "bungieApi": "API Bungie"
     }
   },
   "actions": {
@@ -133,65 +120,55 @@
     "empty": "Aucune action à afficher.",
     "clear": "Effacer les actions terminées",
     "filterLabel": "Filtrer les actions",
-    "filter": {
-      "all": "Tout afficher",
-      "pending": "En attente",
-      "running": "En cours",
-      "done": "Effectuées"
-    },
     "status": {
+      "all": "Tout afficher",
       "pending": "En attente",
       "running": "En cours",
       "done": "Terminé",
       "error": "Échec"
     },
-    "target": {
-      "vault": "Transfert vers le coffre",
-      "inventory": "Transfert vers {character}",
+    "label": {
+      "toVault": "Transfert vers le coffre",
+      "toCharacter": "Transfert vers {character}",
       "equip": "Équipement sur {character}",
+      "pull": "Retrait des objets perdus vers {character}",
+      "unequip": "Déséquipement : « {item} » prend sa place",
+      "evict": "Rangement de « {item} » au coffre pour faire de la place",
+      "insert": "Équipement de l’attribut « {perk} »",
       "perk": "Attribut : {perk}",
       "loadout": {
         "equip": "Équiper cet équipement",
         "snapshot": "Enregistrer les objets équipés",
         "clear": "Vider cet emplacement",
-        "identifiers": "Changer l'apparence"
+        "identifiers": "Changer l’apparence"
+      },
+      "loadoutStep": {
+        "equip": "Équiper l’équipement n°{number} sur {character}",
+        "snapshot": "Enregistrer les objets équipés dans l’emplacement n°{number}",
+        "clear": "Vider l’emplacement n°{number}",
+        "identifiers": "Changer l’apparence de l’emplacement n°{number}"
       }
     },
-    "step": {
-      "pull": "Retrait des objets perdus vers {character}",
-      "toVault": "Transfert vers le coffre",
-      "fromVault": "Transfert vers {character}",
-      "equip": "Équipement sur {character}",
-      "unequip": "Déséquipement : « {item} » prend sa place",
-      "evict": "Rangement de « {item} » au coffre pour faire de la place",
-      "insert": "Équipement de l’attribut « {perk} »",
-      "loadout": {
-        "equip": "Équiper l'équipement n°{number} sur {character}",
-        "snapshot": "Enregistrer les objets équipés dans l'emplacement n°{number}",
-        "clear": "Vider l'emplacement n°{number}",
-        "identifiers": "Changer l'apparence de l'emplacement n°{number}"
-      }
-    },
-    "zone": {
-      "equipHere": "Équiper",
-      "inventoryHere": "Transférer dans l'inventaire",
+    "move": {
       "equipOn": "Équiper sur {character}",
-      "inventoryOf": "Transférer dans l'inventaire de {character}",
+      "inventoryHere": "Transférer dans l’inventaire",
+      "inventoryOf": "Transférer dans l’inventaire de {character}",
+      "toCharacter": "Transférer vers {character}",
       "vault": "Transférer vers le coffre"
     },
     "failure": {
       "unknownItem": "Objet inconnu du manifeste.",
       "notInstanced": "Objet introuvable dans le profil.",
-      "notEquippable": "Cet objet ne s'équipe pas.",
+      "notEquippable": "Cet objet ne s’équipe pas.",
       "wrongClass": "Cet objet est réservé à une autre classe.",
       "nonTransferrable": "Cet objet ne quitte pas son personnage.",
       "noReplacement": "Aucun objet à équiper à la place pour le libérer.",
       "noExoticSwap": "Un autre exotique est équipé, et aucun objet non exotique ne peut prendre sa place.",
       "postmasterSideEffects": "Bungie refuse de sortir cet objet des objets perdus.",
       "vaultFull": "Le coffre est plein.",
-      "bucketFull": "L'emplacement de destination est plein.",
+      "bucketFull": "L’emplacement de destination est plein.",
       "noCharacter": "Aucun personnage sur ce compte.",
-      "noIdentifiers": "Identifiants du manifeste indisponibles : l'enregistrement serait refusé."
+      "noIdentifiers": "Identifiants du manifeste indisponibles : l’enregistrement serait refusé."
     }
   },
   "manifest": {
@@ -201,13 +178,13 @@
   "inventory": {
     "loading": "Chargement du profil…",
     "error": "Impossible de charger le profil.",
-    "equipped": "Équipé",
-    "stored": "Inventaire",
     "vault": "Coffre",
-    "equipment": "Équipement",
     "expand": "Déplier",
     "collapse": "Replier",
     "otherGroup": "Autres",
+    "currentEquipment": "Objets équipés",
+    "viewMode": "Mode d’affichage",
+    "cycleHint": "pour alterner",
     "ammo": {
       "primary": "Munitions principales",
       "special": "Munitions spéciales",
@@ -215,13 +192,7 @@
       "primaryShort": "Principale",
       "specialShort": "Spéciale",
       "heavyShort": "Lourde"
-    },
-    "mode": {
-      "label": "Mode d'affichage",
-      "inventory": "Inventaire",
-      "loadouts": "Équipements"
-    },
-    "currentEquipment": "Objets équipés"
+    }
   },
   "subclass": {
     "abilities": "Compétences",
@@ -234,44 +205,38 @@
     "loadingDetail": "Chargement des attributs et mods…",
     "energy": "énergie",
     "artifactPerks": "Attributs",
-    "setBonus": "Bonus d'ensemble",
     "setPieces": "{count} pièces",
-    "weaponLevel": "Niv. d'arme {level}",
-    "equipPerk": "Équiper",
+    "weaponLevel": "Niv. d’arme {level}",
     "browsePlugs": "Voir les objets similaires",
     "searchPlugs": "Rechercher…"
   },
   "search": {
     "label": "Rechercher des objets",
     "placeholder": "Rechercher des objets/attributs",
-    "invalid": "Requête incomplète ou mot-clé inconnu : la recherche n'est pas appliquée.",
+    "invalid": "Requête incomplète ou mot-clé inconnu : la recherche n’est pas appliquée.",
     "found": "{count, plural, =0 {Aucun objet trouvé} one {# objet trouvé} other {# objets trouvés}}",
     "clear": "Effacer la recherche",
     "historyLabel": "Recherches précédentes",
     "historyEmpty": "Aucune recherche précédente.",
-    "historyClear": "Effacer l'historique",
-    "actionsLabel": "Actions sur les objets trouvés",
-    "moveTo": "Transférer vers {character}",
-    "moveToVault": "Transférer vers le coffre"
+    "historyClear": "Effacer l’historique",
+    "actionsLabel": "Actions sur les objets trouvés"
   },
   "loadouts": {
     "slot": "Emplacement n°{number}",
-    "deselect": "Désélectionner",
-    "equip": "Équiper l'équipement n°{number}",
-    "snapshot": "Écraser l'équipement",
-    "clear": "Supprimer l'équipement",
-    "groups": "Voir dans les groupes d'équipements",  
-    "groupsSoon": "Bientôt disponible",
-    "failed": "L'opération a échoué.",
-    "escapeKey": "Échap",
-    "pickColor": "Choisir la couleur de fond",
-    "pickIcon": "Choisir l'icône",
-    "pickName": "Choisir le nom",
-    "noSlots": "Aucun emplacement d'équipement renvoyé par l'API pour ce personnage.",
-    "create": "Créer l'équipement",
     "freeSlot": "Emplacement libre",
+    "noSlots": "Aucun emplacement d’équipement renvoyé par l’API pour ce personnage.",
+    "deselect": "Désélectionner",
+    "equip": "Équiper",
+    "create": "Créer",
+    "snapshot": "Écraser",
+    "clear": "Vider",
+    "groups": "Voir dans les groupes d’équipements",
+    "groupsSoon": "Bientôt disponible",
     "editIdentifiers": "Modifier",
     "applyIdentifiers": "Appliquer",
-    "cancelIdentifiers": "Annuler"
+    "cancelIdentifiers": "Annuler",
+    "pickColor": "Choisir la couleur de fond",
+    "pickIcon": "Choisir l’icône",
+    "pickName": "Choisir le nom"
   }
 }

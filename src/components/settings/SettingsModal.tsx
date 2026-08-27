@@ -25,12 +25,17 @@ import {APP_VERSION, SUPPORT_EMAIL, BUNGIE_PROFILE_URL} from "@/lib/app-info";
 
 type Category = "appearance" | "inventory" | "search" | "about";
 
-const CATEGORIES: Category[] = [
-    "appearance",
-    "inventory",
-    "search",
-    "about",
-];
+/**
+ * Onglets, dans l'ordre, et la clé de leur libellé — donnée depuis la racine
+ * des messages : « Inventaire » est le mot commun à toute l'interface, il ne
+ * se redit pas dans ce groupe.
+ */
+const CATEGORIES: Record<Category, string> = {
+    appearance: "settings.categories.appearance",
+    inventory: "common.inventory",
+    search: "settings.categories.search",
+    about: "settings.categories.about",
+};
 
 /** Noms des langues dans leur propre langue. */
 const LOCALE_LABELS: Record<Locale, string> = {
@@ -48,13 +53,16 @@ export function SettingsModal({
     bungieMembershipId?: string;
 }) {
     const t = useTranslations("settings");
-    const tAuth = useTranslations("auth");
+    const tCommon = useTranslations("common");
+    // Les libellés d'onglets sont des clés complètes : un traducteur sans
+    // espace de noms les lit toutes.
+    const tRoot = useTranslations();
     const [category, setCategory] = useState<Category>("appearance");
 
     return (
-        <Modal open={open} onClose={onClose} title={t("title")}>
+        <Modal open={open} onClose={onClose} title={tCommon("settings")}>
             <header className="modal__header">
-                <h2 className="modal__title"><Cog6ToothIcon/><span>{t("title")}</span></h2>
+                <h2 className="modal__title"><Cog6ToothIcon/><span>{tCommon("settings")}</span></h2>
                 <button
                     type="button"
                     className="modal__close"
@@ -67,8 +75,8 @@ export function SettingsModal({
 
             <div className="settings">
                 {/* Colonne de gauche : catégories */}
-                <nav className="settings__nav" aria-label={t("title")}>
-                    {CATEGORIES.map((key) => (
+                <nav className="settings__nav" aria-label={tCommon("settings")}>
+                    {(Object.keys(CATEGORIES) as Category[]).map((key) => (
                         <button
                             key={key}
                             type="button"
@@ -78,7 +86,7 @@ export function SettingsModal({
                                 category === key ? " settings__nav-item--active" : ""
                             }`}
                         >
-                            {t(`categories.${key}`)}
+                            {tRoot(CATEGORIES[key])}
                         </button>
                     ))}
                 </nav>
@@ -97,19 +105,18 @@ export function SettingsModal({
 
 function AccountPanel({
                           bungieMembershipId,
-                          logoutLabel,
                       }: {
     bungieMembershipId?: string;
-    logoutLabel: string;
 }) {
     const t = useTranslations("settings.account");
+    const tCommon = useTranslations("common");
 
     return (
         <div className="settings__group">
-            <SettingRow label={t("logout")}>
+            <SettingRow label={tCommon("logout")}>
                 <form action="/api/auth/logout" method="post">
                     <button type="submit" className="btn btn--small">
-                        {logoutLabel}
+                        {tCommon("logout")}
                     </button>
                 </form>
             </SettingRow>
@@ -125,7 +132,7 @@ function AccountPanel({
                     target="_blank"
                     rel="noreferrer noopener"
                 >
-                    {t("openProfile")}
+                    {tCommon("open")}
                 </a>
             </SettingRow>
         </div>
@@ -245,6 +252,7 @@ function AppearancePanel() {
 
 function InventoryPanel() {
     const t = useTranslations("settings.inventory");
+    const tCriteria = useTranslations("criteria");
     const resetSorts = useSettings((s) => s.resetSorts);
     const weaponGrouping = useSettings((s) => s.weaponGrouping);
     const setWeaponGrouping = useSettings((s) => s.setWeaponGrouping);
@@ -266,7 +274,7 @@ function InventoryPanel() {
                     onChange={setWeaponGrouping}
                     options={WEAPON_GROUPINGS.map((value) => ({
                         value,
-                        label: t(`weaponGroupings.${value}`),
+                        label: tCriteria(value),
                     }))}
                 />
             </SettingRow>
@@ -281,7 +289,7 @@ function InventoryPanel() {
                     onChange={setArmorGrouping}
                     options={ARMOR_GROUPINGS.map((value) => ({
                         value,
-                        label: t(`armorGroupings.${value}`),
+                        label: tCriteria(value),
                     }))}
                 />
             </SettingRow>
@@ -375,6 +383,7 @@ function SearchPanel() {
 
 function AboutPanel() {
     const t = useTranslations("settings.about");
+    const tCommon = useTranslations("common");
 
     return (
         <div className="settings__group">
@@ -395,7 +404,7 @@ function AboutPanel() {
                     target="_blank"
                     rel="noreferrer noopener"
                 >
-                    {t("openLink")}
+                    {tCommon("open")}
                 </a>
             </SettingRow>
         </div>

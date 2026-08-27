@@ -30,12 +30,12 @@ export function useTargetLabel(
   target: MoveTarget,
   names: ReadonlyMap<string, string>,
 ) {
-  const t = useTranslations("actions.target");
-  if (target.kind === "vault") return t("vault");
+  const t = useTranslations("actions.label");
+  if (target.kind === "vault") return t("toVault");
   const character = names.get(target.characterId) ?? "";
   return target.kind === "equipped"
     ? t("equip", { character })
-    : t("inventory", { character });
+    : t("toCharacter", { character });
 }
 
 /**
@@ -142,7 +142,7 @@ function StepRow({
   index: number;
   names: ReadonlyMap<string, string>;
 }) {
-  const t = useTranslations("actions.step");
+  const t = useTranslations("actions.label");
   // Une action d'emplacement ne porte aucun objet : `0` n'est le hash d'aucune
   // définition, rien n'est lu.
   const def = useSharedDefinition(step.kind === "loadout" ? 0 : step.itemHash);
@@ -159,7 +159,7 @@ function StepRow({
   // n'a rien à voir, pour l'utilisateur, avec l'équipement final.
   const label =
     step.kind === "loadout"
-      ? t(`loadout.${step.request.kind}`, {
+      ? t(`loadoutStep.${step.request.kind}`, {
           number: step.request.loadoutIndex + 1,
           character,
         })
@@ -174,7 +174,7 @@ function StepRow({
               : step.kind === "toVault"
                 ? t("toVault")
                 : step.kind === "fromVault"
-                  ? t("fromVault", { character })
+                  ? t("toCharacter", { character })
                   : t("equip", { character });
 
   return (
@@ -234,9 +234,9 @@ export function ActionCard({
     names,
   );
   const targetLabel = loadout
-    ? t(`target.loadout.${loadout.action}`)
+    ? t(`label.loadout.${loadout.action}`)
     : action.kind === "insert"
-      ? t("target.perk", { perk })
+      ? t("label.perk", { perk })
       : moveLabel;
 
   // Le titre : le nom de l'objet, ou celui de l'emplacement et son numéro.

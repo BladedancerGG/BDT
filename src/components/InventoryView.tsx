@@ -34,6 +34,7 @@ import {ViewModeTabs} from "./ViewModeTabs";
 import {CharacterSummary} from "./equipment/CharacterSummary";
 import {EquipmentModeView} from "./equipment/EquipmentModeView";
 import {LoadoutPanel} from "./loadouts/LoadoutPanel";
+import {LoadoutCreateButton} from "./loadouts/LoadoutCreateButton";
 import {LoadoutTitle} from "./loadouts/LoadoutTitle";
 import {VirtualItemGrid, type LeadSection} from "./VirtualItemGrid";
 import {ActionsPanel} from "./actions/ActionsPanel";
@@ -177,8 +178,18 @@ function Inventory({data}: { data: ProfileData }) {
         selectedLoadout !== null ? loadouts[selectedLoadout] : undefined;
     const loadoutContents = useLoadoutItems(selectedLoadoutData, data, defs);
 
-    // Un emplacement libre laisse l'équipement porté à l'écran : c'est lui qu'on
-    // s'apprête à y enregistrer.
+    /**
+     * L'emplacement sélectionné est libre.
+     *
+     * La vue montre alors des cases **vides** — il n'y a rien d'enregistré à
+     * montrer — et l'équipement porté ne se dévoile qu'au survol du bouton de
+     * création, en aperçu de ce qu'on s'apprête à y mettre.
+     */
+    const emptySelected =
+        selectedLoadoutData !== undefined && isEmptyLoadout(selectedLoadoutData);
+
+    // Les objets restent ceux qui sont portés : c'est l'affichage qui les
+    // estompe, pas la donnée qui disparaît.
     const shownItems = loadoutContents?.items ?? displayedEquipped;
     // Les attributs **enregistrés** dans l'équipement, quand il y en a un : ce
     // sont eux que la vue doit montrer, pas ceux que l'objet porte aujourd'hui.
@@ -246,7 +257,6 @@ function Inventory({data}: { data: ProfileData }) {
                         <div className="inventory-view__body">
                             {/* Équipement du personnage : deux colonnes d'emplacements */}
                             <section className="equipment">
-                                {/*<h2 className="equipment__title">{t("equipment")}</h2>*/}
                                 <div className="equipment__columns">
                                     <SlotColumn
                                         buckets={WEAPON_COLUMN}
@@ -332,7 +342,18 @@ function Inventory({data}: { data: ProfileData }) {
                                         }
                                         sockets={shownSockets}
                                         editable={!loadoutContents}
+                                        preview={emptySelected}
                                     />
+
+                                    {/* Le seul geste d'un emplacement libre,
+                                        posé là où le vide a laissé la place. */}
+                                    {emptySelected && selectedLoadoutData && current && (
+                                        <LoadoutCreateButton
+                                            loadout={selectedLoadoutData}
+                                            characterId={current}
+                                            index={selectedLoadout ?? 0}
+                                        />
+                                    )}
                                 </div>
 
                                 {/* Les emplacements du personnage, et leurs actions */}

@@ -62,6 +62,7 @@ export function PlugTooltip({
   browseLabel?: string;
 }) {
   const t = useTranslations("item");
+  const tCommon = useTranslations("common");
   const def = useDefinition<InventoryItemDefinition>(table, hash);
   const modifiers = plugStatModifiers(def);
   // Aspects, fragments et attributs d'artéfact ont une description vide :
@@ -103,7 +104,7 @@ export function PlugTooltip({
         <p className="plug-tooltip__action">
           <DestinySymbol name="mouseLeft" className="plug-tooltip__action-key" />
           {equippable
-            ? t("equipPerk")
+            ? tCommon("equip")
             : t("browsePlugs")}
         </p>
       )}

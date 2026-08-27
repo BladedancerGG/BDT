@@ -1,39 +1,53 @@
 {
-  "auth": {
-    "login": "Sign in with Bungie",
+  "common": {
+    "inventory": "Inventory",
+    "loadouts": "Loadouts",
+    "settings": "Settings",
+    "open": "Open",
+    "equip": "Equip",
     "logout": "Sign out"
+  },
+  "auth": {
+    "login": "Sign in with Bungie"
   },
   "header": {
     "refresh": "Refresh",
-    "refreshing": "Refreshing…",
-    "settings": "Settings",
     "refreshForce": "Force from the API",
     "shiftKey": "Shift",
     "holdHint": "or press and hold (1 s)"
   },
   "menu": {
-    "signedInAs": "Signed in as",
     "label": "Main menu",
     "open": "Open the menu",
-    "inventory": "Inventory",
-    "loadouts": "Loadouts",
     "soon": "soon",
-    "settings": "Settings"
+    "signedInAs": "Signed in as"
+  },
+  "criteria": {
+    "none": "None",
+    "rarity": "Rarity",
+    "power": "Power level",
+    "type": "Type",
+    "name": "Item name",
+    "gearTier": "Gear tier",
+    "class": "Class",
+    "damageType": "Damage type",
+    "ammoType": "Ammo type",
+    "weaponType": "Weapon type",
+    "weaponFrame": "Weapon frame",
+    "armorArchetype": "Armor archetype",
+    "setBonus": "Set bonus",
+    "masterwork": "Masterwork",
+    "crafted": "Crafted / enhanced"
   },
   "settings": {
-    "title": "Settings",
     "close": "Close",
     "categories": {
-      "account": "Account",
       "appearance": "Appearance",
-      "inventory": "Inventory",
-      "about": "About",
-      "search": "Search"
+      "search": "Search",
+      "about": "About"
     },
     "account": {
-      "logout": "Sign out",
-      "profile": "Bungie profile",
-      "openProfile": "Open"
+      "profile": "Bungie profile"
     },
     "appearance": {
       "theme": "Theme",
@@ -57,38 +71,12 @@
       "weaponGrouping": "Weapon grouping",
       "armorGrouping": "Armor grouping",
       "groupingHint": "The vault is always split by slot; this setting picks the sub-group, one at a time.",
-      "weaponGroupings": {
-        "none": "None",
-        "ammoType": "Ammo type",
-        "weaponType": "Weapon type",
-        "damageType": "Damage type"
-      },
-      "armorGroupings": {
-        "none": "None",
-        "class": "Class",
-        "setBonus": "Set bonus",
-        "armorArchetype": "Armor archetype"
-      },
       "sort": "Item sorting",
       "sortHint": "The topmost criterion breaks ties first; the others only apply when it is equal. Drag the handle to reorder.",
       "sortReset": "Reset sorting",
       "sortMove": "Move “{name}”, position {position} of {total}",
       "sortReverse": "Reverse “{name}”, currently {direction}",
       "sortEnable": "Enable sorting by “{name}”",
-      "sortCriteria": {
-        "rarity": "Rarity",
-        "power": "Power level",
-        "type": "Type",
-        "name": "Item name",
-        "gearTier": "Gear tier",
-        "damageType": "Damage type",
-        "ammoType": "Ammo type",
-        "armorArchetype": "Armor archetype",
-        "setBonus": "Set bonus",
-        "weaponFrame": "Weapon frame",
-        "masterwork": "Masterwork",
-        "crafted": "Crafted / enhanced"
-      },
       "sortDirection": {
         "text": {
           "asc": "A → Z",
@@ -119,8 +107,7 @@
     "about": {
       "version": "Site version",
       "support": "Contact",
-      "bungieApi": "Bungie API",
-      "openLink": "Open"
+      "bungieApi": "Bungie API"
     }
   },
   "actions": {
@@ -133,50 +120,40 @@
     "empty": "No action to show.",
     "clear": "Clear finished actions",
     "filterLabel": "Filter actions",
-    "filter": {
-      "all": "Show all",
-      "pending": "Pending",
-      "running": "Running",
-      "done": "Completed"
-    },
     "status": {
+      "all": "Show all",
       "pending": "Pending",
       "running": "Running",
       "done": "Done",
       "error": "Failed"
     },
-    "target": {
-      "vault": "Transfer to the vault",
-      "inventory": "Transfer to {character}",
+    "label": {
+      "toVault": "Transfer to the vault",
+      "toCharacter": "Transfer to {character}",
       "equip": "Equip on {character}",
+      "pull": "Pull from the postmaster to {character}",
+      "unequip": "Unequip: “{item}” takes its place",
+      "evict": "Move “{item}” to the vault to free a slot",
+      "insert": "Equipping the “{perk}” perk",
       "perk": "Perk: {perk}",
       "loadout": {
         "equip": "Equip this loadout",
         "snapshot": "Save the equipped items",
         "clear": "Clear this slot",
         "identifiers": "Change the appearance"
-      }
-    },
-    "step": {
-      "pull": "Pull from the postmaster to {character}",
-      "toVault": "Transfer to the vault",
-      "fromVault": "Transfer to {character}",
-      "equip": "Equip on {character}",
-      "unequip": "Unequip: “{item}” takes its place",
-      "evict": "Move “{item}” to the vault to free a slot",
-      "insert": "Equipping the “{perk}” perk",
-      "loadout": {
+      },
+      "loadoutStep": {
         "equip": "Equip loadout #{number} on {character}",
         "snapshot": "Save the equipped items into slot #{number}",
         "clear": "Clear slot #{number}",
         "identifiers": "Change the appearance of slot #{number}"
       }
     },
-    "zone": {
-      "equipHere": "Equip",
-      "inventoryHere": "Move to inventory",
+    "move": {
       "equipOn": "Equip on {character}",
+      "inventoryHere": "Move to inventory",
       "inventoryOf": "Move to {character}'s inventory",
+      "toCharacter": "Transfer to {character}",
       "vault": "Transfer to the vault"
     },
     "failure": {
@@ -201,13 +178,13 @@
   "inventory": {
     "loading": "Loading profile…",
     "error": "Unable to load the profile.",
-    "equipped": "Equipped",
-    "stored": "Inventory",
     "vault": "Vault",
-    "equipment": "Equipment",
     "expand": "Expand",
     "collapse": "Collapse",
     "otherGroup": "Other",
+    "currentEquipment": "Currently equipped",
+    "viewMode": "Display mode",
+    "cycleHint": "to cycle",
     "ammo": {
       "primary": "Primary ammo",
       "special": "Special ammo",
@@ -215,13 +192,7 @@
       "primaryShort": "Primary",
       "specialShort": "Special",
       "heavyShort": "Heavy"
-    },
-    "mode": {
-      "label": "Display mode",
-      "inventory": "Inventory",
-      "loadouts": "Loadouts"
-    },
-    "currentEquipment": "Currently equipped"
+    }
   },
   "subclass": {
     "abilities": "Abilities",
@@ -234,10 +205,8 @@
     "loadingDetail": "Loading perks and mods…",
     "energy": "energy",
     "artifactPerks": "Perks",
-    "setBonus": "Set bonus",
     "setPieces": "{count} pieces",
     "weaponLevel": "Weapon Lv. {level}",
-    "equipPerk": "Equip",
     "browsePlugs": "Browse similar items",
     "searchPlugs": "Search…"
   },
@@ -250,28 +219,24 @@
     "historyLabel": "Recent searches",
     "historyEmpty": "No recent search.",
     "historyClear": "Clear history",
-    "actionsLabel": "Actions on the items found",
-    "moveTo": "Transfer to {character}",
-    "moveToVault": "Transfer to the vault"
+    "actionsLabel": "Actions on the items found"
   },
   "loadouts": {
     "slot": "Slot #{number}",
+    "freeSlot": "Free slot",
+    "noSlots": "The API returned no loadout slots for this character.",
     "deselect": "Deselect",
-    "equip": "Equip loadout #{number}",
-    "snapshot": "Overwrite loadout",
-    "clear": "Delete this loadout",
+    "equip": "Equip",
+    "create": "Create",
+    "snapshot": "Overwrite ",
+    "clear": "Clear",
     "groups": "View in loadout groups",
     "groupsSoon": "Coming soon",
-    "failed": "The operation failed.",
-    "escapeKey": "Esc",
-    "pickColor": "Pick the background colour",
-    "pickIcon": "Pick the icon",
-    "pickName": "Pick the name",
-    "noSlots": "The API returned no loadout slots for this character.",
-    "create": "Create loadout",
-    "freeSlot": "Free slot",
     "editIdentifiers": "Edit",
     "applyIdentifiers": "Apply",
-    "cancelIdentifiers": "Cancel"
+    "cancelIdentifiers": "Cancel",
+    "pickColor": "Pick the background colour",
+    "pickIcon": "Pick the icon",
+    "pickName": "Pick the name"
   }
 }

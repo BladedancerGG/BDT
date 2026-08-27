@@ -135,6 +135,8 @@
     display: flex;
     flex-direction: column;
     min-width: 0;
+    // Bloc conteneur du bouton de création, centré par-dessus (loadout-create)
+    position: relative;
 
     @include m.from(v.$bp-lg) {
       min-height: 0;

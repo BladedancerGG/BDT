@@ -38,7 +38,7 @@ const TRANSITION_MS = 350;
  */
 export function MainMenu({displayName}: { displayName?: string }) {
     const t = useTranslations("menu");
-    const tAuth = useTranslations("auth");
+    const tCommon = useTranslations("common");
     const pathname = usePathname();
 
     const open = useUi((s) => s.menuOpen);
@@ -90,7 +90,7 @@ export function MainMenu({displayName}: { displayName?: string }) {
                                 aria-current={pathname === "/" ? "page" : undefined}
                                 onClick={() => setOpen(false)}
                             >
-                                {t("inventory")}
+                                {tCommon("inventory")}
                             </Link>
 
                             {/* La page des équipements n'existe pas encore : l'entrée
@@ -99,7 +99,7 @@ export function MainMenu({displayName}: { displayName?: string }) {
                                 className="main-menu__item main-menu__item--soon"
                                 aria-disabled="true"
                             >
-                                {t("loadouts")}
+                                {tCommon("loadouts")}
                                 <span className="main-menu__badge">{t("soon")}</span>
                             </span>
                         </div>
@@ -113,7 +113,7 @@ export function MainMenu({displayName}: { displayName?: string }) {
                                     setSettingsOpen(true);
                                 }}
                             >
-                                {t("settings")}
+                                {tCommon("settings")}
                             </button>
                         </div>
 
@@ -152,7 +152,7 @@ export function MainMenu({displayName}: { displayName?: string }) {
                                     type="submit"
                                     className="main-menu__item main-menu__item--danger"
                                 >
-                                    {tAuth("logout")}
+                                    {tCommon("logout")}
                                 </button>
                             </form>
                         </footer>

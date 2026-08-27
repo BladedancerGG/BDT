@@ -126,3 +126,60 @@
     flex-shrink: 0;
   }
 }
+
+// —— Aperçu d'un emplacement libre ————————————————————————————
+//
+// Rien n'y est enregistré : la vue montre des cases vides. Survoler le bouton de
+// création dévoile les objets équipés — ceux qu'un enregistrement y mettrait.
+//
+// Le fondu est entièrement en CSS : le passer par un état React re-rendrait les
+// dix lignes et tous leurs attributs à chaque entrée et sortie du curseur, pour
+// une transition d'opacité. C'est le même raisonnement que le `:root[data-dragging]`
+// des infobulles.
+
+.equipment-mode--preview {
+  // La case vide est posée sous la vignette, sans la déplacer
+  .equipment-mode__item {
+    position: relative;
+  }
+
+  // `&__placeholder` donnerait `.equipment-mode--preview__placeholder`, qui ne
+  // désigne rien : le suffixe s'accroche au modificateur, pas au bloc.
+  .equipment-mode__placeholder {
+    position: absolute;
+    inset: 0;
+  }
+
+  // Ce qui s'estompe : les vignettes, leurs attributs, et le résumé du
+  // personnage — il décrit la panoplie portée, pas cet emplacement.
+  .equipment-mode__item .item,
+  .plug-chips,
+  .character-summary {
+    opacity: 0;
+    // Un aperçu ne se manipule pas : ni infobulle ni sélecteur pendant qu'il
+    // s'efface sous le curseur.
+    pointer-events: none;
+    transition: opacity 180ms ease-in-out;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .equipment-mode__item .item,
+    .plug-chips,
+    .character-summary {
+      transition: none;
+    }
+  }
+}
+
+// La révélation est commandée par le bouton, qui est son voisin dans
+// `inventory-view__equipment` — d'où le `:has()` porté par leur parent commun.
+.inventory-view__equipment:has(.loadout-create__button:hover),
+.inventory-view__equipment:has(.loadout-create__button:focus-visible) {
+  .equipment-mode--preview {
+    .equipment-mode__item .item,
+    .plug-chips,
+    .character-summary {
+      opacity: 0.5;
+    }
+  }
+}

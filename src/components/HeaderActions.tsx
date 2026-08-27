@@ -40,6 +40,7 @@ export function HeaderActions({
     bungieMembershipId?: string;
 }) {
     const t = useTranslations("header");
+    const tCommon = useTranslations("common");
     const queryClient = useQueryClient();
     // L'ouverture passe par le store : l'entrée « Paramètres » du menu latéral
     // la demande aussi, et n'a pas accès à un état local d'ici.
@@ -142,12 +143,12 @@ export function HeaderActions({
                     </button>
                 </Hint>
 
-                <Hint actions={[{label: t("settings"), keys: ["F1"]}]}>
+                <Hint actions={[{label: tCommon("settings"), keys: ["F1"]}]}>
                     <button
                         type="button"
                         className="btn btn--small btn--settings"
                         onClick={() => setSettingsOpen(true)}
-                        aria-label={t("settings")}
+                        aria-label={tCommon("settings")}
                     >
                         <Cog6ToothIcon/>
                     </button>

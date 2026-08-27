@@ -113,7 +113,8 @@ export function DropZones({
   characters: readonly Character[];
   selectedCharacterId: string | null;
 }) {
-  const t = useTranslations("actions.zone");
+  const t = useTranslations("actions.move");
+  const tCommon = useTranslations("common");
   const dragged = useDraggedItem();
   const names = useCharacterNames(characters);
   // Un seul planificateur pour les sept zones : il ouvre une souscription
@@ -195,7 +196,7 @@ export function DropZones({
                 target={equip}
                 plan={planOf(equip)}
                 label={
-                  current ? t("equipHere") : t("equipOn", { character: name })
+                  current ? tCommon("equip") : t("equipOn", { character: name })
                 }
               >
                 <CharacterMark character={character} />

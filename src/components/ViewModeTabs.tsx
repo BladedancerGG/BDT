@@ -20,7 +20,7 @@ import {DestinySymbol} from "@/components/DestinySymbol";
  * paramètres.
  */
 export function ViewModeTabs() {
-    const t = useTranslations("inventory.mode");
+    const t = useTranslations();
     const viewMode = useSettings((s) => s.viewMode);
     const setViewMode = useSettings((s) => s.setViewMode);
     const toggleViewMode = useSettings((s) => s.toggleViewMode);
@@ -45,8 +45,8 @@ export function ViewModeTabs() {
     }, [toggleViewMode]);
 
     return (
-        <div className="view-mode-tabs" role="tablist" aria-label={t("label")}>
-            <div className="view-mode-tabs__hint">(<DestinySymbol name={"tab"}/>&nbsp;to cycle)</div>
+        <div className="view-mode-tabs" role="tablist" aria-label={t("inventory.viewMode")}>
+            <div className="view-mode-tabs__hint">(<DestinySymbol name={"tab"}/>&nbsp;{t("inventory.cycleHint")})</div>
             {VIEW_MODES.map((mode) => (
                 <button
                     key={mode}
@@ -60,7 +60,7 @@ export function ViewModeTabs() {
                 >
                     {mode === "inventory" &&  <VaultIcon/> }
                     {mode === "loadouts" &&  <LoadoutsIcon/> }
-                    <span>{t(mode)}</span>
+                    <span>{t(`common.${mode}`)}</span>
                 </button>
             ))}
         </div>

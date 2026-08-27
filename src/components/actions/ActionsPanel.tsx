@@ -20,6 +20,8 @@ import {
 } from "@/lib/actions/store";
 import { ActionCard } from "./ActionCard";
 
+// Les valeurs du filtre sont celles des états d'une action, « all » en plus :
+// les libellés viennent donc du même groupe de messages, `actions.status`.
 const FILTERS: readonly ActionFilter[] = ["all", "pending", "running", "done"];
 
 /**
@@ -119,7 +121,7 @@ export function ActionsPanel() {
               >
                 {FILTERS.map((value) => (
                   <option key={value} value={value}>
-                    {t(`filter.${value}`)}
+                    {t(`status.${value}`)}
                   </option>
                 ))}
               </select>

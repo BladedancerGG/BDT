@@ -687,9 +687,14 @@ Points worth knowing:
   not one of them. See `lib/loadouts/loadout.ts`.
   A free slot is still selectable, and its title is reduced to its number plus
   "free slot": that number is the only sign of which slot a snapshot is about to
-  fill. Of the three actions only *create from the equipped items* is offered —
-  there is nothing to equip and nothing to delete — and the button says *create*
-  rather than *overwrite*.
+  fill. The rows then show **empty cells** — there is nothing recorded to show —
+  and its one remaining action, *create from the equipped items*, sits at the
+  centre of the equipment column rather than in the right-hand panel, where the
+  emptiness left the room for it. Hovering that button fades the worn gear in: a
+  preview of what the click would record. The fade is pure CSS — a `:has()` on
+  the column both share — because routing it through React state would re-render
+  the ten rows and all their plugs on every pointer enter and leave, for an
+  opacity transition. Same reasoning as the tooltips' `:root[data-dragging]`.
 - **`SnapshotLoadout` requires `colorHash` / `iconHash` / `nameHash`** — all
   three, always, whatever their `nullable` in the OpenAPI schema suggests.
   Omitting them answers `DestinyInvalidRequest` (1622), and so does passing the
@@ -1734,9 +1739,16 @@ Les points à connaître :
   signal suffit, et `items.length` n'en est pas un. Voir
   `lib/loadouts/loadout.ts`. Un emplacement libre reste sélectionnable, et
   son titre se réduit à son numéro suivi de « Emplacement libre » : ce numéro est
-  la seule indication de l'emplacement que l'écrasement va remplir. Des trois
-  actions, seule *créer à partir des objets équipés* lui est proposée — il n'y a
-  rien à y équiper ni à en supprimer — et le bouton dit *créer* et non *écraser*.
+  la seule indication de l'emplacement que l'écrasement va remplir. Les lignes
+  montrent alors des **cases vides** — il n'y a rien d'enregistré à montrer — et
+  sa seule action restante, *créer à partir des objets équipés*, est posée au
+  centre de la colonne d'équipement plutôt que dans le panneau de droite, là où
+  le vide a laissé la place. Survoler ce bouton fait apparaître l'équipement
+  porté en fondu : un aperçu de ce que le clic enregistrerait. Le fondu est
+  entièrement en CSS — un `:has()` sur la colonne qui les contient tous deux —
+  car le passer par un état React re-rendrait les dix lignes et tous leurs
+  attributs à chaque entrée et sortie du curseur, pour une transition d'opacité.
+  Le même raisonnement que le `:root[data-dragging]` des infobulles.
 - **`SnapshotLoadout` exige `colorHash` / `iconHash` / `nameHash`** — les trois,
   toujours, quoi qu'en laisse croire leur `nullable` dans le schéma OpenAPI. Les
   omettre répond `DestinyInvalidRequest` (1622), et transmettre la sentinelle

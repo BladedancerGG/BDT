@@ -84,6 +84,7 @@ function SortRuleRow({
     total: number;
 }) {
     const t = useTranslations("settings.inventory");
+    const tCriteria = useTranslations("criteria");
     const toggleSort = useSettings((s) => s.toggleSort);
     const reverseSort = useSettings((s) => s.reverseSort);
 
@@ -96,7 +97,7 @@ function SortRuleRow({
         isDragging,
     } = useSortable({id: rule.id});
 
-    const label = t(`sortCriteria.${rule.id}`);
+    const label = tCriteria(rule.id);
     // Le sens n'a pas le même sens pour un texte, un nombre ou un drapeau :
     // « A → Z » ne veut rien dire pour un niveau de puissance.
     const direction = t(
