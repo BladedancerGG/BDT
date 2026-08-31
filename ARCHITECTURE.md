@@ -830,12 +830,14 @@ mirrors `sort.ts` / `grouping.ts`: pure modules first, React last.
 | File | Role |
 |---|---|
 | `query.ts` | lexer + parser → syntax tree. Space = implicit AND, plus `and` / `or` / `not`, a leading `-`, parentheses and quotes |
-| `keywords.ts` | the vocabulary: stat, damage, rarity, class, ammo and item-subtype names → hashes and enum values |
+| `keywords.ts` | the vocabulary: stat, damage, rarity, class, ammo, item-subtype, foundry and breaker names → hashes, enum values and trait ids |
 | `filters.ts` | tree → predicate. `is:`, `stat:`, `basestat:`, `perkname:`, `power:`, `id:`… |
-| `index-build.ts` | one batched manifest read: names of equipped plugs, and the stat deltas of mods |
+| `flags.ts` | the per-item flag masks the index computes and `filters.ts` reads. A module of its own so the latter stays pure |
+| `index-build.ts` | batched manifest reads: names of equipped plugs, stat deltas of mods, and everything an item only says through its plugs |
+| `suggestions.ts` | autocompletion: the term under the caret → ranked completions |
 | `provider.tsx` | the only React part: debounce, evaluation over the whole profile, result set |
 
-Three decisions carry the rest.
+A handful of decisions carry the rest.
 
 **A faulty query filters nothing.** An unknown keyword or an incomplete
 comparison (`stat:range:>=`) marks the query invalid — the bar turns red and the
@@ -848,10 +850,20 @@ plain words. The rule is positional: a quote character is a delimiter only when
 the segment is still empty. Operators are matched case-insensitively, so `OR`
 reads like `or`.
 
-**Stat names are hard-coded, not read from the manifest.** DIM's syntax is
-English, and the manifest is downloaded in the player's language: mapping
-`range` to a hash through a translated table would make queries locale-dependent.
-A handful of French aliases are accepted on top (`portee`, `filobscur`…).
+**The vocabulary is English, and hard-coded.** DIM's syntax is English, and the
+manifest is downloaded in the player's language: mapping `range` to a hash
+through a translated table would make queries locale-dependent. The same rule
+decides what a filter may be built on — a plug is recognised by its
+`plugCategoryIdentifier` (`shader`, `origins`, `armor_archetypes`…) and a
+foundry by its `traitIds` (`foundry.hakke`), never by a displayed name. It is
+also why `is:adept` is missing: nothing in the manifest tells an Adept weapon
+apart other than the `(Adept)` in its translated name.
+
+**What is absent, and why.** `source:`, `season:` and `year:` would need the
+season-watermark table DIM keeps by hand; `catalyst:`, `is:craftable` and
+`is:patternunlocked` need the account's records; `is:vendor`, `maxstat*` and
+`is:maxpower` belong to a loadout optimiser this app does not have. None of that
+data is fetched, so the keywords are refused rather than answered wrongly.
 
 **"Base stat" means before the mod sockets.** Checked against the manifest
 (version 244213): on Edge of Fate armour, mods, masterwork *and* tuning all sit
@@ -860,9 +872,18 @@ ARMOR PERKS; on weapons, masterwork and mods are in WEAPON MODS while barrels
 and magazines are in WEAPON PERKS. One rule covers both, and it needs no
 plug-category allowlist to keep up to date.
 
-The plug index costs a few thousand definitions, so it is **not** built by
+**Everything an item only says through its plugs goes through the index.** A mod
+that was actually fitted, a shader, an ornament, an artifice slot, a tuning mod,
+an armour archetype, an origin trait, Deepsight, the anti-champion effect, the
+masterworked stat, the kill tracker, the crafted level: none of these are on the
+item definition, they are all read from the equipped plugs. `index-build.ts`
+resolves them once per item into a `SEARCH_FLAG` mask plus a few values, so that
+`filters.ts` stays a set of one-line predicates.
+
+That index costs a few thousand definitions, so it is **not** built by
 `ItemDefsProvider`: only a query that reads it (free text, `perkname:`,
-`basestat:`) triggers it, and nothing is filtered until it lands.
+`basestat:`, `is:modded`, `breaker:`…) triggers it, and nothing is filtered
+until it lands.
 
 Evaluation produces a `Set` of instance ids, once per query, over the entire
 profile. The vault and the postmaster then either drop the misses or dim them
@@ -875,6 +896,15 @@ Zustand store, and what is known about the results — how many were found, wher
 they can be sent — comes back up the same way (`SearchActionsBridge`). The match
 count also feeds each character tab, which reports how many of the items found
 sit on that character.
+
+**Autocompletion completes the term under the caret**, not the end of the bar —
+one often comes back to fix a filter in the middle of a query. Its vocabulary is
+derived from the same tables the filters use (`IS_VALUES`, `STAT_KEYWORDS`…), so
+what is offered and what is understood cannot drift apart. Keys follow DIM:
+arrows to move, Tab to insert, Enter to take the highlighted entry or else to
+apply the query, Escape to close. A completion still awaiting a value (`stat:`,
+`power:>=`) keeps the caret glued to it; a complete one gets the trailing space
+that chains a second filter.
 
 The search history goes to **localStorage**, not to the preferences cookie,
 which is capped at 4 KB and shared.
@@ -1893,12 +1923,14 @@ modules purs d'abord, React en dernier.
 | Fichier | Rôle |
 |---|---|
 | `query.ts` | découpage + analyse syntaxique → arbre. L'espace vaut ET implicite, plus `and` / `or` / `not`, le préfixe `-`, les parenthèses et les guillemets |
-| `keywords.ts` | le vocabulaire : noms de statistiques, de types de dégâts, de raretés, de classes, de munitions et de sous-types → hashes et valeurs d'énumération |
+| `keywords.ts` | le vocabulaire : noms de statistiques, de types de dégâts, de raretés, de classes, de munitions, de sous-types, de fonderies et d'effets anti-champion → hashes, valeurs d'énumération et étiquettes |
 | `filters.ts` | arbre → prédicat. `is:`, `stat:`, `basestat:`, `perkname:`, `power:`, `id:`… |
-| `index-build.ts` | une lecture groupée du manifeste : noms des plugs équipés, et écarts de statistiques des mods |
+| `flags.ts` | les masques de drapeaux que l'index calcule et que `filters.ts` lit. Un module à part, pour que ce dernier reste pur |
+| `index-build.ts` | des lectures groupées du manifeste : noms des plugs équipés, écarts de statistiques des mods, et tout ce qu'un objet ne dit qu'à travers ses plugs |
+| `suggestions.ts` | l'autocomplétion : le terme sous le curseur → propositions classées |
 | `provider.tsx` | la seule partie React : anti-rebond, évaluation sur tout le profil, ensemble des résultats |
 
-Trois décisions portent le reste.
+Quelques décisions portent le reste.
 
 **Une requête fautive ne filtre rien.** Un mot-clé inconnu ou une comparaison
 incomplète (`stat:range:>=`) rend la requête invalide : la barre passe au rouge
@@ -1912,10 +1944,21 @@ La règle est donc positionnelle : un guillemet ne délimite que si le segment e
 encore vide. Les opérateurs, eux, sont reconnus sans tenir compte de la casse :
 `OR` vaut `or`.
 
-**Les noms de statistiques sont codés en dur, pas lus du manifeste.** La syntaxe
-de DIM est anglaise, et le manifeste est téléchargé dans la langue du joueur :
-passer par une table traduite rendrait les requêtes dépendantes de la locale.
-Quelques alias français sont acceptés en plus (`portee`, `filobscur`…).
+**Le vocabulaire est anglais, et codé en dur.** La syntaxe de DIM est anglaise,
+et le manifeste est téléchargé dans la langue du joueur : passer par une table
+traduite rendrait les requêtes dépendantes de la locale. La même règle décide de
+ce sur quoi un filtre a le droit de s'appuyer — un plug se reconnaît à son
+`plugCategoryIdentifier` (`shader`, `origins`, `armor_archetypes`…) et une
+fonderie à ses `traitIds` (`foundry.hakke`), jamais à un nom affiché. C'est
+aussi pourquoi `is:adept` manque : rien dans le manifeste ne distingue une arme
+adepte autrement que par le « (Adept) » de son nom, qui est traduit.
+
+**Ce qui est absent, et pourquoi.** `source:`, `season:` et `year:` demanderaient
+la table des filigranes de saison que DIM tient à la main ; `catalyst:`,
+`is:craftable` et `is:patternunlocked` les enregistrements du compte ;
+`is:vendor`, `maxstat*` et `is:maxpower` un optimiseur d'équipement que
+l'application n'a pas. Aucune de ces données n'est récupérée : les mots-clés sont
+donc refusés plutôt que mal répondus.
 
 **« Statistique de base » veut dire avant les sockets de mods.** Vérifié sur le
 manifeste (version 244213) : sur une armure Edge of Fate, mods, pièce maîtresse
@@ -1925,10 +1968,19 @@ pièce maîtresse et les mods relèvent de WEAPON MODS quand canons et chargeurs
 relèvent de WEAPON PERKS. Une seule règle couvre les deux, sans liste blanche de
 familles de plugs à tenir à jour.
 
-L'index des plugs coûte quelques milliers de définitions : il n'est donc **pas**
+**Tout ce qu'un objet ne dit qu'à travers ses plugs passe par l'index.** Un mod
+réellement posé, un revêtement, un ornement, un emplacement d'artifice, un mod
+d'ajustage, un archétype d'armure, une particularité d'origine, la résonance
+profonde, l'effet anti-champion, la statistique de la pièce maîtresse, le
+compte-frags, le niveau d'une arme façonnée : rien de tout cela n'est sur la
+définition de l'objet, tout se lit sur ses plugs équipés. `index-build.ts` les
+résout une fois par objet en un masque `SEARCH_FLAG` et quelques valeurs, ce qui
+laisse `filters.ts` à des prédicats d'une ligne.
+
+Cet index coûte quelques milliers de définitions : il n'est donc **pas**
 construit par `ItemDefsProvider`. Seule une requête qui le lit (texte libre,
-`perkname:`, `basestat:`) le déclenche, et rien n'est filtré avant qu'il
-n'arrive.
+`perkname:`, `basestat:`, `is:modded`, `breaker:`…) le déclenche, et rien n'est
+filtré avant qu'il n'arrive.
 
 L'évaluation produit un `Set` d'identifiants d'instance, une fois par requête,
 sur tout le profil. Le coffre et les objets perdus en écartent alors les objets
@@ -1942,6 +1994,16 @@ Zustand, et ce qu'on sait des résultats — combien ils sont, où on peut les
 envoyer — remonte par le même chemin (`SearchActionsBridge`). Ce même décompte
 alimente l'onglet de chaque personnage, qui annonce combien des objets trouvés
 se trouvent chez lui.
+
+**L'autocomplétion complète le terme sous le curseur**, et non la fin de la
+barre — on revient souvent corriger un filtre au milieu d'une requête. Son
+vocabulaire est dérivé des tables mêmes qu'utilisent les filtres (`IS_VALUES`,
+`STAT_KEYWORDS`…) : la liste proposée et celle qui est comprise ne peuvent donc
+pas diverger. Les touches sont celles de DIM : flèches pour parcourir, Tab pour
+insérer, Entrée pour prendre la proposition sélectionnée ou sinon appliquer la
+requête, Échap pour refermer. Une proposition qui attend encore une valeur
+(`stat:`, `power:>=`) garde le curseur collé derrière ; une proposition complète
+gagne l'espace qui enchaîne un second filtre.
 
 L'historique part dans **localStorage** et non dans le cookie de préférences,
 plafonné à 4 Ko et partagé.

@@ -148,17 +148,20 @@ export function SearchProvider({
       return { matched: null, missMode, counts: null };
     }
 
-    // Doublons : un hash présent plus d'une fois sur le compte
-    const counts = new Map<number, number>();
+    // Exemplaires possédés, par hash : `is:dupe` et `count:` s'y lisent tous
+    // les deux — le premier n'est que « plus d'un ».
+    const copies = new Map<number, number>();
     for (const { item } of located) {
-      counts.set(item.itemHash, (counts.get(item.itemHash) ?? 0) + 1);
+      copies.set(item.itemHash, (copies.get(item.itemHash) ?? 0) + 1);
     }
-    const dupeHashes = new Set<number>();
-    for (const [hash, count] of counts) if (count > 1) dupeHashes.add(hash);
 
     const { predicate } = compileQuery(parsed.node, {
       currentCharacterId,
-      dupeHashes,
+      currentCharacterClass:
+        data.characters.find(
+          (character) => character.characterId === currentCharacterId,
+        )?.classType ?? null,
+      copies,
     });
     if (!predicate) return { matched: null, missMode, counts: null };
 
@@ -203,6 +206,7 @@ export function SearchProvider({
     located,
     defs,
     data.items,
+    data.characters,
     currentCharacterId,
     missMode,
     ready,

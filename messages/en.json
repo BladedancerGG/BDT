@@ -219,7 +219,8 @@
     "historyLabel": "Recent searches",
     "historyEmpty": "No recent search.",
     "historyClear": "Clear history",
-    "actionsLabel": "Actions on the items found"
+    "actionsLabel": "Actions on the items found",
+    "suggestionsLabel": "Filter suggestions"
   },
   "loadouts": {
     "slot": "Slot #{number}",

@@ -219,7 +219,8 @@
     "historyLabel": "Recherches précédentes",
     "historyEmpty": "Aucune recherche précédente.",
     "historyClear": "Effacer l’historique",
-    "actionsLabel": "Actions sur les objets trouvés"
+    "actionsLabel": "Actions sur les objets trouvés",
+    "suggestionsLabel": "Propositions de filtres"
   },
   "loadouts": {
     "slot": "Emplacement n°{number}",

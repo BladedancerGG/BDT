@@ -37,6 +37,13 @@ export interface InventoryItemDefinition {
    * `perkVisibility` : 0 = visible, 1 = désactivé, 2 = masqué.
    */
   perks?: { perkHash: number; perkVisibility?: number }[];
+  /**
+   * Étiquettes sémantiques de l'objet (« weapon.hand_cannon », « foundry.hakke »).
+   *
+   * C'est la seule source de la fonderie d'une arme — voir FOUNDRY_KEYWORDS —
+   * et elle est indépendante de la langue, contrairement à sa description.
+   */
+  traitIds?: string[];
   /** Filigrane de saison par défaut */
   iconWatermark?: string;
   /** Filigrane des objets « mis en avant » */

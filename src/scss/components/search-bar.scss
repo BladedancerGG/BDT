@@ -110,7 +110,7 @@
   }
 }
 
-// Menu déroulant sous la barre — historique ou actions de masse
+// Menu déroulant sous la barre — propositions, historique ou actions de masse
 .search-menu {
   position: absolute;
   z-index: 20;
@@ -141,6 +141,9 @@
     color: inherit;
     font-size: 0.875rem;
     text-align: left;
+    // Les mots-clés se lisent mieux en chasse fixe : ce sont des jetons de
+    // syntaxe, pas de la prose.
+    font-family: var(--font-mono);
     // Une requête longue ne doit pas élargir le menu
     overflow: hidden;
     text-overflow: ellipsis;
@@ -149,6 +152,14 @@
 
     &:hover {
       background-color: var(--color-panel-alt);
+    }
+
+    // Proposition sélectionnée au clavier. Elle doit trancher sur le simple
+    // survol : les deux peuvent être visibles en même temps, la souris posée
+    // sur la liste pendant qu'on navigue aux flèches.
+    &--active {
+      background-color: var(--color-panel-alt);
+      box-shadow: inset 2px 0 0 var(--color-border-strong);
     }
 
     &--muted {
