@@ -26,6 +26,7 @@ const NO_CONTEXT = {
   currentCharacterId: null,
   currentCharacterClass: null,
   copies: new Map<number, number>(),
+  loadouts: new Map(),
 };
 
 type Menu = "history" | "actions" | null;

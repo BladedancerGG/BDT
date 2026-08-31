@@ -26,6 +26,7 @@ import { ITEM_STATE } from "@/lib/destiny/overlays";
 import type { QueryNode } from "./query";
 import type { SearchIndexEntry } from "./index-build";
 import { SEARCH_FLAG } from "./flags";
+import type { LoadoutIndex, LoadoutPlace } from "./loadout-index";
 import {
   AMMO_KEYWORDS,
   ARMOR_STAT_HASHES,
@@ -69,6 +70,8 @@ export interface SearchContext {
   currentCharacterClass: number | null;
   /** Exemplaires possédés par hash, pour `is:dupe` et `count:` */
   copies: ReadonlyMap<number, number>;
+  /** Places dans les équipements enregistrés — `is:inloadout`, `loadout:`… */
+  loadouts: LoadoutIndex;
 }
 
 export type SearchPredicate = (item: SearchItem) => boolean;
@@ -307,6 +310,11 @@ const IS_PREDICATES: Readonly<
   // —— Doublons ——
   dupe: (i, ctx) => (ctx.copies.get(i.item.itemHash) ?? 0) > 1,
 
+  // —— Équipements enregistrés ——
+  // Tous personnages et tous emplacements confondus ; `loadout:` et ses
+  // variantes servent à viser un emplacement précis.
+  inloadout: (i, ctx) => loadoutPlaces(i, ctx).length > 0,
+
   // —— Ce qui se lit dans les plugs équipés (voir `index-build.ts`) ——
   modded: (i) => hasFlag(i, SEARCH_FLAG.Modded),
   shaded: (i) => hasFlag(i, SEARCH_FLAG.Shaded),
@@ -375,6 +383,40 @@ const INDEXED_IS_KEYWORDS: ReadonlySet<string> = new Set([
   "armor3.0",
   "armor2.0",
 ]);
+
+/** Places de l'objet dans les équipements enregistrés. */
+function loadoutPlaces(item: SearchItem, ctx: SearchContext): LoadoutPlace[] {
+  const instanceId = item.item.itemInstanceId;
+  return instanceId ? (ctx.loadouts.get(instanceId) ?? []) : [];
+}
+
+/**
+ * `loadout:2`, `loadoutslot:>=4`, `loadoutall:1`…
+ *
+ * Deux axes indépendants : quel numéro est comparé (le rang parmi les
+ * équipements enregistrés, ou la case telle que l'API la renvoie) et quels
+ * personnages sont regardés. La comparaison complète est acceptée — `loadout:2`
+ * est l'égalité, `loadout:>=2` la forme longue, comme partout ailleurs.
+ */
+function compileLoadout(
+  comparison: string,
+  ctx: SearchContext,
+  read: (place: LoadoutPlace) => number,
+  everyCharacter: boolean,
+): SearchPredicate | null {
+  const test = parseComparison(comparison);
+  if (!test) return null;
+
+  return (item) =>
+    loadoutPlaces(item, ctx).some(
+      (place) =>
+        (everyCharacter || place.characterId === ctx.currentCharacterId) &&
+        test(read(place)),
+    );
+}
+
+const loadoutRank = (place: LoadoutPlace) => place.rank;
+const loadoutSlot = (place: LoadoutPlace) => place.slot;
 
 /** `is:tier1` … `is:tier5` — palier d'équipement de l'instance. */
 const GEAR_TIER_PATTERN = /^tier([1-5])$/;
@@ -701,6 +743,19 @@ function compileTerm(
 
     case "tier":
       return compileNumber(value, (item) => item.detail?.instance?.gearTier);
+
+    // Les équipements enregistrés en jeu. `loadout:` compte les seuls
+    // emplacements enregistrés, `loadoutslot:` les cases telles que le panneau
+    // les affiche, emplacements libres compris ; le suffixe `all` étend la
+    // recherche à tous les personnages plutôt qu'au seul affiché.
+    case "loadout":
+      return compileLoadout(value, ctx, loadoutRank, false);
+    case "loadoutall":
+      return compileLoadout(value, ctx, loadoutRank, true);
+    case "loadoutslot":
+      return compileLoadout(value, ctx, loadoutSlot, false);
+    case "loadoutslotall":
+      return compileLoadout(value, ctx, loadoutSlot, true);
 
     case "count":
       // Exemplaires possédés, l'objet compris — `count:>=3`

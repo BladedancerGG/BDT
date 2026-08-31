@@ -834,6 +834,7 @@ mirrors `sort.ts` / `grouping.ts`: pure modules first, React last.
 | `filters.ts` | tree → predicate. `is:`, `stat:`, `basestat:`, `perkname:`, `power:`, `id:`… |
 | `flags.ts` | the per-item flag masks the index computes and `filters.ts` reads. A module of its own so the latter stays pure |
 | `index-build.ts` | batched manifest reads: names of equipped plugs, stat deltas of mods, and everything an item only says through its plugs |
+| `loadout-index.ts` | where each item sits in the in-game loadouts. No manifest read: a loadout names its items by instance only |
 | `suggestions.ts` | autocompletion: the term under the caret → ranked completions |
 | `provider.tsx` | the only React part: debounce, evaluation over the whole profile, result set |
 
@@ -897,6 +898,18 @@ they can be sent — comes back up the same way (`SearchActionsBridge`). The mat
 count also feeds each character tab, which reports how many of the items found
 sit on that character.
 
+**Loadout membership is counted twice, on purpose.** A character's loadout
+slots come back from the API with the empty ones in place, and the panel draws
+them that way (`Emplacement n°3` may well be free). Two numbers therefore
+address the same loadout: its `rank` among the saved ones, which is what one
+counts when reading the panel, and its `slot` in the API's list. `loadout:` and
+`loadoutall:` compare the first, `loadoutslot:` and `loadoutslotall:` the
+second; on a character whose slots read `[free] [Alpha] [free] [Beta]`, Beta is
+`loadout:2` and `loadoutslot:4`. The `all` suffix widens the search from the
+displayed character to every one of them, and `is:inloadout` drops the numbers
+altogether. All four take a full comparison, so `loadout:>=2` works like
+`tier:>=2`. Both numbers start at 1, as the panel does.
+
 **Autocompletion completes the term under the caret**, not the end of the bar —
 one often comes back to fix a filter in the middle of a query. Its vocabulary is
 derived from the same tables the filters use (`IS_VALUES`, `STAT_KEYWORDS`…), so
@@ -904,7 +917,10 @@ what is offered and what is understood cannot drift apart. Keys follow DIM:
 arrows to move, Tab to insert, Enter to take the highlighted entry or else to
 apply the query, Escape to close. A completion still awaiting a value (`stat:`,
 `power:>=`) keeps the caret glued to it; a complete one gets the trailing space
-that chains a second filter.
+that chains a second filter. A leading `-` negates the term, so it is stripped
+before matching and put back on insertion — `-exo` offers `-is:exotic`. History
+stays out of a negated term: it replaces the whole bar, which would drop the `-`
+that was just typed.
 
 The search history goes to **localStorage**, not to the preferences cookie,
 which is capped at 4 KB and shared.
@@ -1927,6 +1943,7 @@ modules purs d'abord, React en dernier.
 | `filters.ts` | arbre → prédicat. `is:`, `stat:`, `basestat:`, `perkname:`, `power:`, `id:`… |
 | `flags.ts` | les masques de drapeaux que l'index calcule et que `filters.ts` lit. Un module à part, pour que ce dernier reste pur |
 | `index-build.ts` | des lectures groupées du manifeste : noms des plugs équipés, écarts de statistiques des mods, et tout ce qu'un objet ne dit qu'à travers ses plugs |
+| `loadout-index.ts` | la place de chaque objet dans les équipements enregistrés en jeu. Aucune lecture du manifeste : un équipement ne désigne ses objets que par leur instance |
 | `suggestions.ts` | l'autocomplétion : le terme sous le curseur → propositions classées |
 | `provider.tsx` | la seule partie React : anti-rebond, évaluation sur tout le profil, ensemble des résultats |
 
@@ -1995,6 +2012,19 @@ envoyer — remonte par le même chemin (`SearchActionsBridge`). Ce même décom
 alimente l'onglet de chaque personnage, qui annonce combien des objets trouvés
 se trouvent chez lui.
 
+**L'appartenance à un équipement se compte de deux façons, à dessein.** L'API
+renvoie les emplacements d'un personnage avec les libres à leur place, et le
+panneau les dessine ainsi (l'« Emplacement n°3 » peut très bien être vide). Deux
+numéros désignent donc le même équipement : son `rank` parmi les seuls
+enregistrés — celui qu'on compte en lisant le panneau — et son `slot` dans la
+liste de l'API. `loadout:` et `loadoutall:` comparent le premier,
+`loadoutslot:` et `loadoutslotall:` le second ; sur un personnage dont les cases
+sont `[libre] [Alpha] [libre] [Bêta]`, Bêta est `loadout:2` et `loadoutslot:4`.
+Le suffixe `all` étend la recherche du personnage affiché à tous, et
+`is:inloadout` se passe des numéros. Les quatre acceptent une comparaison
+complète : `loadout:>=2` marche comme `tier:>=2`. Les deux numéros comptent à
+partir de 1, comme le panneau.
+
 **L'autocomplétion complète le terme sous le curseur**, et non la fin de la
 barre — on revient souvent corriger un filtre au milieu d'une requête. Son
 vocabulaire est dérivé des tables mêmes qu'utilisent les filtres (`IS_VALUES`,
@@ -2003,7 +2033,10 @@ pas diverger. Les touches sont celles de DIM : flèches pour parcourir, Tab pour
 insérer, Entrée pour prendre la proposition sélectionnée ou sinon appliquer la
 requête, Échap pour refermer. Une proposition qui attend encore une valeur
 (`stat:`, `power:>=`) garde le curseur collé derrière ; une proposition complète
-gagne l'espace qui enchaîne un second filtre.
+gagne l'espace qui enchaîne un second filtre. Le `-` de tête nie le terme : il
+est retiré avant la comparaison et remis à l'insertion — `-exo` propose
+`-is:exotic`. L'historique reste en dehors d'un terme nié : il remplace toute la
+barre, et emporterait le `-` qu'on vient de taper.
 
 L'historique part dans **localStorage** et non dans le cookie de préférences,
 plafonné à 4 Ko et partagé.

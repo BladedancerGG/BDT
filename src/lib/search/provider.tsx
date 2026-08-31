@@ -23,6 +23,7 @@ import {
   type SearchItem,
 } from "./filters";
 import { buildSearchIndex, EMPTY_INDEX, type SearchIndex } from "./index-build";
+import { buildLoadoutIndex } from "./loadout-index";
 import { useSearchStore } from "./store";
 
 /**
@@ -96,6 +97,14 @@ export function SearchProvider({
 
   const parsed = useMemo(() => parseQuery(applied), [applied]);
 
+  // Les équipements enregistrés ne demandent aucune définition : ils ne
+  // désignent leurs objets que par leur instance. L'index est donc reconstruit
+  // sans condition, contrairement à celui des plugs.
+  const loadouts = useMemo(
+    () => buildLoadoutIndex(data.loadouts),
+    [data.loadouts],
+  );
+
   // Tous les objets du profil, avec leur place — la recherche porte aussi bien
   // sur le coffre que sur les personnages.
   const located = useMemo(() => {
@@ -162,6 +171,7 @@ export function SearchProvider({
           (character) => character.characterId === currentCharacterId,
         )?.classType ?? null,
       copies,
+      loadouts,
     });
     if (!predicate) return { matched: null, missMode, counts: null };
 
@@ -207,6 +217,7 @@ export function SearchProvider({
     defs,
     data.items,
     data.characters,
+    loadouts,
     currentCharacterId,
     missMode,
     ready,

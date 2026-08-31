@@ -62,6 +62,19 @@ const NUMBER_FILTERS = [
   "enhancedperk",
 ];
 
+/**
+ * Mots-clés attendant un numéro d'emplacement d'équipement.
+ *
+ * Proposés avec le seul `:` — contrairement aux précédents, on vise presque
+ * toujours un emplacement précis (`loadout:2`), pas un intervalle.
+ */
+const LOADOUT_FILTERS = [
+  "loadout",
+  "loadoutall",
+  "loadoutslot",
+  "loadoutslotall",
+];
+
 /** Ce que `stat:` et `basestat:` acceptent comme sélecteur. */
 const STAT_SELECTORS = [
   ...Object.keys(STAT_KEYWORDS),
@@ -91,6 +104,7 @@ const VOCABULARY: readonly string[] = [
   ...IS_VALUES.map((value) => `not:${value}`),
   ...TEXT_FILTERS.map((keyword) => `${keyword}:`),
   ...NUMBER_FILTERS.map((keyword) => `${keyword}:>=`),
+  ...LOADOUT_FILTERS.map((keyword) => `${keyword}:`),
   ...STAT_SELECTORS.map((stat) => `stat:${stat}:>=`),
   ...STAT_SELECTORS.map((stat) => `basestat:${stat}:>=`),
   ...ARMOR_STAT_NAMES.flatMap((stat) => [
@@ -179,8 +193,17 @@ export function suggestionsFor(
   limit: number = MAX_SUGGESTIONS,
 ): Suggestion[] {
   const term = termAt(query, caret);
-  const needle = normalizeText(term.text).trim();
+
+  // Le `-` de tête nie le terme (`-is:exotic`) : il n'appartient pas au mot-clé
+  // qu'on complète, mais il doit se retrouver dans ce qui est inséré.
+  const negated = term.text.startsWith("-");
+  const needle = normalizeText(negated ? term.text.slice(1) : term.text).trim();
+
   if (!needle) {
+    // Un `-` seul n'est pas une barre vide : il y a bien un terme en cours, et
+    // une requête d'historique — qui remplace toute la barre — ne se nie pas
+    // d'un caractère.
+    if (negated) return [];
     return history
       .slice(0, limit)
       .map((entry) => ({ value: entry, kind: "history" as const }));
@@ -188,6 +211,9 @@ export function suggestionsFor(
 
   const scored: { value: string; rank: number }[] = [];
   for (const candidate of VOCABULARY) {
+    // `-not:strand` est une double négation : elle se compile bien, mais elle
+    // ne veut dire que `is:strand`, et n'a rien à faire dans une liste.
+    if (negated && candidate.startsWith("not:")) continue;
     const score = rank(candidate, needle);
     if (score !== null) scored.push({ value: candidate, rank: score });
   }
@@ -201,7 +227,14 @@ export function suggestionsFor(
 
   const suggestions: Suggestion[] = scored
     .slice(0, limit)
-    .map(({ value }) => ({ value, kind: "filter" as const }));
+    .map(({ value }) => ({
+      value: negated ? `-${value}` : value,
+      kind: "filter" as const,
+    }));
+
+  // Une négation en cours n'appelle pas l'historique : celui-ci remplace la
+  // barre entière, le `-` tapé serait perdu.
+  if (negated) return suggestions;
 
   // L'historique complète la liste, sans jamais la remplacer, et seulement
   // pour les recherches qui contiennent ce qui est tapé.
