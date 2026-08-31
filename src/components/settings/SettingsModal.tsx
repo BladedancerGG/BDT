@@ -10,6 +10,7 @@ import {IconSizeControl} from "./IconSizeControl";
 import {SortRuleList} from "./SortRuleList";
 import {Cog6ToothIcon} from "@heroicons/react/24/solid"
 import {
+    persistedSettings,
     SEARCH_HISTORY_SIZE,
     useSettings,
     type SearchMissMode,
@@ -21,9 +22,14 @@ import {
     type ArmorGrouping,
     type WeaponGrouping,
 } from "@/lib/destiny/grouping";
+import {
+    deleteAccount,
+    deleteSyncedSettings,
+    pushSettings,
+} from "@/lib/settings/sync-client";
 import {APP_VERSION, SUPPORT_EMAIL, BUNGIE_PROFILE_URL} from "@/lib/app-info";
 
-type Category = "appearance" | "inventory" | "search" | "about";
+type Category = "account" | "appearance" | "inventory" | "search" | "about";
 
 /**
  * Onglets, dans l'ordre, et la clé de leur libellé — donnée depuis la racine
@@ -31,6 +37,7 @@ type Category = "appearance" | "inventory" | "search" | "about";
  * se redit pas dans ce groupe.
  */
 const CATEGORIES: Record<Category, string> = {
+    account: "settings.categories.account",
     appearance: "settings.categories.appearance",
     inventory: "common.inventory",
     search: "settings.categories.search",
@@ -47,10 +54,12 @@ export function SettingsModal({
                                   open,
                                   onClose,
                                   bungieMembershipId,
+                                  displayName,
                               }: {
     open: boolean;
     onClose: () => void;
     bungieMembershipId?: string;
+    displayName?: string;
 }) {
     const t = useTranslations("settings");
     const tCommon = useTranslations("common");
@@ -93,6 +102,12 @@ export function SettingsModal({
 
                 {/* Colonne de droite : options de la catégorie */}
                 <div className="settings__panel">
+                    {category === "account" && (
+                        <AccountPanel
+                            bungieMembershipId={bungieMembershipId}
+                            displayName={displayName}
+                        />
+                    )}
                     {category === "appearance" && <AppearancePanel/>}
                     {category === "inventory" && <InventoryPanel/>}
                     {category === "search" && <SearchPanel/>}
@@ -103,17 +118,61 @@ export function SettingsModal({
     );
 }
 
+/**
+ * Onglet « Compte ».
+ *
+ * La synchronisation excepté, tout ici est irréversible : les deux effacements
+ * passent donc par une confirmation. `window.confirm` suffit — il bloque, ce
+ * qu'aucune modale maison ne fait, et l'enjeu ne mérite pas une seconde couche
+ * de fenêtres par-dessus celle des paramètres.
+ */
 function AccountPanel({
                           bungieMembershipId,
+                          displayName,
                       }: {
     bungieMembershipId?: string;
+    displayName?: string;
 }) {
     const t = useTranslations("settings.account");
     const tCommon = useTranslations("common");
+    const syncEnabled = useSettings((s) => s.syncEnabled);
+    const setSyncEnabled = useSettings((s) => s.setSyncEnabled);
+    const [busy, setBusy] = useState(false);
+
+    const toggleSync = (next: boolean) => {
+        setSyncEnabled(next);
+        // Activée, l'abonnement de `SettingsSync` dépose l'état de lui-même.
+        // Coupée, il ne dépose plus rien : c'est donc ici qu'il faut basculer
+        // le drapeau de la ligne, sans quoi l'autre appareil continuerait de
+        // lire une sauvegarde que celui-ci ne tient plus à jour.
+        if (!next) {
+            void pushSettings(false, {
+                ...persistedSettings(useSettings.getState()),
+                syncEnabled: false,
+            });
+        }
+    };
+
+    const clearSync = async () => {
+        if (!window.confirm(t("clearSyncConfirm"))) return;
+        setBusy(true);
+        await deleteSyncedSettings();
+        setSyncEnabled(false);
+        setBusy(false);
+    };
+
+    const clearAll = async () => {
+        if (!window.confirm(t("deleteAllConfirm"))) return;
+        setBusy(true);
+        // Le compte parti, la session ne désigne plus rien : on repart de la
+        // page d'accueil, qui affichera l'écran de connexion.
+        if (await deleteAccount()) window.location.assign("/");
+        else setBusy(false);
+    };
 
     return (
         <div className="settings__group">
-            <SettingRow label={tCommon("logout")}>
+            <SettingRow label={tCommon("logout")} hint={displayName}>
                 <form action="/api/auth/logout" method="post">
                     <button type="submit" className="btn btn--small">
                         {tCommon("logout")}
@@ -134,6 +193,37 @@ function AccountPanel({
                 >
                     {tCommon("open")}
                 </a>
+            </SettingRow>
+
+            <SettingRow label={t("sync")} hint={t("syncHint")} htmlFor="setting-sync">
+                <Toggle
+                    id="setting-sync"
+                    checked={syncEnabled}
+                    onChange={toggleSync}
+                    label={t("sync")}
+                />
+            </SettingRow>
+
+            <SettingRow label={t("clearSync")} hint={t("clearSyncHint")}>
+                <button
+                    type="button"
+                    className="btn btn--small btn--danger"
+                    onClick={() => void clearSync()}
+                    disabled={busy}
+                >
+                    {tCommon("delete")}
+                </button>
+            </SettingRow>
+
+            <SettingRow label={t("deleteAll")} hint={t("deleteAllHint")}>
+                <button
+                    type="button"
+                    className="btn btn--small btn--danger"
+                    onClick={() => void clearAll()}
+                    disabled={busy}
+                >
+                    {tCommon("delete")}
+                </button>
             </SettingRow>
         </div>
     );

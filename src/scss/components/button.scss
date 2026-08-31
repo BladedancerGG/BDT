@@ -45,6 +45,24 @@
     }
   }
 
+  // Action destructrice : le texte porte l'alerte, pas le fond — ces boutons
+  // vivent dans une liste de réglages, un aplat rouge y crierait plus fort que
+  // l'enjeu. La confirmation, elle, est bloquante (window.confirm).
+  &--danger {
+    color: var(--color-danger);
+    border-color: color-mix(in srgb, var(--color-danger) 50%, transparent);
+
+    &:hover {
+      background-color: color-mix(in srgb, var(--color-danger) 12%, var(--color-panel-alt));
+      border-color: var(--color-danger);
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+
   &--small {
     padding: 0.3rem 0.65rem;
     font-size: 0.8125rem;

@@ -5,6 +5,7 @@ import {notFound} from "next/navigation";
 import {routing} from "@/i18n/routing";
 import {Providers} from "./providers";
 import {SettingsEffects} from "@/lib/settings/SettingsEffects";
+import {SettingsSync} from "@/lib/settings/SettingsSync";
 import {readPreferences, type ServerPreferences} from "@/lib/settings/server";
 import "@/scss/style.scss";
 
@@ -52,6 +53,9 @@ export default async function RootLayout(
             style={rootSizeStyle(prefs)}
         >
             <body>
+                {/* Avant SettingsEffects : c'est lui qui impose au store l'état
+                    lu en base, celui-là même qui a servi à rendre ce HTML. */}
+                <SettingsSync serverState={prefs.synced}/>
                 <SettingsEffects/>
                 {/* NextIntlClientProvider récupère messages/locale depuis le contexte
                     serveur fourni par le plugin next-intl */}

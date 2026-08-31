@@ -66,6 +66,15 @@ export interface SettingsState {
      * attendu d'un onglet.
      */
     viewMode: ViewMode;
+    /**
+     * Synchronisation des préférences avec le compte Bungie.
+     *
+     * Désactivée, rien ne change : le cookie fait foi, comme toujours. Activée,
+     * l'état est aussi déposé en base et c'est *lui* qui prime au chargement —
+     * le cookie n'est plus qu'un miroir local, ce qui permet de servir le bon
+     * thème sans attendre.
+     */
+    syncEnabled: boolean;
 
     setTheme: (theme: ThemePreference) => void;
     setIconSize: (size: number) => void;
@@ -77,6 +86,7 @@ export interface SettingsState {
     setSearchHistorySize: (size: number) => void;
     setSearchMissMode: (mode: SearchMissMode) => void;
     setViewMode: (mode: ViewMode) => void;
+    setSyncEnabled: (enabled: boolean) => void;
     /** Bascule d'un mode à l'autre — c'est ce que fait la touche Tab */
     toggleViewMode: () => void;
 
@@ -87,6 +97,74 @@ export interface SettingsState {
     /** Déplace un critère dans l'ordre d'importance (glisser-déposer) */
     moveSort: (from: number, to: number) => void;
     resetSorts: () => void;
+}
+
+
+/**
+ * Forme persistée des préférences — cookie comme base de données.
+ *
+ * Les règles de tri partent en jetons courts : un cookie est plafonné à 4 Ko et
+ * porte déjà tout le reste. Le même format sert des deux côtés, si bien qu'une
+ * sauvegarde serveur se relit exactement comme un cookie.
+ */
+export function persistedSettings(state: SettingsState) {
+    return {
+        theme: state.theme,
+        iconSize: state.iconSize,
+        vaultIconSize: state.vaultIconSize,
+        showOrnaments: state.showOrnaments,
+        showOriginalOnHover: state.showOriginalOnHover,
+        sorts: serializeSortRules(state.sortRules),
+        weaponGrouping: state.weaponGrouping,
+        armorGrouping: state.armorGrouping,
+        searchHistorySize: state.searchHistorySize,
+        searchMissMode: state.searchMissMode,
+        viewMode: state.viewMode,
+        syncEnabled: state.syncEnabled,
+    };
+}
+
+export type PersistedSettings = ReturnType<typeof persistedSettings>;
+
+/**
+ * Reconstruit un état complet depuis une forme persistée.
+ *
+ * Reconstruit les règles depuis les jetons. Un cookie écrit avant l'arrivée du
+ * tri n'a pas de clé `sorts` : les valeurs par défaut s'appliquent alors, sans
+ * migration ni perte des autres réglages. Même tolérance pour les
+ * regroupements, relus par leur analyseur plutôt que recopiés tels quels : une
+ * valeur inconnue serait sinon acceptée et donnerait un coffre sans
+ * sous-groupes.
+ */
+export function mergeSettings(
+    persisted: unknown,
+    current: SettingsState,
+): SettingsState {
+    const {
+        sorts,
+        weaponGrouping,
+        armorGrouping,
+        searchHistorySize,
+        searchMissMode,
+        viewMode,
+        syncEnabled,
+        ...rest
+    } = (persisted ?? {}) as Partial<SettingsState> & {sorts?: unknown};
+
+    return {
+        ...current,
+        ...rest,
+        sortRules: parseSortRules(sorts) ?? current.sortRules,
+        weaponGrouping: parseWeaponGrouping(weaponGrouping) ?? current.weaponGrouping,
+        armorGrouping: parseArmorGrouping(armorGrouping) ?? current.armorGrouping,
+        searchHistorySize:
+            typeof searchHistorySize === "number"
+                ? clampSearchHistorySize(searchHistorySize)
+                : current.searchHistorySize,
+        searchMissMode: parseSearchMissMode(searchMissMode) ?? current.searchMissMode,
+        viewMode: parseViewMode(viewMode) ?? current.viewMode,
+        syncEnabled: syncEnabled === true,
+    };
 }
 
 export const useSettings = create<SettingsState>()(
@@ -103,6 +181,7 @@ export const useSettings = create<SettingsState>()(
             searchHistorySize: SEARCH_HISTORY_SIZE.default,
             searchMissMode: "hide",
             viewMode: DEFAULT_VIEW_MODE,
+            syncEnabled: false,
 
             setTheme: (theme) => set({theme}),
             setIconSize: (size) => set({iconSize: clampIconSize(size)}),
@@ -116,6 +195,7 @@ export const useSettings = create<SettingsState>()(
                 set({searchHistorySize: clampSearchHistorySize(size)}),
             setSearchMissMode: (searchMissMode) => set({searchMissMode}),
             setViewMode: (viewMode) => set({viewMode}),
+            setSyncEnabled: (syncEnabled) => set({syncEnabled}),
             toggleViewMode: () =>
                 set((state) => ({
                     viewMode: state.viewMode === "inventory" ? "loadouts" : "inventory",
@@ -148,56 +228,8 @@ export const useSettings = create<SettingsState>()(
             // Cookie : le serveur peut lire ces préférences et rendre le bon thème
             storage: createJSONStorage(() => cookieStorage),
             // Ne persiste que les préférences, pas les setters.
-            // Les règles de tri partent en jetons courts : un cookie est limité
-            // à 4 Ko et porte déjà les autres préférences.
-            partialize: (state) => ({
-                theme: state.theme,
-                iconSize: state.iconSize,
-                vaultIconSize: state.vaultIconSize,
-                showOrnaments: state.showOrnaments,
-                showOriginalOnHover: state.showOriginalOnHover,
-                sorts: serializeSortRules(state.sortRules),
-                weaponGrouping: state.weaponGrouping,
-                armorGrouping: state.armorGrouping,
-                searchHistorySize: state.searchHistorySize,
-                searchMissMode: state.searchMissMode,
-                viewMode: state.viewMode,
-            }),
-            // Reconstruit les règles depuis les jetons. Un cookie écrit avant
-            // l'arrivée du tri n'a pas de clé `sorts` : les valeurs par défaut
-            // s'appliquent alors, sans migration ni perte des autres réglages.
-            // Même tolérance pour les regroupements, relus par leur analyseur
-            // plutôt que recopiés tels quels : une valeur inconnue serait sinon
-            // acceptée et donnerait un coffre sans sous-groupes.
-            merge: (persisted, current) => {
-                const {
-                    sorts,
-                    weaponGrouping,
-                    armorGrouping,
-                    searchHistorySize,
-                    searchMissMode,
-                    viewMode,
-                    ...rest
-                } = (persisted ?? {}) as Partial<SettingsState> & {
-                    sorts?: unknown;
-                };
-                return {
-                    ...current,
-                    ...rest,
-                    sortRules: parseSortRules(sorts) ?? current.sortRules,
-                    weaponGrouping:
-                        parseWeaponGrouping(weaponGrouping) ?? current.weaponGrouping,
-                    armorGrouping:
-                        parseArmorGrouping(armorGrouping) ?? current.armorGrouping,
-                    searchHistorySize:
-                        typeof searchHistorySize === "number"
-                            ? clampSearchHistorySize(searchHistorySize)
-                            : current.searchHistorySize,
-                    searchMissMode:
-                        parseSearchMissMode(searchMissMode) ?? current.searchMissMode,
-                    viewMode: parseViewMode(viewMode) ?? current.viewMode,
-                };
-            },
+            partialize: persistedSettings,
+            merge: (persisted, current) => mergeSettings(persisted, current),
         },
     ),
 );

@@ -1036,6 +1036,23 @@ In "system" mode no `data-theme` attribute is set, and the CSS
 > constant exported from a `"use client"` module arrives `undefined` on the
 > server, which silently broke the cookie read.
 
+### Account sync
+
+The *Account* settings tab can mirror those preferences onto the server
+(`UserSettings`, one row per user, the same shape as the cookie). Once on, the
+**database wins**: `readPreferences()` reads the row first and only falls back to
+the cookie when there is none, when the row is disabled, or when the query fails.
+The cookie stays written all the same — it is what lets the server paint the
+right theme without waiting.
+
+`SettingsSync` bridges the two. Downwards, it forces the server state into the
+store *during render* rather than in an effect: the HTML was already produced
+with it, and an effect would let `SettingsEffects` apply the cookie's theme first
+for one frame. Upwards, it pushes every change back, debounced. The two gestures
+that turn sync off — the toggle and *Delete sync data* — write on their own from
+`sync-client.ts`, whose timer sits at module level so they can cancel a pending
+push: otherwise it would recreate the row just deleted.
+
 ## Project structure
 
 ```
@@ -2156,6 +2173,24 @@ En mode « système », aucun attribut `data-theme` n'est posé et la règle CSS
 > `src/lib/settings/constants.ts`, **sans** directive `"use client"`. Une
 > constante exportée depuis un module `"use client"` arrive `undefined` côté
 > serveur, ce qui rendait la lecture du cookie silencieusement inopérante.
+
+### Synchronisation avec le compte
+
+L'onglet « Compte » des paramètres peut recopier ces préférences sur le serveur
+(`UserSettings`, une ligne par utilisateur, au format du cookie). Une fois
+activée, **la base prime** : `readPreferences()` lit d'abord la ligne et ne
+retombe sur le cookie qu'en son absence, si elle est désactivée, ou si la requête
+échoue. Le cookie continue d'être écrit — c'est lui qui permet au serveur de
+rendre le bon thème sans attendre.
+
+`SettingsSync` fait le pont. Vers le bas, il impose l'état serveur au store
+*pendant le rendu* et non dans un effet : le HTML a déjà été produit avec lui, et
+un effet laisserait `SettingsEffects` appliquer d'abord le thème du cookie, le
+temps d'une image. Vers le haut, il renvoie chaque modification, après un délai
+d'inactivité. Les deux gestes qui coupent la synchronisation — l'interrupteur et
+« Supprimer les données de synchronisation » — écrivent eux-mêmes depuis
+`sync-client.ts`, dont le minuteur est au niveau du module pour pouvoir annuler
+un envoi différé : sans quoi celui-ci recréerait la ligne tout juste supprimée.
 
 ## Structure du projet
 

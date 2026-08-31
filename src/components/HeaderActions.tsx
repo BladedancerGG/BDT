@@ -36,8 +36,10 @@ const HOLD_MS = 1000;
  */
 export function HeaderActions({
                                   bungieMembershipId,
+                                  displayName,
                               }: {
     bungieMembershipId?: string;
+    displayName?: string;
 }) {
     const t = useTranslations("header");
     const tCommon = useTranslations("common");
@@ -159,6 +161,7 @@ export function HeaderActions({
                 open={settingsOpen}
                 onClose={() => setSettingsOpen(false)}
                 bungieMembershipId={bungieMembershipId}
+                displayName={displayName}
             />
         </>
     );

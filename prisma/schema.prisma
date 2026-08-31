@@ -29,6 +29,7 @@ model User {
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
   loadouts       Loadout[]
+  settings       UserSettings?
 }
 
 // Un snapshot d'équipement sauvegardé côté serveur
@@ -47,4 +48,20 @@ model Loadout {
   updatedAt   DateTime @updatedAt
 
   @@index([userId])
+}
+
+// Préférences synchronisées d'un utilisateur.
+//
+// L'absence de ligne vaut « jamais synchronisé » : c'est ce que rétablit
+// « Supprimer les données de synchronisation ». `enabled` distingue le cas où
+// l'utilisateur coupe la synchronisation sans effacer ce qu'il a déposé — le
+// cookie reprend alors la main, et la sauvegarde reste là pour un retour.
+model UserSettings {
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String   @id
+  enabled   Boolean  @default(true)
+  // Mêmes clés que l'état persisté dans le cookie (cf. lib/settings/store.ts) :
+  // le format suit l'UI, le stocker en JSON évite une migration par réglage.
+  data      Json
+  updatedAt DateTime @updatedAt
 }

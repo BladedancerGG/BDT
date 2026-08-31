@@ -20,7 +20,10 @@ export default async function Home() {
                             {user && <MainMenuButton/>}
                         </div>
                         <SearchBar/>
-                        <HeaderActions bungieMembershipId={user.bungieMembershipId}/>
+                        <HeaderActions
+                            bungieMembershipId={user.bungieMembershipId}
+                            displayName={user.displayName}
+                        />
                     </header>
                     <MainMenu displayName={user.displayName}/>
                     <Dashboard/>

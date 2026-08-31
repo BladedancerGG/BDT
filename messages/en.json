@@ -5,7 +5,8 @@
     "settings": "Settings",
     "open": "Open",
     "equip": "Equip",
-    "logout": "Sign out"
+    "logout": "Sign out",
+    "delete": "Delete"
   },
   "auth": {
     "login": "Sign in with Bungie"
@@ -42,12 +43,21 @@
   "settings": {
     "close": "Close",
     "categories": {
+      "account": "Account",
       "appearance": "Appearance",
       "search": "Search",
       "about": "About"
     },
     "account": {
-      "profile": "Bungie profile"
+      "profile": "Bungie profile",
+      "sync": "Sync",
+      "syncHint": "Saves settings on the server and restores them on your other devices. When off, they stay in this browser.",
+      "clearSync": "Delete sync data",
+      "clearSyncHint": "Erases the settings saved on the server and turns sync off. The ones in this browser are kept.",
+      "clearSyncConfirm": "Delete the settings saved on the server and turn sync off?",
+      "deleteAll": "Delete all data",
+      "deleteAllHint": "Permanently erases everything the site keeps about this Bungie account, then signs you out. Revoke the authorization from bungie.net.",
+      "deleteAllConfirm": "Permanently delete all data tied to this Bungie account? This cannot be undone."
     },
     "appearance": {
       "theme": "Theme",

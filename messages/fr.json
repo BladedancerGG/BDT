@@ -5,7 +5,8 @@
     "settings": "Paramètres",
     "open": "Ouvrir",
     "equip": "Équiper",
-    "logout": "Se déconnecter"
+    "logout": "Se déconnecter",
+    "delete": "Supprimer"
   },
   "auth": {
     "login": "Se connecter avec Bungie"
@@ -42,12 +43,21 @@
   "settings": {
     "close": "Fermer",
     "categories": {
+      "account": "Compte",
       "appearance": "Apparence",
       "search": "Recherche",
       "about": "À propos"
     },
     "account": {
-      "profile": "Profil Bungie"
+      "profile": "Profil Bungie",
+      "sync": "Synchronisation",
+      "syncHint": "Enregistre les paramètres sur le serveur et les retrouve sur vos autres appareils. Désactivée, ils restent dans ce navigateur.",
+      "clearSync": "Supprimer les données de synchronisation",
+      "clearSyncHint": "Efface les paramètres enregistrés sur le serveur et désactive la synchronisation. Ceux de ce navigateur sont conservés.",
+      "clearSyncConfirm": "Supprimer les paramètres enregistrés sur le serveur et désactiver la synchronisation ?",
+      "deleteAll": "Supprimer toutes les données",
+      "deleteAllHint": "Efface définitivement tout ce que le site conserve de ce compte Bungie, puis vous déconnecte. L’autorisation se retire depuis bungie.net.",
+      "deleteAllConfirm": "Supprimer définitivement toutes les données associées à ce compte Bungie ? Cette action est irréversible."
     },
     "appearance": {
       "theme": "Thème",
