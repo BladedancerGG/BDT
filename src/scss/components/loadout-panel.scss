@@ -27,8 +27,11 @@
   // « Déselectionner » qui ne touche à rien.
   &__action-group {
     display: flex;
-    flex-direction: column;
     gap: 0.25rem;
+    > button {
+      max-width: calc(100% / 3);
+      flex-grow: 1;
+    }
   }
 
   &__action {

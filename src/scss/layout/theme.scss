@@ -84,12 +84,12 @@
 }
 
 :root[data-theme="light"] {
-  @include light-palette;
+  @include dark-palette;
 }
 
 // Repli sans JavaScript : on suit la préférence système
 @media (prefers-color-scheme: light) {
   :root:not([data-theme]) {
-    @include light-palette;
+    @include dark-palette;
   }
 }

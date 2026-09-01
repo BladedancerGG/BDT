@@ -254,18 +254,18 @@ function AppearancePanel() {
 
     return (
         <div className="settings__group">
-            <SettingRow label={t("theme")} htmlFor="setting-theme">
-                <Select<ThemePreference>
-                    id="setting-theme"
-                    value={theme}
-                    onChange={setTheme}
-                    options={[
-                        {value: "light", label: t("themes.light")},
-                        {value: "dark", label: t("themes.dark")},
-                        {value: "system", label: t("themes.system")},
-                    ]}
-                />
-            </SettingRow>
+            {/*<SettingRow label={t("theme")} htmlFor="setting-theme">*/}
+            {/*    <Select<ThemePreference>*/}
+            {/*        id="setting-theme"*/}
+            {/*        value={theme}*/}
+            {/*        onChange={setTheme}*/}
+            {/*        options={[*/}
+            {/*            {value: "light", label: t("themes.light")},*/}
+            {/*            {value: "dark", label: t("themes.dark")},*/}
+            {/*            {value: "system", label: t("themes.system")},*/}
+            {/*        ]}*/}
+            {/*    />*/}
+            {/*</SettingRow>*/}
 
             <SettingRow label={t("language")} hint={t("languageHint")} htmlFor="setting-language">
                 <Select<Locale>

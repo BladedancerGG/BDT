@@ -203,7 +203,7 @@ export function LoadoutPanel({
                         )}
                         <button
                             type="button"
-                            className="btn btn--small loadout-panel__action"
+                            className="btn btn--small btn--danger loadout-panel__action"
                             disabled={empty || busy || !characterId}
                             onClick={() => act("clear")}
                         >
@@ -211,15 +211,15 @@ export function LoadoutPanel({
                         </button>
                     </div>
 
-                    <button
-                        type="button"
-                        className="btn btn--small loadout-panel__action loadout-panel__action--link"
-                        // Les groupes d'équipements n'existent pas encore
-                        disabled
-                        title={t("groupsSoon")}
-                    >
-                        {t("groups")}
-                    </button>
+                    {/*<button*/}
+                    {/*    type="button"*/}
+                    {/*    className="btn btn--small loadout-panel__action loadout-panel__action--link"*/}
+                    {/*    // Les groupes d'équipements n'existent pas encore*/}
+                    {/*    disabled*/}
+                    {/*    title={t("groupsSoon")}*/}
+                    {/*>*/}
+                    {/*    {t("groups")}*/}
+                    {/*</button>*/}
                 </div>
             )}
         </div>
