@@ -18,6 +18,11 @@ import { useSearchMiss } from "@/lib/search/provider";
 import { useItemBusy } from "@/lib/actions/store";
 import { subclassKind } from "@/lib/destiny/subclass";
 import {
+  pickableBucket,
+  useGroupSelection,
+} from "@/lib/loadouts/groups/selection";
+import { useSnapshotEditing } from "@/lib/loadouts/groups/snapshot-edit";
+import {
   useDragScope,
   useMoveActions,
   type DraggedItem,
@@ -43,6 +48,12 @@ const SHAPE_CLASS = {
 // La vignette est par ailleurs la poignée de déplacement : glisser vers une
 // zone de dépôt met le déplacement en file, double-cliquer équipe sur le
 // personnage affiché.
+//
+// Pendant une **sélection d'équipement** — remplir un emplacement de groupe
+// depuis cette même vue — la vignette change de rôle : le clic retient l'objet
+// au lieu d'ouvrir son infobulle, et le geste de déplacement est coupé. C'est le
+// seul point de passage de toutes les vignettes de l'inventaire, donc le seul
+// endroit où cette bascule s'écrit une fois.
 export function ItemIcon({
   itemHash,
   itemInstanceId,
@@ -70,6 +81,28 @@ export function ItemIcon({
   // déplacement en est volontairement absent, il re-rendrait toutes les
   // vignettes montées à chaque saisie.
   const { equipOnSelected } = useMoveActions();
+
+  // Sélection d'équipement en cours. Trois abonnements étroits plutôt qu'un sur
+  // l'état entier : la vignette ne doit se redessiner que si SON objet est
+  // retenu ou relâché, pas à chaque clic ailleurs dans le coffre.
+  const selecting = useGroupSelection((s) => s.active);
+  const selectionClass = useGroupSelection((s) => s.classType);
+  const foreign = useGroupSelection((s) => s.foreign);
+  const pickBucket = selecting
+    ? pickableBucket(def, selectionClass, itemInstanceId, foreign)
+    : undefined;
+  // `itemInstanceId` peut manquer : un objet non instancié n'a pas d'identité
+  // côté API et ne peut donc pas être retenu.
+  const pickable = pickBucket !== undefined && Boolean(itemInstanceId);
+  const picked = useGroupSelection(
+    (s) => pickBucket !== undefined && s.picked.get(pickBucket) === itemInstanceId,
+  );
+  const togglePick = useGroupSelection((s) => s.toggle);
+
+  // La vignette décrit un instantané de groupe : elle s'ouvre et se modifie,
+  // mais n'équipe rien. Double-cliquer y aurait équipé l'objet pour de vrai, ce
+  // qui n'est pas ce qu'on vient y faire.
+  const snapshot = useSnapshotEditing();
   // Contexte à part : les deux modes d'affichage sont montés ensemble, et ni le
   // geste ni les identifiants dnd-kit ne peuvent être communs — voir DragScope.
   const { disabled: dragDisabled, idPrefix } = useDragScope();
@@ -96,13 +129,17 @@ export function ItemIcon({
     isDragging,
   } = useDraggable({
     id: `${idPrefix}${itemInstanceId ?? `${itemHash}-static`}`,
-    disabled: !dragged || dragDisabled,
+    // Pendant une sélection, la vignette n'est plus une poignée : on y clique
+    // pour retenir l'objet, et un seuil de déplacement suffirait à transformer
+    // ce clic en glissement vers une zone de dépôt.
+    disabled: !dragged || dragDisabled || selecting,
     data: dragged,
   });
 
-  // Pas d'infobulle sur l'objet qu'on déplace. Les autres sont masquées par le
-  // CSS le temps du geste (voir `:root[data-dragging]`).
-  const shown = open && !isDragging;
+  // Pas d'infobulle sur l'objet qu'on déplace, ni pendant une sélection : le
+  // clic y sert à retenir l'objet, et une infobulle ouverte masquerait la
+  // grille où l'on choisit.
+  const shown = open && !isDragging && !selecting;
 
   const { refs, floatingStyles, context } = useFloating({
     open: shown,
@@ -148,9 +185,23 @@ export function ItemIcon({
         {...attributes}
         {...getReferenceProps({
           ...listeners,
-          onClick: () => setOpen((o) => !o),
+          onClick: () => {
+            // En sélection, le clic retient l'objet — et ne fait rien d'autre.
+            // Un objet inéligible (autre classe, non équipable) ne réagit pas :
+            // ouvrir son infobulle laisserait croire qu'il est choisissable.
+            if (selecting) {
+              if (pickable && itemInstanceId && pickBucket !== undefined) {
+                togglePick(pickBucket, itemInstanceId);
+              }
+              return;
+            }
+            setOpen((o) => !o);
+          },
           onDoubleClick: () => {
-            if (!dragged) return;
+            // Équiper depuis une sélection ou depuis l'éditeur d'un groupe
+            // n'aurait aucun sens : on désigne ce qu'un groupe portera, on ne
+            // l'équipe pas maintenant.
+            if (!dragged || selecting || snapshot) return;
             setOpen(false);
             equipOnSelected(dragged);
           },
@@ -162,10 +213,13 @@ export function ItemIcon({
           isDragging ? "item--dragging" : null,
           searchMiss ? "item--search-miss" : null,
           busy ? "item--busy" : null,
+          picked ? "item--picked" : null,
+          selecting && !pickable ? "item--unpickable" : null,
         ]
           .filter(Boolean)
           .join(" ")}
         aria-busy={busy || undefined}
+        aria-pressed={selecting && pickable ? picked : undefined}
       >
         <ItemThumb
           itemHash={itemHash}

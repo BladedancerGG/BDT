@@ -24,6 +24,23 @@
     border-color: var(--color-accent);
   }
 
+  // —— Sélection d'équipement pour un groupe ————————————————
+  //
+  // Un `outline` et non une bordure : `.item` n'en déclare aucune épaisseur, et
+  // il ne déplace rien — la grille garde exactement sa mesure, ce qui compte
+  // sur un coffre virtualisé dont les hauteurs de rangée sont calculées.
+  &--picked {
+    outline: 3px solid var(--color-success);
+  }
+
+  // Objet qu'on ne peut pas retenir : d'un autre emplacement, ou d'une autre
+  // classe. Estompé et rendu inerte au pointeur — laisser le curseur annoncer
+  // un clic qui ne fait rien serait un piège.
+  &--unpickable {
+    opacity: 0.35;
+    cursor: default;
+  }
+
   // Écarté par la recherche. Il reste cliquable et déplaçable : c'est un
   // effacement visuel, pas une désactivation — et dans l'équipement comme dans
   // l'inventaire d'un personnage, c'est le seul retour possible, ces objets ne
@@ -89,5 +106,18 @@
   &--shape-diamond#{&}--pinned,
   &--shape-circle#{&}--pinned {
     filter: drop-shadow(0 0 3px var(--color-accent));
+  }
+
+  // L'objet retenu prime sur les deux : c'est l'état qu'on manipule.
+  //
+  // Le `clip-path` rogne l'`outline` exactement comme il rognait la bordure —
+  // il rogne tout ce que l'élément peint. La marque suit donc la découpe, par
+  // le même drop-shadow ; il est empilé trois fois car un seul, diffus, ne
+  // pèse pas ce que pèsent 3 px de trait plein sur les vignettes carrées.
+  &--shape-diamond#{&}--picked,
+  &--shape-circle#{&}--picked {
+    filter: drop-shadow(0 0 2px var(--color-success))
+      drop-shadow(0 0 2px var(--color-success))
+      drop-shadow(0 0 2px var(--color-success));
   }
 }

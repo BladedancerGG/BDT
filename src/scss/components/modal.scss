@@ -71,6 +71,19 @@ $ease: cubic-bezier(0.16, 1, 0.3, 1); // décélération franche, sans rebond
     scale: 1;
   }
 
+  // Gabarit compact : la modale prend la taille de son contenu.
+  //
+  // `width: auto` autant que `height` : sans les deux, un formulaire de deux
+  // champs s'étalait sur 45 rem de large et 85 % de la hauteur, perdu au milieu
+  // du vide. Le plafond reste là pour les petits écrans.
+  &--compact {
+    width: auto;
+    max-width: min(30rem, 92vw);
+    height: auto;
+    max-height: 85vh;
+    padding: 0.75rem;
+  }
+
   &__header {
     display: flex;
     align-items: center;

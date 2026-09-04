@@ -21,6 +21,11 @@ export interface LoadoutActionExtra {
   itemInstanceIds?: readonly string[];
   /** Refus connu avant tout envoi : l'action entre en file en le disant */
   failure?: LoadoutFailure;
+  /**
+   * Lot auquel l'action appartient : l'échec d'une de ses actions annule celles
+   * qui restent. Seul l'équipement d'un groupe en pose un — voir BatchFailure.
+   */
+  batchId?: string;
 }
 
 /**
@@ -51,6 +56,7 @@ export function useLoadoutActions() {
         itemInstanceIds: extra.itemInstanceIds ?? [],
         step: extra.failure ? undefined : { kind: "loadout", request },
         failure: extra.failure,
+        batchId: extra.batchId,
       }),
     [enqueueLoadout],
   );

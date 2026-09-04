@@ -15,12 +15,15 @@ import {
 import type {ItemDetail} from "@/lib/bungie/item-components";
 import type {InventoryItemDefinition} from "@/lib/destiny/types";
 import type {SlotSide} from "@/lib/destiny/buckets";
+import {INVALID_HASH} from "@/lib/loadouts/loadout";
+import {useSnapshotEdit} from "@/lib/loadouts/groups/snapshot-edit";
 import type {PlugChipRows} from "@/lib/destiny/use-equipped-plugs";
 import {useSocketOptions} from "@/lib/destiny/use-sockets";
 import {usePlugAvailability} from "@/lib/destiny/use-plug-availability";
 import {usePlugActionState, type QueuedItem} from "@/lib/actions/store";
 import {PlugIcon} from "../tooltip/PlugIcon";
 import {
+    NEUTRAL_PLUG_QUEUE,
     PlugSlot,
     SocketPicker,
     SocketPickerProvider,
@@ -41,6 +44,12 @@ const NO_INDEXES: number[] = [];
  *  - **lecture seule** (`item` absent) — un équipement sauvegardé. C'est un
  *    instantané : rien n'y est équipé en ce moment, il n'y a donc rien à
  *    changer. Les infobulles au survol, elles, restent là.
+ *  - **instantané modifiable** (`snapshot` fourni) — un emplacement de groupe en
+ *    cours d'édition. Le sélecteur est le même, à trois détails près : ce qui
+ *    est « en place » se lit dans l'instantané et non sur l'objet, le choix y
+ *    est écrit au lieu de partir vers Bungie, et la file d'actions est ignorée —
+ *    une insertion réelle en cours sur le même objet ne doit pas venir grimer
+ *    l'instantané.
  *
  * Le côté commande l'alignement, pas l'ordre du DOM : les lignes de la colonne
  * de gauche sont poussées contre la vignette, celles de droite s'en éloignent.
@@ -55,12 +64,23 @@ export function EquipmentPlugs({
                                }: {
     rows: PlugChipRows;
     side: SlotSide;
-    /** L'objet tel qu'il part en file d'actions — absent = lecture seule */
+    /**
+     * L'objet tel qu'il part en file d'actions — absent = lecture seule.
+     *
+     * Reste fourni en régime « instantané modifiable » : c'est lui qui porte
+     * l'identifiant d'instance dont dépendent les plugs débloqués, et sa seule
+     * présence est ce qui rend un emplacement navigable.
+     */
     item?: QueuedItem;
     def: InventoryItemDefinition | undefined;
     detail: ItemDetail | undefined;
 }) {
     const [picker, setPicker] = useState<PickerTarget | undefined>();
+
+    // Régime « instantané modifiable », s'il y en a un pour cet objet. Il vient
+    // du contexte et non d'une prop : l'infobulle en a besoin elle aussi, et
+    // elle est montée dans un portail, hors de portée d'un passage de props.
+    const snapshot = useSnapshotEdit(item?.itemInstanceId, detail);
 
     // Les sockets réellement présents sur l'objet : les bonus d'ensemble n'en
     // ont pas, ils viennent de la panoplie.
@@ -76,13 +96,33 @@ export function EquipmentPlugs({
     // Ce que le compte a débloqué : sans lui, un emplacement de mod ne
     // proposerait que ce qui y est déjà.
     const available = usePlugAvailability(item?.itemInstanceId);
-    const columns = useSocketOptions(def, detail, indexes, available);
+    const rawColumns = useSocketOptions(def, detail, indexes, available);
+
+    // `buildColumns` lit le plug en place sur l'OBJET (`detail.sockets`) : c'est
+    // ce qu'il faut pour l'équipement porté, et le contraire de ce qu'il faut
+    // pour un instantané, qui a ses propres attributs. Les options, elles,
+    // restent celles de l'objet — un instantané qui retiendrait un plug
+    // inéquipable serait refusé le jour où le groupe s'équipe.
+    const columns = useMemo(() => {
+        if (!snapshot) return rawColumns;
+        return rawColumns.map((column) => {
+            const saved = snapshot.sockets[column.socketIndex];
+            return saved !== undefined && saved > 0 && saved !== INVALID_HASH
+                ? {...column, equippedHash: saved}
+                : column;
+        });
+    }, [rawColumns, snapshot]);
+
     const byIndex = useMemo(
         () => new Map(columns.map((column) => [column.socketIndex, column])),
         [columns],
     );
 
-    const {pending, error, failure} = usePlugActionState(item?.itemInstanceId);
+    const queued = usePlugActionState(item?.itemInstanceId);
+    // En régime instantané l'écriture est locale et immédiate : il n'y a ni
+    // attente ni refus à montrer, et ceux d'une insertion réelle en cours sur le
+    // même objet n'auraient rien à voir avec ce qu'on édite.
+    const {pending, error, failure} = snapshot ? NEUTRAL_PLUG_QUEUE : queued;
 
     // Le panneau s'ancre au bloc d'attributs et non à l'icône cliquée : il tient
     // ainsi la même place d'un emplacement à l'autre, au lieu de sauter le long
@@ -121,10 +161,17 @@ export function EquipmentPlugs({
 
     // Le sélecteur garde son socket, pas l'état du socket : après une insertion
     // réussie, le plug en place a changé et il doit le refléter.
-    const target: PickerTarget | undefined = picker && {
-        ...picker,
-        equippedHash: detail?.sockets?.[picker.socketIndex] || picker.equippedHash,
-    };
+    const target: PickerTarget | undefined =
+        picker &&
+        (snapshot
+            ? // L'instantané fait foi, et il vient de changer : c'est ce que le
+              // clic précédent y a écrit que la grille doit marquer « en place ».
+              {...picker, equippedHash: byIndex.get(picker.socketIndex)?.equippedHash}
+            : {
+                ...picker,
+                equippedHash:
+                    detail?.sockets?.[picker.socketIndex] || picker.equippedHash,
+            });
 
     return (
         <SocketPickerProvider
@@ -137,6 +184,7 @@ export function EquipmentPlugs({
                     ),
                 disabled: new Set(detail?.disabledSockets ?? []),
                 pending,
+                onPick: snapshot?.onPick,
             }}
         >
             <div

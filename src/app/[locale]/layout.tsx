@@ -6,6 +6,7 @@ import {routing} from "@/i18n/routing";
 import {Providers} from "./providers";
 import {SettingsEffects} from "@/lib/settings/SettingsEffects";
 import {SettingsSync} from "@/lib/settings/SettingsSync";
+import {LoadoutGroupsSync} from "@/lib/loadouts/groups/LoadoutGroupsSync";
 import {readPreferences, type ServerPreferences} from "@/lib/settings/server";
 import "@/scss/style.scss";
 
@@ -57,6 +58,11 @@ export default async function RootLayout(
                     lu en base, celui-là même qui a servi à rendre ce HTML. */}
                 <SettingsSync serverState={prefs.synced}/>
                 <SettingsEffects/>
+                {/* Après SettingsSync : c'est lui qui fixe `syncEnabled`, dont
+                    dépend la relecture des groupes. Ceux-là ne descendent pas
+                    avec le HTML — le serveur n'en a rien à faire au rendu, et
+                    ils pèsent des dizaines de Ko. */}
+                <LoadoutGroupsSync/>
                 {/* NextIntlClientProvider récupère messages/locale depuis le contexte
                     serveur fourni par le plugin next-intl */}
                 <NextIntlClientProvider>

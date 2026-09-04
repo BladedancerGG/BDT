@@ -77,6 +77,50 @@
     width: var(--item-size);
     height: var(--item-size);
     flex-shrink: 0;
+    // Bloc conteneur du calque d'édition, et de la case vide de l'aperçu
+    position: relative;
+  }
+
+  // —— Retirer l'objet d'une ligne, en édition d'un groupe ——
+  //
+  // Un « − » dans le coin, et non un calque couvrant la vignette : le calque
+  // captait le clic dès le survol, et c'est la vignette qu'on veut pouvoir
+  // cliquer — son infobulle est le seul endroit où se changent les cosmétiques.
+  //
+  // Toujours visible plutôt que révélé au survol : dans un éditeur, l'affordance
+  // doit se voir sans chercher. Il s'affirme au survol, sans bouger d'un pixel.
+  &__remove {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    z-index: 2;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.125rem;
+    height: 1.125rem;
+    padding: 0;
+
+    border: 1px solid var(--color-border-strong);
+    background-color: var(--color-panel);
+    color: var(--color-danger);
+    cursor: pointer;
+    opacity: 0.75;
+    transition: 120ms ease;
+
+    svg {
+      width: 0.875rem;
+      height: 0.875rem;
+    }
+
+    &:hover,
+    &:focus-visible {
+      opacity: 1;
+      border-color: var(--color-danger);
+      background-color: var(--color-danger);
+      color: var(--color-panel);
+    }
   }
 
   &__message {
@@ -139,10 +183,6 @@
 
 .equipment-mode--preview {
   // La case vide est posée sous la vignette, sans la déplacer
-  .equipment-mode__item {
-    position: relative;
-  }
-
   // `&__placeholder` donnerait `.equipment-mode--preview__placeholder`, qui ne
   // désigne rien : le suffixe s'accroche au modificateur, pas au bloc.
   .equipment-mode__placeholder {

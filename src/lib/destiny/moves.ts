@@ -30,12 +30,13 @@ import {
   WEAPON_BUCKETS,
 } from "./buckets";
 import { TIER } from "./display";
+import type { BatchFailure } from "@/lib/actions/types";
 
 /** ItemLocation, tel que l'API le renseigne sur chaque objet. */
 const LOCATION = { Inventory: 1, Vault: 2 } as const;
 
 /** `classType` d'un objet que n'importe quelle classe peut équiper. */
-const CLASS_ANY = 3;
+export const CLASS_ANY = 3;
 
 /** Où se trouve un objet. */
 export type ItemPlace =
@@ -61,7 +62,8 @@ export type MoveFailure =
   | "noExoticSwap"
   | "postmasterSideEffects"
   | "vaultFull"
-  | "bucketFull";
+  | "bucketFull"
+  | BatchFailure;
 
 /** Une requête, enrichie de quoi l'expliquer dans la liste des actions. */
 export interface PlannedStep extends MoveStepRequest {

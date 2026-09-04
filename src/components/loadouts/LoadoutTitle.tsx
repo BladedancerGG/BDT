@@ -17,7 +17,6 @@ import {BUNGIE_ROOT} from "@/lib/destiny/display";
 import {
     useLoadoutIdentifierChoices,
     useLoadoutIdentifiers,
-    type IdentifierChoice,
     type LoadoutIdentifierHashes,
 } from "@/lib/loadouts/use-loadout-identifiers";
 import {
@@ -27,62 +26,14 @@ import {
 } from "@/lib/loadouts/use-loadout-actions";
 
 import {PencilIcon, XMarkIcon, CheckIcon} from "@heroicons/react/24/solid"
+import {
+    IdentifierPicker,
+    type IdentifierTarget as Target,
+} from "./IdentifierPicker";
 
-/** Lequel des deux identifiants visuels est en cours de choix. */
-type Target = "color" | "icon";
 
 /** Les trois identifiants d'un emplacement, tels qu'on les modifie. */
 type Identifiers = LoadoutIdentifierHashes;
-
-/**
- * Grille des choix d'un identifiant, dans un panneau flottant.
- *
- * Elle emprunte l'habillage du sélecteur de sockets (`.socket-picker`) : c'est
- * le même geste — cliquer une vignette, choisir dans une grille — et la
- * maquette le demande explicitement. Le contenu, lui, n'est pas fait de plugs :
- * ce sont de simples images du manifeste, sans définition d'objet derrière.
- */
-function IdentifierPicker({
-                              choices,
-                              current,
-                              kind,
-                              onPick,
-                          }: {
-    choices: IdentifierChoice[];
-    current: number;
-    kind: Target;
-    onPick: (hash: number) => void;
-}) {
-    const t = useTranslations("loadouts");
-
-    return (
-        <div className="socket-picker loadout-identifiers">
-            <div className="socket-picker__grid">
-                {choices.map((choice) => (
-                    <button
-                        key={choice.hash}
-                        type="button"
-                        className={[
-                            "loadout-identifiers__choice",
-                            `loadout-identifiers__choice--${kind}`,
-                            choice.hash === current
-                                ? "loadout-identifiers__choice--current"
-                                : null,
-                        ]
-                            .filter(Boolean)
-                            .join(" ")}
-                        aria-pressed={choice.hash === current}
-                        aria-label={t(kind === "color" ? "pickColor" : "pickIcon")}
-                        onClick={() => onPick(choice.hash)}
-                    >
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={`${BUNGIE_ROOT}${choice.value}`} alt=""/>
-                    </button>
-                ))}
-            </div>
-        </div>
-    );
-}
 
 /**
  * Titre du mode « équipements » quand un emplacement est sélectionné :
@@ -121,6 +72,7 @@ export function LoadoutTitle({
 }) {
     const t = useTranslations("loadouts");
     const tActions = useTranslations("actions");
+    const tCommon = useTranslations("common");
     const choices = useLoadoutIdentifierChoices();
     const {run} = useLoadoutActions();
     const {busy: acting, error, failure} = useLoadoutActionState(
@@ -334,8 +286,8 @@ export function LoadoutTitle({
                         </button>
                         <button
                             type="button"
-                            aria-label={t("cancelIdentifiers")}
-                            title={t("cancelIdentifiers")}
+                            aria-label={tCommon("cancel")}
+                            title={tCommon("cancel")}
                             disabled={busy}
                             onClick={() => {
                                 setTarget(null);
@@ -349,8 +301,8 @@ export function LoadoutTitle({
                 ) : (
                     <button
                         type="button"
-                        aria-label={t("editIdentifiers")}
-                        title={t("editIdentifiers")}
+                        aria-label={tCommon("edit")}
+                        title={tCommon("edit")}
                         disabled={busy}
                         onClick={() => {
                             setSubmitted(null);

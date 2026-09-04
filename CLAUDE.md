@@ -42,7 +42,20 @@ make db-shell       # console psql
 ```
 
 **Aucun framework de test n'est installé.** Il n'y a donc pas de commande de test.
-Pour valider une logique pure, la voie praticable est de compiler le module ciblé puis de
+
+Les modules **purs** — ceux qui ne connaissent ni React, ni le store, ni le réseau — ont
+malgré tout leurs vérifications, rangées dans `scripts/checks/` :
+
+```bash
+scripts/checks/run.sh    # compile et exécute les trois, dans le conteneur
+```
+
+Elles couvrent aujourd'hui `lib/loadouts/groups/edit.ts`, `lib/loadouts/groups/equip.ts`,
+`lib/destiny/insert-plan.ts` et `lib/settings/backup.ts`. **Les lancer après toute modification de ces modules**, et y
+ajouter un cas quand un piège Destiny est écarté : c'est là que la logique se casse en
+silence. Voir `scripts/checks/README.md` pour en écrire une.
+
+Pour un module pur qui n'en a pas encore, la voie praticable reste de le compiler puis de
 l'exécuter dans le conteneur :
 
 ```bash
@@ -136,6 +149,7 @@ Sans tests automatisés, la vérification est manuelle et attendue :
 ```bash
 docker compose exec app npx tsc --noEmit                    # types
 docker compose exec app npm run lint                        # au-delà des 2 problèmes connus
+scripts/checks/run.sh                                       # moteurs purs
 curl -skL -o /dev/null -w "%{http_code}\n" https://localhost/fr   # et /en
 docker compose logs app --since 30s                         # erreurs runtime
 ```

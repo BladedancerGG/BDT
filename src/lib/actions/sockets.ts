@@ -4,7 +4,7 @@
 // Pas de directive "use client" : le serveur importe `isInsertPlugRequest` —
 // voir lib/settings/constants.ts.
 
-import type { MoveStepError } from "./types";
+import type { BatchFailure, MoveStepError } from "./types";
 
 /** Équiper un attribut / mod dans un socket d'un objet. */
 export interface InsertPlugRequest {
@@ -26,7 +26,7 @@ export type InsertPlugError = MoveStepError;
  * Refus détecté avant tout envoi (clés `actions.failure.*`, partagées avec les
  * déplacements — `notInstanced` y dit déjà « objet introuvable dans le profil »).
  */
-export type InsertFailure = "notInstanced" | "noCharacter";
+export type InsertFailure = "notInstanced" | "noCharacter" | BatchFailure;
 
 /**
  * L'insertion telle qu'elle vit dans la file d'actions.

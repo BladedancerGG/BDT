@@ -129,6 +129,17 @@
     }
   }
 
+  // Mode « groupes » : une seule colonne, les cartes s'y alignent d'elles-mêmes.
+  // Ni calque de dépôt ni second panneau, donc rien à accrocher — les lignes
+  // explicites du mode inventaire ne servent pas ici.
+  &__body--groups {
+    grid-template-rows: minmax(0, 1fr);
+
+    @include m.from(v.$bp-lg) {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
   // Colonne de gauche du mode « équipements » : les lignes, puis le résumé du
   // personnage sous elles.
   &__equipment {

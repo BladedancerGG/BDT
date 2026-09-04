@@ -10,6 +10,7 @@ import {useEquippedPlugs} from "@/lib/destiny/use-equipped-plugs";
 import {useShownStats} from "@/lib/destiny/use-shown-stats";
 import type {EquippedSetCounts} from "@/lib/destiny/set-bonus";
 import type {QueuedItem} from "@/lib/actions/store";
+import {MinusIcon} from "@heroicons/react/24/solid";
 import {EmptySlotIcon} from "../icons";
 import {ItemIcon} from "../ItemIcon";
 import {EquipmentPlugs} from "./EquipmentPlugs";
@@ -37,6 +38,8 @@ export function EquipmentModeView({
                                       characterStats,
                                       editable,
                                       preview = false,
+                                      onRemoveItem,
+                                      quiet = false,
                                   }: {
     /** Titre de la vue : l'équipement porté, ou l'emplacement sélectionné */
     title: ReactNode;
@@ -74,6 +77,24 @@ export function EquipmentModeView({
      * les dix lignes et leurs attributs à chaque passage du curseur.
      */
     preview?: boolean;
+    /**
+     * Retirer l'objet d'une ligne — la vue montre alors un emplacement de
+     * **groupe** qu'on modifie.
+     *
+     * C'est le seul geste que l'édition ajoute *ici*. Choisir les objets se
+     * fait d'un bloc dans la vue inventaire (`GroupSelectionBar`), et les
+     * attributs passent par le contexte `SnapshotEditProvider` — que les
+     * rangées comme l'infobulle lisent d'eux-mêmes. `editable` reste faux :
+     * rien n'est équipé, aucune action ne part vers Bungie.
+     */
+    onRemoveItem?: (itemInstanceId: string) => void;
+    /**
+     * Tait le message de chargement d'une vue sans objet.
+     *
+     * Un emplacement de groupe **vide** en a légitimement zéro, et « Chargement…»
+     * y serait un mensonge qui ne s'effacerait jamais.
+     */
+    quiet?: boolean;
 }) {
     const t = useTranslations("inventory");
     const plugs = useEquippedPlugs(items, details, defs, setCounts, sockets);
@@ -115,6 +136,7 @@ export function EquipmentModeView({
                             side="left"
                             editable={editable}
                             preview={preview}
+                            onRemoveItem={onRemoveItem}
                         />
                         <EquipmentSide
                             bucketHash={ARMOR_COLUMN[row]}
@@ -125,6 +147,7 @@ export function EquipmentModeView({
                             side="right"
                             editable={editable}
                             preview={preview}
+                            onRemoveItem={onRemoveItem}
                         />
                     </div>
                 ))}
@@ -132,7 +155,7 @@ export function EquipmentModeView({
 
             <CharacterSummary stats={stats} setCounts={setCounts}/>
 
-            {items.length === 0 && (
+            {items.length === 0 && !quiet && (
                 <p className="equipment-mode__message">{t("loading")}</p>
             )}
         </section>
@@ -149,6 +172,7 @@ function EquipmentSide({
                            side,
                            editable,
                            preview,
+                           onRemoveItem,
                        }: {
     bucketHash: number | undefined;
     item: DestinyItemComponent | undefined;
@@ -165,7 +189,10 @@ function EquipmentSide({
      * les dix lignes et leurs attributs à chaque passage du curseur.
      */
     preview?: boolean;
+    /** Voir la vue : la ligne devient modifiable */
+    onRemoveItem?: (itemInstanceId: string) => void;
 }) {
+    const t = useTranslations("groups");
     if (bucketHash === undefined) return null;
 
     const detail = item?.itemInstanceId ? details[item.itemInstanceId] : undefined;
@@ -175,7 +202,7 @@ function EquipmentSide({
     // la carte du panneau est montée hors de la grille et ne peut pas les
     // retrouver seule.
     const queued: QueuedItem | undefined =
-        editable && item?.itemInstanceId
+        (editable || onRemoveItem) && item?.itemInstanceId
             ? {
                 itemHash: item.itemHash,
                 itemInstanceId: item.itemInstanceId,
@@ -184,6 +211,8 @@ function EquipmentSide({
                 gearTier: detail?.instance?.gearTier,
             }
             : undefined;
+
+    const instanceId = item?.itemInstanceId;
 
     const plugsNode = (
         <EquipmentPlugs
@@ -221,6 +250,22 @@ function EquipmentSide({
                 />
             ) : (
                 emptyCell
+            )}
+
+            {/* Le retrait est un « − » posé dans le coin, et non un calque
+                couvrant la vignette : celui-ci captait le clic dès le survol,
+                et c'est la vignette qu'on veut pouvoir cliquer — son infobulle
+                est le seul endroit où se changent les cosmétiques. */}
+            {onRemoveItem && instanceId && (
+                <button
+                    type="button"
+                    className="equipment-mode__remove"
+                    aria-label={t("removeItem")}
+                    title={t("removeItem")}
+                    onClick={() => onRemoveItem(instanceId)}
+                >
+                    <MinusIcon/>
+                </button>
             )}
         </div>
     );

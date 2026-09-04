@@ -1,6 +1,6 @@
 "use client";
 
-import {createContext, useContext, useMemo, useState} from "react";
+import {createContext, useCallback, useContext, useMemo, useState} from "react";
 import {useTranslations} from "next-intl";
 import {useDefinition} from "@/lib/manifest/use-definition";
 import type {InventoryItemDefinition} from "@/lib/destiny/types";
@@ -8,7 +8,7 @@ import {usePlugCatalog, type SocketColumn} from "@/lib/destiny/use-sockets";
 import {isFixedPlug} from "@/lib/destiny/sockets";
 import {normalizeText} from "@/lib/search/keywords";
 import {useInsertPlanner} from "@/lib/actions/use-insert-planner";
-import type {QueuedItem} from "@/lib/actions/store";
+import {usePlugActionState, type QueuedItem} from "@/lib/actions/store";
 import {PlugIcon} from "./PlugIcon";
 
 /**
@@ -46,6 +46,17 @@ interface SocketPickerValue {
      * s'affichent comme équipées sans attendre la réponse de Bungie.
      */
     pending: Map<number, number>;
+    /**
+     * Détourne le choix : au lieu de partir en file vers Bungie, il est écrit
+     * là où l'appelant l'indique.
+     *
+     * Un seul usage, et il ne pouvait pas se passer de ce détour : l'édition
+     * d'un emplacement de **groupe**. Rien n'y est équipé — c'est un instantané
+     * qui vit dans le stockage local — et le sélecteur devait pourtant rester le
+     * même, jusqu'à sa recherche et à l'ordre de sa grille. Absent, on retombe
+     * sur l'insertion réelle, celle de l'équipement porté.
+     */
+    onPick?: (socketIndex: number, plugHash: number) => void;
 }
 
 const SocketPickerContext = createContext<SocketPickerValue>({
@@ -59,6 +70,65 @@ export const SocketPickerProvider = SocketPickerContext.Provider;
 
 export function useSocketPicker(): SocketPickerValue {
     return useContext(SocketPickerContext);
+}
+
+/**
+ * Où va un choix d'attribut, résolu une fois pour tous les appelants.
+ *
+ * Trois surfaces écrivent un attribut : la grille du sélecteur, le bouton de
+ * réinitialisation d'un artéfact, et les colonnes d'attributs d'arme de
+ * l'infobulle — celles-ci ne passant justement pas par le sélecteur. Chacune
+ * devait se souvenir d'interroger `onPick` avant d'appeler l'insertion réelle,
+ * et **deux l'ont oublié tour à tour** : l'édition d'un instantané de groupe
+ * partait alors chez Bungie. La règle est donc écrite ici, une seule fois.
+ *
+ * Renvoie `undefined` quand il n'y a rien où écrire — ni instantané, ni objet
+ * instancié. C'est aussi ce qui décide si l'icône se clique.
+ */
+export function usePlugWriter(
+    item: QueuedItem | undefined,
+): ((socketIndex: number, plugHash: number) => void) | undefined {
+    const {onPick} = useSocketPicker();
+    const insert = useInsertPlanner();
+
+    const write = useCallback(
+        (socketIndex: number, plugHash: number) => {
+            // L'instantané d'abord : présent, rien ne doit atteindre Bungie.
+            if (onPick) {
+                onPick(socketIndex, plugHash);
+                return;
+            }
+            if (item) insert(item, socketIndex, plugHash);
+        },
+        [onPick, insert, item],
+    );
+
+    return onPick || item ? write : undefined;
+}
+
+/**
+ * État de file neutre.
+ *
+ * L'écriture dans un instantané est locale et immédiate : il n'y a ni attente ni
+ * refus à montrer, et ceux d'une insertion réelle en cours sur le même objet
+ * n'auraient rien à voir avec ce qu'on édite.
+ */
+export const NEUTRAL_PLUG_QUEUE = {
+    pending: new Map<number, number>(),
+    error: undefined,
+    failure: undefined,
+} as const;
+
+/**
+ * L'état de file à montrer, neutralisé en édition d'instantané.
+ *
+ * Réservé aux **descendants** d'un `SocketPickerProvider` : un composant qui
+ * fournit lui-même le contexte lirait celui de son parent, et non le sien.
+ */
+export function usePlugQueueState(itemInstanceId: string | undefined) {
+    const {onPick} = useSocketPicker();
+    const queued = usePlugActionState(itemInstanceId);
+    return onPick ? NEUTRAL_PLUG_QUEUE : queued;
 }
 
 /**
@@ -147,13 +217,13 @@ export function PlugButton({
     square?: boolean;
 }) {
     const {item, pending} = useSocketPicker();
-    const insert = useInsertPlanner();
+    const write = usePlugWriter(item);
 
     return (
         <PlugIcon
             hash={hash}
             square={square}
-            onEquip={item ? () => insert(item, socketIndex, hash) : undefined}
+            onEquip={write ? () => write(socketIndex, hash) : undefined}
             busy={pending.get(socketIndex) === hash}
         />
     );
@@ -177,7 +247,7 @@ export function SocketPicker({
     const t = useTranslations("actions");
     const tItem = useTranslations("item");
     const {item, pending} = useSocketPicker();
-    const insert = useInsertPlanner();
+    const write = usePlugWriter(item);
     // Une seule lecture du manifeste pour toute la grille, recherche comprise
     const {defs, search} = usePlugCatalog(target.options);
 
@@ -233,8 +303,8 @@ export function SocketPicker({
                         square={target.square}
                         state={hash === equippedHash ? "equipped" : "available"}
                         onEquip={
-                            item && hash !== equippedHash
-                                ? () => insert(item, target.socketIndex, hash)
+                            write && hash !== equippedHash
+                                ? () => write(target.socketIndex, hash)
                                 : undefined
                         }
                         busy={pending.get(target.socketIndex) === hash}

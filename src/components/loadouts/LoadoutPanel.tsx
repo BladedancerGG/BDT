@@ -3,7 +3,6 @@
 import {useEffect} from "react";
 import {useTranslations} from "next-intl";
 import type {DestinyLoadout} from "@/lib/bungie/profile";
-import {BUNGIE_ROOT} from "@/lib/destiny/display";
 import {isEmptyLoadout} from "@/lib/loadouts/loadout";
 import {useLoadoutIdentifiers} from "@/lib/loadouts/use-loadout-identifiers";
 import {useSnapshotLoadout} from "@/lib/loadouts/use-snapshot-loadout";
@@ -11,9 +10,8 @@ import {
     useLoadoutActionState,
     useLoadoutActions,
 } from "@/lib/loadouts/use-loadout-actions";
-import {PlusIcon} from "@heroicons/react/24/solid"
-import {EmptySlotIcon} from "@/components/icons";
 import {DestinySymbol} from "@/components/DestinySymbol";
+import {LoadoutSlotTile} from "./LoadoutSlotTile";
 
 /**
  * Les emplacements d'équipement du personnage, et les actions du sélectionné.
@@ -111,8 +109,6 @@ export function LoadoutPanel({
                 {loadouts.map((loadout, index) => {
                     const free = isEmptyLoadout(loadout);
                     const name = identifiers.names.get(loadout.nameHash);
-                    const color = identifiers.colors.get(loadout.colorHash);
-                    const icon = identifiers.icons.get(loadout.iconHash);
 
                     return (
                         <button
@@ -134,29 +130,11 @@ export function LoadoutPanel({
                             // c'est le geste attendu, et il double le bouton dédié.
                             onClick={() => onSelect(index === selected ? null : index)}
                         >
-                            {!free && color && (
-                                // eslint-disable-next-line @next/next/no-img-element
-                                <img
-                                    src={`${BUNGIE_ROOT}${color}`}
-                                    alt=""
-                                    className="loadout-slot__color"
-                                />
-                            )}
-                            {!free && icon && (
-                                // eslint-disable-next-line @next/next/no-img-element
-                                <img
-                                    src={`${BUNGIE_ROOT}${icon}`}
-                                    alt={name ?? ""}
-                                    className="loadout-slot__icon"
-                                />
-                            )}
-                            {free && (
-                                <>
-                                    <EmptySlotIcon />
-                                    <PlusIcon/>
-                                </>
-                            )}
-                            <span className="loadout-slot__number">{index + 1}</span>
+                            <LoadoutSlotTile
+                                loadout={loadout}
+                                index={index}
+                                identifiers={identifiers}
+                            />
                         </button>
                     );
                 })}
@@ -210,16 +188,6 @@ export function LoadoutPanel({
                             {t("clear")}
                         </button>
                     </div>
-
-                    {/*<button*/}
-                    {/*    type="button"*/}
-                    {/*    className="btn btn--small loadout-panel__action loadout-panel__action--link"*/}
-                    {/*    // Les groupes d'équipements n'existent pas encore*/}
-                    {/*    disabled*/}
-                    {/*    title={t("groupsSoon")}*/}
-                    {/*>*/}
-                    {/*    {t("groups")}*/}
-                    {/*</button>*/}
                 </div>
             )}
         </div>

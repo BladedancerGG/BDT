@@ -50,8 +50,8 @@ import {subclassDamageType, isSubclass} from "@/lib/destiny/subclass";
 import {useItemProgress} from "@/lib/destiny/use-item-progress";
 import {useStatBonuses} from "@/lib/destiny/use-stat-bonuses";
 import {useArmorPerks} from "@/lib/destiny/use-armor-perks";
-import {useInsertPlanner} from "@/lib/actions/use-insert-planner";
 import {usePlugActionState, type QueuedItem} from "@/lib/actions/store";
+import {useSnapshotEdit} from "@/lib/loadouts/groups/snapshot-edit";
 import {PlugIcon} from "./PlugIcon";
 import {StatBar} from "./StatBar";
 import {TooltipSkeleton} from "./TooltipSkeleton";
@@ -67,6 +67,9 @@ import {
     PlugSlot,
     SocketPicker,
     SocketPickerProvider,
+    NEUTRAL_PLUG_QUEUE,
+    usePlugQueueState,
+    usePlugWriter,
     type PickerTarget,
 } from "./SocketPicker";
 
@@ -178,6 +181,14 @@ function useCategoryName(categoryHash: number): string {
  *
  * Une colonne qui n'offre qu'un seul choix ne se clique pas : il n'y a rien à
  * changer. Les sockets verrouillés non plus.
+ *
+ * **Ces colonnes ne passent pas par le sélecteur flottant** — c'est tout leur
+ * intérêt, un attribut d'arme n'offrant que deux ou trois choix qui tiennent
+ * côte à côte. Elles portent donc leur propre insertion, et c'est le piège :
+ * elles doivent redemander au contexte du sélecteur où va le choix, sans quoi
+ * l'édition d'un instantané de groupe partait bel et bien chez Bungie ici,
+ * alors que mods, revêtements et ornements — eux passés par le sélecteur —
+ * étaient correctement détournés.
  */
 function PerkColumns({
                          def,
@@ -195,8 +206,10 @@ function PerkColumns({
     const t = useTranslations("actions");
     const all = useSocketColumns(def, detail, categoryHash);
     const title = useCategoryName(categoryHash);
-    const insert = useInsertPlanner();
-    const {pending, error, failure} = usePlugActionState(item?.itemInstanceId);
+    // Où va le choix, et l'état à montrer : les deux sont résolus par le
+    // contexte du sélecteur, que ces colonnes contournent par ailleurs.
+    const write = usePlugWriter(item);
+    const {pending, error, failure} = usePlugQueueState(item?.itemInstanceId);
     const disabled = new Set(detail?.disabledSockets ?? []);
 
     // Le compte-frags occupe une colonne de cette catégorie sans être un
@@ -221,7 +234,7 @@ function PerkColumns({
                     // envoie l'un après l'autre — Bungie limite le débit des
                     // écritures sur un même compte, pas les clics.
                     const changeable =
-                        Boolean(item) &&
+                        Boolean(write) &&
                         column.options.length > 1 &&
                         !disabled.has(column.socketIndex);
 
@@ -243,8 +256,8 @@ function PerkColumns({
                                     // améliorés ; ailleurs le marquage n'a pas de sens.
                                     markEnhanced
                                     onEquip={
-                                        item && changeable && hash !== equippedHash
-                                            ? () => insert(item, column.socketIndex, hash)
+                                        write && changeable && hash !== equippedHash
+                                            ? () => write(column.socketIndex, hash)
                                             : undefined
                                     }
                                     busy={pending.get(column.socketIndex) === hash}
@@ -355,7 +368,33 @@ export function ItemTooltip({
     // Servi depuis le préchargement du profil dans le cas normal — donc sans
     // attente. Le squelette ne s'affiche que pour un objet absent du profil,
     // qu'il faut alors aller chercher à l'unité.
-    const {detail, pending: awaitingDetail} = useItemData(itemInstanceId);
+    const {detail: liveDetail, pending: awaitingDetail} = useItemData(itemInstanceId);
+
+    /**
+     * L'infobulle sert-elle à modifier un **instantané** de groupe ?
+     *
+     * Le contexte traverse le portail qui la monte : c'est la ligne de
+     * l'éditeur qui l'a ouverte, et son emplacement de groupe qui fait foi.
+     */
+    const snapshotEdit = useSnapshotEdit(itemInstanceId, liveDetail);
+
+    /**
+     * Le détail de l'objet, avec les attributs de l'instantané substitués.
+     *
+     * **Un seul point à toucher**, et c'est ce qui rend la greffe tenable :
+     * `buildColumns`, chaque rangée et le sélecteur lisent tous le plug en place
+     * dans `detail.sockets`. Les remplacer ici fait lire l'instantané à tout
+     * l'arbre d'un coup, au lieu d'une dérogation par consommateur. Le reste du
+     * détail — statistiques, énergie, sockets masqués — reste celui de l'objet :
+     * c'est bien lui qui porte l'instantané.
+     */
+    const detail = useMemo(
+        () =>
+            snapshotEdit && liveDetail
+                ? {...liveDetail, sockets: snapshotEdit.sockets}
+                : liveDetail,
+        [snapshotEdit, liveDetail],
+    );
     const intrinsic = useSocketColumns(def, detail, SOCKET_CATEGORY.INTRINSIC);
     // Niveau d'arme façonnée et compte-frags (composant 309)
     const progress = useItemProgress(detail);
@@ -383,7 +422,11 @@ export function ItemTooltip({
     // rangée : un seul panneau à la fois, et c'est l'infobulle entière qui lui
     // sert d'ancre.
     const [picker, setPicker] = useState<PickerTarget | undefined>();
-    const {pending, error, failure} = usePlugActionState(itemInstanceId);
+    const queueState = usePlugActionState(itemInstanceId);
+    // En édition d'instantané l'écriture est locale et immédiate : il n'y a ni
+    // attente ni refus à montrer, et ceux d'une insertion réelle en cours sur le
+    // même objet n'auraient rien à voir avec ce qu'on édite.
+    const {pending, error, failure} = snapshotEdit ? NEUTRAL_PLUG_QUEUE : queueState;
 
     // Le panneau s'ancre à l'infobulle, pas à l'icône cliquée : il la longe sur
     // toute sa hauteur, comme dans la maquette. `size` la lui impose comme
@@ -486,6 +529,7 @@ export function ItemTooltip({
                     ),
                 disabled: new Set(detail?.disabledSockets ?? []),
                 pending,
+                onPick: snapshotEdit?.onPick,
             }}
         >
         <div

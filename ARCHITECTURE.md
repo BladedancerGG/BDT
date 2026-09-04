@@ -591,20 +591,23 @@ recompute locally.
 
 ## Display modes & in-game loadouts
 
-The equipment page has two modes, switched by the buttons next to the character
-tabs or by the **Tab** key. The mode lives in the preferences cookie
-(`viewMode`), so it survives a reload — see `lib/settings/constants.ts`.
+The equipment page has three modes, switched by the buttons next to the
+character tabs or by the **Tab** key, which cycles through them. The mode lives
+in the preferences cookie (`viewMode`), so it survives a reload — see
+`lib/settings/constants.ts`.
 
 - **Inventory** — the historical view: two columns of slots with their
   per-slot inventory, and the vault on the right. This is where items move.
 - **Loadouts** — one row per slot, the equipped item's perks, mods and
   abilities laid out beside it, and the character's saved loadouts on the right.
+- **Groups** — the character's loadout groups, one card each, preceded by the
+  card of the slots actually saved in game. See "Loadout groups".
 
-**Both modes stay mounted**, stacked in the same grid cell: switching is then a
+**All modes stay mounted**, stacked in the same grid cell: switching is then a
 plain cross-fade, and nothing has to be rebuilt — not the virtualised vault, not
-the definitions already read. The hidden one is taken out of the flow
-(`position: absolute`, or the cell would keep the height of the taller of the
-two) and marked `inert`, which an opacity alone would not do.
+the definitions already read. The hidden ones are taken out of the flow
+(`position: absolute`, or the cell would keep the height of the tallest) and
+marked `inert`, which an opacity alone would not do.
 
 The loadouts mode does not move items — no drop zone, no per-slot inventory,
 nothing to drag onto. That is what `DragScopeProvider` carries: a context of its
@@ -723,6 +726,348 @@ Points worth knowing:
 - **Escape** deselects. The gesture is only taken when it serves nothing else: an
   open picker keeps it (that is what one wants to close), and a modal traps the
   keyboard anyway.
+
+### Loadout groups
+
+A **group** is an ordered set of loadout snapshots for one character: one entry
+per slot the character owns, each either empty or a full snapshot. Equipping a
+group will clear every slot, then for each entry equip its items — perks and
+mods included — and snapshot the slot over them. `lib/loadouts/groups/`.
+
+A group entry **is** a `DestinyLoadout`, structurally. That is deliberate:
+everything that already reads one serves groups without a line more —
+`isEmptyLoadout`, `useLoadoutIdentifiers` for the tile, `useLoadoutItems` for the
+contents. An entry left empty carries the `INVALID_HASH` sentinel on its three
+identifiers and an empty item list, exactly like a never-saved slot in game.
+
+Groups are **not shared between characters**: a snapshot names items by instance,
+and one class's armour does not equip on another.
+
+> **Groups live in localStorage, not in the preferences cookie** — the one
+> exception to the rule above. A group carries a full snapshot per slot: about
+> twenty slots, ten items each, an `itemInstanceId` and a dozen plug hashes per
+> item. A handful of groups already exceeds the cookie's 4 KB, and the cookie
+> would be sent back on every request. Nor has the server anything to read at
+> render time: unlike the theme, no group appears in the initial HTML.
+
+Their account sync therefore has its own route and its own row
+(`/api/loadout-groups`, `UserLoadoutGroups`), keyed off the same `syncEnabled`
+preference. Two differences from the settings sync:
+
+- **the state does not come down with the HTML.** `LoadoutGroupsSync` re-reads it
+  with a request, after mount, while localStorage already holds the display. The
+  `synced` marker carries the last list the server is known to hold — without it
+  the downward read would trip the upward subscription, which would push straight
+  back what had just come out of the database;
+- **the body is validated entry by entry**, not merely capped like the
+  preferences. An unknown setting degrades to a default; an unreadable group gets
+  equipped. Better to refuse it on the way in — `isLoadoutGroupArray`.
+
+The card's grid is always the size of the **character**, never of the group: an
+account that unlocks one more slot must see it appear, empty, on its existing
+groups rather than see them truncated.
+
+Each card carries an optional **colour** on its border, to pick it out of a row
+at a glance. It is chosen with an `<input type="color">` — the system picker,
+eyedropper and history included — so the value is a free `#rrggbb` rather than a
+token from a fixed palette. It reaches the border through a CSS variable set as
+an inline style, which is precisely the case inline style is for: no rule can
+enumerate the values.
+
+The `var()` fallback is what makes the field optional without a second rule, on
+the border and on its hover state alike. Two pixels rather than one: a free hue
+on a single pixel does not read as different from the grey border, and the width
+is the same on every card, so nothing shifts. `isGroupColor` guards the shape at
+the API boundary — the value ends up in a stylesheet, where an arbitrary string
+has no business.
+
+The first card is **clickable**: it leads to the loadouts mode, where those slots
+are actually handled — it is the only card whose contents exist elsewhere in the
+app. It carries `role="button"` on a `<section>` rather than being a real
+`<button>`: a button's content model admits no flow content, and the card is made
+of blocks. The keyboard is therefore rewired by hand.
+
+> **The actions layer must not cover the header.** It is positioned `inset: 0`
+> of its containing block, and while that block was the whole card it covered the
+> drag handle as soon as hovering armed it — reordering the cards was simply
+> impossible. It now covers `__body`, which holds the grid and nothing else, and
+> the layer itself never captures the pointer: only its buttons do, the same
+> arrangement as the loadout-creation layer. The header, and its handle, stay
+> clear.
+
+#### Equipping a group
+
+Nothing is sent directly — everything goes through the action queue, which runs
+**one request at a time**. That is not caution: each step assumes the previous
+one landed, and Bungie rate-limits writes on an account across all routes. A
+group equip asks for dozens.
+
+The sequence is the specified one, and `equip.ts` computes it — a pure module
+like `edit.ts`, verified by running it:
+
+1. **clear** the character's loadout slots;
+2. for each group slot, in order: **equip** its items, **insert** the perks that
+   differ, then **snapshot** the slot over what is then equipped.
+
+There is no "write a loadout" endpoint: `SnapshotLoadout` only records what the
+character currently wears. That is the whole reason for the shape above — the
+items really have to be equipped first.
+
+Three recorded plug values ask for **nothing**, and confusing them costs
+requests: the `INVALID_HASH` sentinel (never recorded, or a single-choice
+socket), `0` (an empty socket — there is no "nothing" plug to insert), and one
+already in place, which is by far the common case since the snapshot was taken
+off those very items. A locked socket is skipped too; the insertion would be
+refused.
+
+**Clearing is restricted to the slots the group will not fill.** The end state is
+identical — a `SnapshotLoadout` overwrites the slot it targets — and it saves one
+request per filled slot. Already-free slots are skipped for the same reason, and
+because `ClearLoadout` would refuse them.
+
+Each item is enqueued **unconditionally**, and that matters: `useMovePlanner`
+drops a pointless move by consulting the profile *at enqueue time*, and the
+profile is about to change underneath it. An item equipped now, unequipped by the
+next slot, then wanted again by a third would have been dropped — and that
+slot's snapshot would have recorded the neighbour's item. The runner re-plans
+every move just before sending anyway, and a step that turned out to be
+unnecessary costs no request.
+
+Perks are inserted **on the character that just received the item**: at enqueue
+time it may still be in the vault, and armour mods unlock per character — hence
+the `onCharacterId` override on `useInsertPlanner`.
+
+> **An insertion is re-planned just before it is sent**, like a move, and for
+> the same reason: between queueing and here, earlier actions may have changed
+> this item's sockets. `planInsert` yields zero requests, one, or two.
+>
+> **Zero** when the plug is already in place — the API refuses to equip what
+> already is, and the case is real: two group slots holding the same weapon ask
+> for the same insertion, and the second arrives after the first has satisfied
+> it. The plan's own "already in place" filter only trims the queue; the runner
+> is the authority, because only it sees the current state.
+>
+> **Two** when another socket of the same **artifact** holds that plug: an
+> artifact does not equip the same perk twice, so it must first be taken off
+> where it is. The removal request goes first, the wanted insertion second. The
+> test is restricted to artifacts — elsewhere, two sockets that would accept the
+> same plug draw from distinct pools and nothing forbids the duplicate.
+>
+> **Several** when the armour's **energy** does not suffice: every other mod is
+> removed first. Free energy is recomputed from the sockets rather than read from
+> `energyUsed`, because only the sockets are kept up to date in the local cache —
+> trusting `energyUsed` went wrong from the second insertion onwards. The socket
+> being written does not count against the total: its occupant frees its share by
+> being replaced.
+>
+> None of this applies to `EquipLoadout`: Bungie assembles the loadout itself and
+> handles these constraints on its side.
+
+Three things about armour energy were **read off the manifest**, not assumed, and
+two of them run against intuition:
+
+- an armour mod's cost runs **0 to 4**, and some thirty mods carry no
+  `plug.energyCost` at all. Absence means zero, not missing data;
+- **masterwork and artifice plugs carry no cost**, though they sit in the *same*
+  socket category as the mods (`ARMOR_MODS` — checked on Mask of Bakris). That
+  is what lets the code spare them on cost alone, with no need to recognise their
+  family;
+- costs of 5 and 6 do exist, but only on **ghost** mods, which this app never
+  shows and which have their own energy.
+
+When it does not fit, **all** the other mods go, not the strict minimum: choosing
+which to sacrifice has no defensible criterion. Only sockets whose occupant
+actually costs something are emptied — which of itself spares empty sockets, the
+masterwork and artifice.
+
+> **The actions of one equip share a `batchId`, and a failure cancels the rest.**
+> The sequence is one whose every step assumes the previous landed. Letting it
+> carry on after a failed equip would have snapshotted the botched set into the
+> game — worse than a visible failure, because silent. `cancelBatch` marks the
+> not-yet-started actions of the batch as `batchCancelled`; what already
+> succeeded is left alone, since one does not cancel what is done.
+
+The cost is stated before it is incurred: the confirmation names how many slots
+will be equipped and cleared, roughly how many requests that is, and how many
+slots are skipped — their items gone from the account, or their appearance
+incomplete (`SnapshotLoadout` demands all three identifiers).
+
+#### Editing a group
+
+"Edit" **replaces** the card grid with the group's editor rather than opening
+over it: the editor reuses the loadouts mode's layout — the ten item rows on one
+side, the slot grids on the other — and needs the full width. A modal that size
+would only have been a page in disguise.
+
+**Every write goes through `edit.ts`**, a pure module, then through one store
+action (`setGroupLoadouts`). Same split as `sort.ts` / `grouping.ts`: the Destiny
+semantics — which item displaces which, how a socket-indexed array is filled in,
+how a card's rank maps back into the flat stored list — live in a module with no
+React and no store, and are verified by running it (see "Verifying your work").
+The editor only supplies what the module cannot know: where an item equips, and
+the game's default identifiers.
+
+The slot grid is reordered by drag and drop (`@dnd-kit/sortable`), and so is the
+card list — the manual order *is* the order, which is why there is no sort
+criterion to choose. A slot's identity is its **place**, and that is what dnd-kit
+receives as an id: two empty slots are otherwise indistinguishable, and it is
+their position that moves. The card, by contrast, is dragged by a **handle**: it
+carries a layer of buttons, which no activation threshold would protect from a
+click read the wrong way.
+
+A group slot's **appearance** — colour, glyph, name — is edited in place, and
+stands in for the editor's title. `GroupSlotIdentifiers` is the counterpart of
+`LoadoutTitle` for a snapshot, and deliberately much shorter: the latter carries
+the whole apparatus of a send to Bungie (draft, queueing, waiting for the
+outcome, retry) because `UpdateLoadoutIdentifiers` writes the three values as one
+and can fail. Here nothing is sent — the choice goes to local storage and applies
+on click, so there is no draft to gather and no refusal to show. The choice grid
+itself is the same: `IdentifierPicker`, lifted out of `LoadoutTitle` to be
+shared. Without this, a slot filled by hand kept the game's first choices and all
+of them looked alike.
+
+> **Filling a slot means giving it identifiers.** `isEmptyLoadout` reads the
+> items **and** the three identifiers: a slot filled by hand while they still
+> hold the `INVALID_HASH` sentinel is declared free — and it does not merely go
+> without a tile, `useLoadoutItems` refuses to resolve its contents and the item
+> just added is plainly invisible. `putItem` therefore lays down the first entry
+> of each of the game's lists (the same rule as `useSnapshotLoadout`), and the
+> editor **holds the gesture back** until those lists are read.
+
+Three write paths reach one slot, and all three are the same `edit.ts` call:
+overwriting the whole group copies the character's slots wholesale, clicking a
+character slot copies that one into the selected group slot, and confirming an
+equipment selection writes the items chosen for it.
+
+#### Picking the items: the inventory view becomes a mode
+
+"Pick the items" does not open a picker — it switches to the **inventory view in
+selection mode**, where one item per equipment slot is chosen straight from the
+grids that already show them: the character's slots, their per-slot inventory,
+and the vault with its search. A modal picker had come first, and it asked, one
+row at a time, for what that view shows at a glance.
+
+`ItemIcon` is where the switch is written, once: it is the single gate every
+inventory tile goes through. While a selection runs, a click **holds** the item
+instead of opening its tooltip, the drag handle is off (a threshold would have
+turned that click into a drop-zone gesture), and double-click no longer equips —
+one designates what a group will wear, not what to equip now.
+
+The state is a **store, not a context**, and that is a cost question: `ItemIcon`
+is mounted a thousand times for a vault, and a context would redraw every one of
+those tiles on each click. With one narrow selector per tile, only the tiles a
+choice concerns redraw. Nothing is persisted either — it is a gesture, not a
+setting.
+
+The inventory mode is **overridden, not written**: `viewMode` is forced while the
+selection runs, so the user's preference is untouched — nothing reaches the
+cookie — and ending the selection returns them to the tab they were on. The bar
+takes the place of the view-mode tabs, its two buttons being the only way out, so
+no half-made selection is left behind a tab change. The **Tab** shortcut stands
+down for the same reason.
+
+> **Confirming replaces the slot's items, and keeps the perks already recorded.**
+> The selection starts seeded from what the slot holds, so an item missing from
+> the result was deliberately taken out. But an item the slot already carried
+> keeps its snapshot, hand-edited perks included; only a newcomer gets the plugs
+> it wears right now. Re-snapshotting everyone would have wiped, without a word,
+> the work done in the perk editor. See `setItems`.
+
+Two refusals bound what can be held, and they are the ones the old modal
+filtered on: anything that does not equip (the slot comes from the **definition**,
+`inventory.bucketTypeHash`, not from the component — which reads as the vault for
+anything stored, and would refuse the whole vault), and anything belonging to
+another class. Both are `pickableBucket`; a refused tile is dimmed and inert,
+since letting the cursor promise a click that does nothing is a trap.
+
+A third refusal joins them: **anything bound to another character**. An artifact
+does not transfer, so another character's would never equip here. Filtering by
+class did not cover it — an artifact has no `classType`, and two characters of
+the *same* class each have their own. The criterion is the definition's
+`nonTransferrable`, which is exact (subclasses and artifacts, see the header of
+`moves.ts`), and the set is computed when the selection opens, where the profile
+is at hand: `ItemIcon` only knows an item's hash and instance, never who holds
+it. See `foreignItems`.
+
+> **A held tile is marked by an `outline`, and by a `drop-shadow` on subclasses.**
+> `.item` declares no border width, so `border-color` alone paints nothing — and
+> an `outline` displaces nothing, which matters in a virtualised vault whose row
+> heights are computed. But a subclass tile is cut to a diamond or a disc by
+> `clip-path`, and `clip-path` clips everything the element paints, outline
+> included — the same trap already paid for the border. The mark therefore
+> follows the cut, through a stack of drop-shadows, and is declared after
+> `--pinned` so the state being manipulated wins.
+
+#### Editing a snapshot's perks
+
+The socket picker is the **same** component as the one on a worn item, down to
+its search and the order of its grid. Three things separate the two regimes, and
+they are the whole of the seam:
+
+- `SocketPickerValue.onPick` diverts the choice. Absent, it falls through to the
+  real insertion and the action queue; present, the hash is written into the
+  snapshot instead and nothing reaches Bungie. **Every write goes through
+  `usePlugWriter`**, which is the whole point of that hook — see the warning
+  below.
+- `buildColumns` reads the plug in place **on the item** (`detail.sockets`) —
+  right for a worn item, exactly wrong for a snapshot. The `options`, though,
+  stay the item's: a snapshot holding an unequippable plug would be refused the
+  day the group is equipped.
+- the action queue is ignored. A real insertion running on the same item has
+  nothing to do with the snapshot being edited, and must not come and dress it
+  up.
+
+Two surfaces need all three, and that decides how they get them:
+`SnapshotEditProvider` is a **context**, not a prop. The perk rows of a row
+(`EquipmentPlugs`) could have taken a prop; the item's **tooltip** could not — it
+is the only place where **cosmetics** are changed, and it is mounted in a
+`FloatingPortal`. A React portal stays in the React tree, so the tooltip reads
+the very context the row that opened it sits in. A context is affordable here
+precisely because it wraps one group editor — a dozen tiles, not the vault's
+thousand, which is why the *selection* next door is a store instead.
+
+In the tooltip the override has **one** touch point, and that is what makes the
+graft tenable: `buildColumns`, every row and the picker all read the plug in
+place from `detail.sockets`. Substituting that one array with the snapshot's
+makes the whole tree read the snapshot at once, instead of one exemption per
+consumer. The rest of the detail — stats, energy, hidden sockets — stays the
+item's: it is the item that carries the snapshot. The substituted array comes
+from `savedSockets`, the same merge as display: the `INVALID_HASH` sentinel marks
+a socket that was never recorded **and** a single-choice socket, and in both
+cases the item's current value stands.
+
+> **The weapon perk columns do not go through the floating picker**, and that is
+> where this went wrong twice. A weapon perk offers two or three choices that fit
+> side by side, so `PerkColumns` renders them inline — with its own insertion
+> call. Each of the three writing surfaces (the picker grid, an artifact's reset
+> button, those columns) had to remember to consult `onPick` first, and two
+> forgot in turn: editing a group snapshot really did reach Bungie from there,
+> while mods, shaders and ornaments — which *do* go through the picker — were
+> correctly diverted. The rule now lives in one place, `usePlugWriter`, and
+> `useInsertPlanner` has exactly one call site: it can no longer be reached
+> without passing the snapshot check. `usePlugQueueState` does the same for the
+> pending/refusal state, for descendants of the provider — a component that
+> provides the context itself would read its parent's, not its own.
+
+> **A tile inside the editor equips nothing.** `ItemIcon` drops its equipping
+> gestures there: no drag (the groups mode has its own `DragScope`, disabled and
+> prefixed — mounting the same equipped items in a third place would otherwise
+> have them fight over one `draggableNodes` entry), and no double-click equip.
+> One designates what a group will wear, not what to equip now. The removal
+> button is likewise a **`−` in the corner** and not a full-size layer: a layer
+> swallowed the click as soon as it was hovered, and the tile itself has to stay
+> clickable.
+
+An item enters the snapshot with its **current** plugs, the way the game does
+when it saves a slot. That is what equipping the group will replay, and what the
+perk editor then changes.
+
+The tiles are `LoadoutSlotTile`, shared with the character panel — same object,
+same coloured background and same glyph, `.loadout-slot`. It renders a fragment
+rather than an element: the panel makes a clickable `<button>` of it, the group
+card an inert cell. Identifiers are **passed in**, never read there: resolving
+them per tile would mean one Dexie query per cell, hundreds for a page of cards.
+A single grouped `useLoadoutIdentifiers` covers the whole page.
 
 ### Renaming and recolouring a loadout
 
@@ -1045,6 +1390,14 @@ the cookie when there is none, when the row is disabled, or when the query fails
 The cookie stays written all the same — it is what lets the server paint the
 right theme without waiting.
 
+Turning sync **on** is the one moment the direction reverses: the device the user
+just acted on becomes the source, and its state — preferences and loadout groups
+alike — is written to the database at once, overwriting whatever was there.
+Pulling instead would clobber that device with a backup it may never have
+deposited; on a first activation the groups route answers with an empty list,
+which would wipe them outright. `LoadoutGroupsSync` therefore skips its pull on
+that very transition.
+
 `SettingsSync` bridges the two. Downwards, it forces the server state into the
 store *during render* rather than in an effect: the HTML was already produced
 with it, and an effect would let `SettingsEffects` apply the cookie's theme first
@@ -1053,12 +1406,40 @@ that turn sync off — the toggle and *Delete sync data* — write on their own 
 `sync-client.ts`, whose timer sits at module level so they can cancel a pending
 push: otherwise it would recreate the row just deleted.
 
+### Export & import
+
+The *Account* tab also offers the offline counterpart of sync: settings and
+loadout groups go out as a JSON file, and come back from one. Where sync leaves
+the state on the server, this hands it back to its owner — in a form they can
+read, keep and reload elsewhere. `lib/settings/backup.ts` is the pure module
+behind it, and it is verified (`scripts/checks/backup.check.ts`).
+
+Settings travel in their **persisted** shape, the cookie's and the database's:
+the same format reads back from all three, and `mergeSettings` already knows how
+to drop what it does not recognise — so a file from an older version loads
+without a migration. Groups, by contrast, are validated entry by entry, the same
+reasoning as `/api/loadout-groups`: an unknown setting degrades to a default, an
+unreadable group gets equipped.
+
+> **Each half is read on its own.** A file holding only groups is perfectly
+> valid, and so is one holding only settings — refusing the first because the
+> second is missing would have made the import useless the moment you export
+> from an account with no groups. Only a file holding neither is rejected. The
+> version number is written for identification and never gates the read:
+> refusing a whole file over a number is the worst service to render to someone
+> who has just lost everything.
+
+Importing **replaces**, it does not merge: merging two sets of groups would mean
+resolving id conflicts, and nothing says which to keep. Hence the confirmation,
+which names what is about to be overwritten.
+
 ## Project structure
 
 ```
 src/
   app/[locale]/      Pages (i18n routing: "/" = FR, "/en" = EN)
-  app/api/           Server routes (auth, manifest, profile, item, loadouts, health)
+  app/api/           Server routes (auth, manifest, profile, item, loadouts,
+                     loadout-groups, health)
   proxy.ts           i18n routing middleware (named "proxy" since Next 16)
   i18n/              next-intl configuration (routing + request)
   lib/
@@ -1067,11 +1448,13 @@ src/
     db/              Prisma client
     destiny/         Game constants, types, socket logic
     loadouts/        In-game saved loadouts (contract + write actions)
+    loadouts/groups/ Loadout groups (pure edit & equip engines, store, sync)
     manifest/        Manifest download & cache (IndexedDB)
     settings/        User preferences (cookie-backed store)
   components/        UI components
   scss/              Styles (see "Styles")
   generated/prisma/  Generated Prisma client — untracked, see "Prisma client"
+scripts/checks/     Runnable checks for the pure engines — see "Verifying your work"
 prisma/schema.prisma Server data model
 prisma.config.ts     Prisma CLI config (connection URL since v7)
 messages/            EN / FR translations
@@ -1699,18 +2082,21 @@ les statistiques d'accord — elles, on ne sait pas les recalculer localement.
 
 ## Modes d'affichage et équipements du jeu
 
-La page d'équipement a deux modes, que basculent les boutons voisins des onglets
-de personnage ou la touche **Tab**. Le mode vit dans le cookie de préférences
-(`viewMode`) : il survit donc au rechargement — voir
-`lib/settings/constants.ts`.
+La page d'équipement a trois modes, que basculent les boutons voisins des
+onglets de personnage ou la touche **Tab**, qui les parcourt en cycle. Le mode
+vit dans le cookie de préférences (`viewMode`) : il survit donc au
+rechargement — voir `lib/settings/constants.ts`.
 
 - **Inventaire** — la vue historique : deux colonnes d'emplacements avec leur
   inventaire, et le coffre à droite. C'est là qu'on déplace des objets.
 - **Équipements** — une ligne par emplacement, les attributs, mods et
   compétences de l'objet équipé à côté de lui, et les équipements sauvegardés du
   personnage à droite.
+- **Groupes** — les groupes d'équipements du personnage, une carte chacun,
+  précédés de la carte des emplacements réellement enregistrés en jeu. Voir
+  « Groupes d'équipements ».
 
-**Les deux modes restent montés**, superposés dans la même case de grille : la
+**Les trois modes restent montés**, superposés dans la même case de grille : la
 bascule est alors un simple fondu, et rien n'est à reconstruire — ni le coffre
 virtualisé, ni les définitions déjà lues. Le mode caché est sorti du flux
 (`position: absolute`, sans quoi la case garderait la hauteur du plus grand des
@@ -1845,6 +2231,373 @@ Les points à connaître :
 - **Échap** désélectionne. Le geste n'est pris que s'il ne sert à rien d'autre :
   un sélecteur ouvert le garde pour lui (c'est lui qu'on veut refermer), et une
   modale piège de toute façon le clavier.
+
+### Groupes d'équipements
+
+Un **groupe** est un jeu ordonné d'instantanés d'équipement pour un personnage :
+une entrée par emplacement que le personnage possède, chacune vide ou portant un
+instantané complet. Équiper un groupe videra tous les emplacements, puis, pour
+chaque entrée, équipera ses objets — attributs et mods compris — avant d'écraser
+l'emplacement avec eux. `lib/loadouts/groups/`.
+
+Une entrée de groupe **est** un `DestinyLoadout`, structurellement. C'est
+délibéré : tout ce qui sait déjà en lire un sert alors les groupes sans une ligne
+de plus — `isEmptyLoadout`, `useLoadoutIdentifiers` pour la vignette,
+`useLoadoutItems` pour le contenu. Une entrée laissée vide porte la sentinelle
+`INVALID_HASH` sur ses trois identifiants et une liste d'objets vide, exactement
+comme un emplacement jamais enregistré du jeu.
+
+Les groupes **ne sont pas partagés entre les personnages** : un instantané
+désigne des objets par instance, et les armures d'une classe ne s'équipent pas
+sur une autre.
+
+> **Les groupes vivent dans localStorage, et non dans le cookie de
+> préférences** — la seule exception à la règle ci-dessus. Un groupe porte un
+> instantané complet par emplacement : une vingtaine d'emplacements, dix objets
+> chacun, un `itemInstanceId` et une douzaine de hashes de plugs par objet.
+> Quelques groupes dépassent déjà les 4 Ko du cookie, qui repartirait de surcroît
+> à chaque requête. Et le serveur n'a rien à y lire au rendu : contrairement au
+> thème, aucun groupe n'apparaît dans le HTML initial.
+
+Leur synchronisation avec le compte a donc sa route et sa ligne
+(`/api/loadout-groups`, `UserLoadoutGroups`), commandées par la même préférence
+`syncEnabled`. Deux différences avec celle des préférences :
+
+- **l'état ne descend pas avec le HTML.** `LoadoutGroupsSync` le relit par une
+  requête, après le montage, pendant que localStorage tient déjà l'affichage. Le
+  repère `synced` porte la dernière liste connue du serveur — sans lui, la
+  relecture descendante déclencherait l'abonnement montant, qui renverrait
+  aussitôt en base ce qui vient d'en sortir ;
+- **le corps est vérifié entrée par entrée**, et non seulement plafonné comme
+  celui des préférences. Un réglage inconnu se dégrade en valeur par défaut ; un
+  groupe illisible s'équipe. Autant le refuser au dépôt —
+  `isLoadoutGroupArray`.
+
+La grille d'une carte fait toujours la taille du **personnage**, jamais celle du
+groupe : un compte qui débloque un emplacement de plus doit le voir apparaître,
+vide, sur ses groupes existants, plutôt que de les voir amputés.
+
+Chaque carte porte une **couleur** facultative sur sa bordure, pour la
+reconnaître dans une rangée d'un coup d'œil. Elle se choisit dans un
+`<input type="color">` — le sélecteur du système, avec sa pipette et son
+historique — si bien que la valeur est un `#rrggbb` libre et non un jeton d'une
+palette imposée. Elle atteint la bordure par une variable CSS posée en style en
+ligne, ce qui est exactement l'usage prévu du style en ligne : aucune règle ne
+peut énumérer les valeurs possibles.
+
+Le repli de `var()` est ce qui rend le champ facultatif sans une règle de plus,
+sur la bordure comme sur son état de survol. Deux pixels et non un : une teinte
+libre sur un seul pixel ne se distingue pas de la bordure grise, et l'épaisseur
+est la même sur toutes les cartes — rien ne se décale. `isGroupColor` en vérifie
+la forme à la frontière de l'API : la valeur finit dans une feuille de style, où
+une chaîne arbitraire n'a rien à faire.
+
+La première carte est **cliquable** : elle mène au mode « équipements », où ces
+emplacements-là se manipulent pour de bon — c'est la seule carte dont le contenu
+existe ailleurs dans l'application. Elle porte `role="button"` sur une
+`<section>` plutôt que d'être un vrai `<button>` : le modèle de contenu d'un
+bouton n'admet pas de contenu de flux, et la carte est faite de blocs. Le clavier
+est donc recâblé à la main.
+
+> **Le calque d'actions ne doit pas couvrir l'en-tête.** Il est posé en
+> `inset: 0` de son bloc conteneur, et tant que celui-ci était la carte entière,
+> il recouvrait la poignée de déplacement dès que le survol l'activait —
+> réorganiser les cartes était tout bonnement impossible. Il couvre désormais
+> `__body`, qui ne porte que la grille, et le calque lui-même ne capte jamais le
+> pointeur : seuls ses boutons le font, comme le calque de création
+> d'équipement. L'en-tête, et sa poignée, restent dégagés.
+
+#### Équiper un groupe
+
+Rien n'est envoyé directement : tout passe par la file d'actions, qui exécute
+**une requête à la fois**. Ce n'est pas de la prudence — chaque étape suppose la
+précédente aboutie, et Bungie limite le débit des écritures sur un compte toutes
+routes confondues. Un équipement de groupe en demande des dizaines.
+
+La séquence est celle du cahier des charges, et `equip.ts` la calcule — module
+pur comme `edit.ts`, vérifié en l'exécutant :
+
+1. **vider** les emplacements d'équipement du personnage ;
+2. pour chaque emplacement du groupe, dans l'ordre : **équiper** ses objets,
+   **poser** les attributs qui diffèrent, puis **écraser** l'emplacement avec ce
+   qui est alors équipé.
+
+Il n'existe pas d'endpoint « écrire un équipement » : `SnapshotLoadout`
+n'enregistre que ce que le personnage porte à l'instant. C'est toute la raison de
+la forme ci-dessus — il faut réellement équiper les objets d'abord.
+
+Trois valeurs enregistrées ne demandent **rien**, et les confondre coûte des
+requêtes : la sentinelle `INVALID_HASH` (socket non enregistré, ou socket à choix
+unique), `0` (socket vide — il n'y a pas d'attribut « rien » à insérer), et celle
+déjà en place, de loin le cas le plus fréquent puisque l'instantané a justement
+été pris sur ces objets-là. Un socket verrouillé est écarté de même : l'insertion
+serait refusée.
+
+**Le vidage est restreint aux emplacements que le groupe ne remplit pas.** L'état
+final est identique — un `SnapshotLoadout` écrase l'emplacement qu'il vise — et
+cela épargne une requête par emplacement rempli. Les emplacements déjà libres
+sont écartés pour la même raison, et parce que `ClearLoadout` les refuserait.
+
+Chaque objet est mis en file **sans condition**, et c'est essentiel :
+`useMovePlanner` écarte un déplacement inutile en consultant le profil *au moment
+de la mise en file*, or celui-ci va changer sous lui. Un objet équipé maintenant,
+déséquipé par l'emplacement suivant, puis redemandé par un troisième aurait été
+écarté à tort — et l'écrasement de cet emplacement aurait enregistré l'objet
+d'à côté. L'exécuteur replanifie de toute façon chaque déplacement juste avant
+l'envoi, et une étape devenue inutile n'y coûte aucune requête.
+
+Les attributs sont posés **sur le personnage qui vient de recevoir l'objet** : à
+la mise en file il peut être encore au coffre, et les mods d'armure se débloquent
+par personnage — d'où la surcharge `onCharacterId` de `useInsertPlanner`.
+
+> **Une insertion est replanifiée juste avant l'envoi**, comme un déplacement, et
+> pour la même raison : entre la mise en file et là, les actions précédentes ont
+> pu changer les sockets de cet objet. `planInsert` en rend zéro requête, une, ou
+> deux.
+>
+> **Zéro** quand l'attribut est déjà en place — l'API refuse d'équiper ce qui
+> l'est, et le cas se présente pour de bon : deux emplacements d'un groupe
+> portant la même arme demandent la même insertion, la seconde arrivant après que
+> la première l'a satisfaite. Le filtre « déjà en place » du plan ne fait
+> qu'alléger la file ; l'autorité est l'exécuteur, seul à voir l'état courant.
+>
+> **Deux** quand un autre socket du même **artéfact** porte ce plug : un
+> artéfact n'équipe pas deux fois le même attribut, il faut donc d'abord l'en
+> retirer. La requête de retrait précède, l'insertion voulue suit. Le test est
+> restreint aux artéfacts — ailleurs, deux sockets qui accepteraient le même plug
+> tirent de pools distincts et rien n'interdit le doublon.
+>
+> **Plusieurs** quand l'**énergie** de l'armure ne suffit pas : tous les autres
+> mods sont retirés d'abord. L'énergie libre est reconstituée depuis les sockets
+> plutôt que lue dans `energyUsed`, car seuls les sockets sont tenus à jour dans
+> le cache local — se fier à `energyUsed` se trompait dès la deuxième insertion.
+> Le socket qu'on écrit ne compte pas dans le total : son occupant libère sa part
+> en étant remplacé.
+>
+> Rien de tout cela ne vaut pour `EquipLoadout` : Bungie y assemble l'équipement
+> lui-même et gère ces contraintes de son côté.
+
+Trois choses sur l'énergie d'armure ont été **relevées sur le manifeste** et non
+supposées, dont deux vont contre l'intuition :
+
+- le coût d'un mod d'armure va de **0 à 4**, et une trentaine de mods n'ont
+  aucun `plug.energyCost`. L'absence vaut zéro, elle ne signale pas une donnée
+  manquante ;
+- **les pièces maîtresses et les mods d'artifice n'ont aucun coût**, alors qu'ils
+  logent dans la **même** catégorie de sockets que les mods (`ARMOR_MODS` —
+  vérifié sur « Masque de Bakris »). C'est ce qui permet de les épargner sur le
+  seul coût, sans avoir à reconnaître leur famille ;
+- des coûts de 5 et 6 existent, mais sur des mods de **spectre**, que cette
+  application n'affiche jamais et qui ont leur propre énergie.
+
+Quand ça ne rentre pas, **tous** les autres mods partent, et non le strict
+nécessaire : désigner lesquels sacrifier n'a aucun critère défendable. Ne sont
+vidés que les sockets dont l'occupant coûte réellement quelque chose — ce qui
+épargne de soi-même les emplacements vides, la pièce maîtresse et l'artifice.
+
+> **Les actions d'un équipement partagent un `batchId`, et un échec annule la
+> suite.** La séquence est de celles dont chaque étape suppose la précédente
+> aboutie. La laisser continuer après un équipement raté aurait enregistré en jeu
+> la panoplie manquée — pire qu'un échec visible, parce que silencieux.
+> `cancelBatch` marque en `batchCancelled` les actions du lot qui n'ont pas
+> démarré ; ce qui a abouti n'est pas touché, on n'annule pas ce qui est fait.
+
+Le coût est annoncé avant d'être engagé : la confirmation dit combien
+d'emplacements seront équipés et vidés, à combien de requêtes cela revient, et
+combien d'emplacements sont ignorés — objets disparus du compte, ou apparence
+incomplète (`SnapshotLoadout` exige les trois identifiants).
+
+#### Modifier un groupe
+
+« Modifier » **remplace** la grille de cartes par l'éditeur du groupe plutôt que
+de s'ouvrir par-dessus : l'éditeur reprend la disposition du mode
+« équipements » — les dix lignes d'objets d'un côté, les grilles d'emplacements
+de l'autre — et lui faut toute la largeur. Une modale de cette taille n'aurait
+été qu'une page déguisée.
+
+**Toute écriture passe par `edit.ts`**, module pur, puis par une unique action du
+store (`setGroupLoadouts`). Le même partage que `sort.ts` / `grouping.ts` : la
+sémantique Destiny — quel objet chasse quel autre, comment se comble un tableau
+indexé par socket, comment le rang d'une carte se reporte dans la liste stockée à
+plat — vit dans un module sans React ni store, et se vérifie en l'exécutant (voir
+« Vérifier son travail »). L'éditeur ne fournit que ce que le module ne peut pas
+savoir : où s'équipe un objet, et les identifiants par défaut du jeu.
+
+La grille d'emplacements se réordonne au glisser-déposer (`@dnd-kit/sortable`),
+et la liste des cartes aussi — l'ordre manuel *est* l'ordre, d'où l'absence de
+critère de tri à choisir. L'identité d'un emplacement est sa **place**, et c'est
+elle que dnd-kit reçoit en identifiant : deux emplacements vides sont sinon
+indiscernables, et c'est bien leur position qu'on déplace. La carte, elle, se
+prend par une **poignée** : elle porte un calque de boutons, qu'aucun seuil de
+déplacement ne protégerait d'un clic interprété de travers.
+
+L'**apparence** d'un emplacement de groupe — couleur, glyphe, nom — se modifie
+sur place et tient lieu de titre à l'éditeur. `GroupSlotIdentifiers` est le
+pendant de `LoadoutTitle` pour un instantané, et volontairement bien plus court :
+celui-ci porte tout l'appareil d'un envoi vers Bungie (brouillon, mise en file,
+attente d'aboutissement, réessai) parce qu'`UpdateLoadoutIdentifiers` écrit les
+trois valeurs d'un bloc et peut échouer. Ici rien ne part — le choix va dans le
+stockage local et s'applique au clic, si bien qu'il n'y a ni brouillon à
+rassembler ni refus à afficher. La grille de choix, elle, est la même :
+`IdentifierPicker`, sorti de `LoadoutTitle` pour être partagé. Sans cela, un
+emplacement rempli à la main gardait les premiers choix du jeu et tous se
+ressemblaient.
+
+> **Remplir un emplacement, c'est lui donner des identifiants.**
+> `isEmptyLoadout` lit les objets **et** les trois identifiants : un emplacement
+> rempli à la main dont ils portent encore la sentinelle `INVALID_HASH` est
+> déclaré libre — et il ne reste pas seulement sans vignette, `useLoadoutItems`
+> refuse d'en résoudre le contenu et l'objet qu'on vient d'ajouter est tout
+> bonnement invisible. `putItem` pose donc le premier choix de chaque liste du
+> jeu (la même règle que `useSnapshotLoadout`), et l'éditeur **retient le geste**
+> tant que ces listes ne sont pas lues.
+
+Trois chemins d'écriture arrivent sur un emplacement, et tous trois sont le même
+appel à `edit.ts` : l'écrasement du groupe entier recopie les emplacements du
+personnage d'un bloc, le clic sur un emplacement du personnage n'en recopie qu'un
+dans l'emplacement sélectionné, et la confirmation d'une sélection d'équipement y
+écrit les objets retenus.
+
+#### Choisir les objets : la vue inventaire devient un mode
+
+« Choisir les objets » n'ouvre pas un sélecteur — il bascule sur la **vue
+inventaire en mode sélection**, où l'on désigne un objet par emplacement
+d'équipement directement dans les grilles qui les montrent déjà : les
+emplacements du personnage, leur inventaire, et le coffre avec sa recherche. Une
+modale de sélection avait précédé, et redemandait ligne par ligne ce que cette
+vue-là montre d'un coup d'œil.
+
+C'est dans `ItemIcon` que la bascule s'écrit, une seule fois : il est le point de
+passage de toutes les vignettes de l'inventaire. Le temps d'une sélection, le
+clic **retient** l'objet au lieu d'ouvrir son infobulle, la poignée de
+déplacement est coupée (un seuil aurait transformé ce clic en geste vers une zone
+de dépôt), et le double-clic n'équipe plus — on désigne ce qu'un groupe portera,
+pas ce qu'on équipe maintenant.
+
+L'état est un **store et non un contexte**, et c'est une question de coût :
+`ItemIcon` est monté un millier de fois pour un coffre, et un contexte
+redessinerait toutes ces vignettes à chaque clic. Avec un sélecteur étroit par
+vignette, seules celles que le choix concerne se redessinent. Rien n'est persisté
+non plus — c'est un geste, pas un réglage.
+
+Le mode inventaire est **surchargé, pas écrit** : `viewMode` est imposé le temps
+de la sélection, si bien que la préférence de l'utilisateur n'est pas touchée —
+rien ne part dans le cookie — et la fin de la sélection le ramène à l'onglet
+qu'il avait. La barre prend la place des onglets de mode, ses deux boutons étant
+la seule sortie : de quoi ne pas laisser une sélection à moitié faite derrière un
+changement d'onglet. Le raccourci **Tab** se retire pour la même raison.
+
+> **Confirmer remplace les objets de l'emplacement, et conserve les attributs
+> déjà enregistrés.** La sélection part de ce que l'emplacement contient, si bien
+> qu'un objet absent du résultat en a été délibérément retiré. Mais un objet que
+> l'emplacement portait garde son instantané, y compris les attributs modifiés à
+> la main ; seul un nouveau venu reçoit ceux qu'il porte en ce moment.
+> Resnapshoter tout le monde aurait effacé sans un mot le travail fait dans
+> l'éditeur d'attributs. Voir `setItems`.
+
+Deux refus bornent ce qui peut être retenu, et ce sont ceux sur lesquels filtrait
+l'ancienne modale : ce qui ne s'équipe pas (l'emplacement vient de la
+**définition**, `inventory.bucketTypeHash`, et non du composant — qui vaut celui
+du coffre pour un objet rangé et refuserait tout son contenu), et ce qui
+appartient à une autre classe. Les deux sont `pickableBucket` ; une vignette
+refusée est estompée et inerte, laisser le curseur promettre un clic sans effet
+étant un piège.
+
+Un troisième refus les rejoint : **ce qui est lié à un autre personnage**. Un
+artéfact ne se transfère pas, celui d'un autre personnage ne s'équiperait donc
+jamais ici. Le filtre par classe n'y suffisait pas — un artéfact n'a pas de
+`classType`, et deux personnages de *même* classe ont chacun le leur. Le critère
+est le `nonTransferrable` de la définition, qui est exact (doctrines et
+artéfacts, voir l'en-tête de `moves.ts`), et l'ensemble est calculé à l'ouverture
+de la sélection, où le profil est sous la main : `ItemIcon` ne connaît d'un objet
+que son hash et son instance, jamais son détenteur. Voir `foreignItems`.
+
+> **L'objet retenu est marqué par un `outline`, et par un `drop-shadow` sur les
+> doctrines.** `.item` ne déclare aucune épaisseur de bordure, si bien qu'un
+> `border-color` seul ne peint rien — et un `outline`, lui, ne déplace rien, ce
+> qui compte dans un coffre virtualisé dont les hauteurs de rangée sont
+> calculées. Mais la vignette d'une doctrine est découpée en losange ou en disque
+> par `clip-path`, et `clip-path` rogne tout ce que l'élément peint, outline
+> compris — le piège déjà payé pour la bordure. La marque suit donc la découpe,
+> par un empilement de drop-shadows, et elle est déclarée après `--pinned` pour
+> que l'état qu'on manipule l'emporte.
+
+#### Modifier les attributs d'un instantané
+
+Le sélecteur de sockets est le **même** composant que sur un objet porté, jusqu'à
+sa recherche et à l'ordre de sa grille. Trois choses séparent les deux régimes,
+et elles sont toute la couture :
+
+- `SocketPickerValue.onPick` détourne le choix. Absent, on retombe sur
+  l'insertion réelle et sa file d'actions ; présent, le hash est écrit dans
+  l'instantané et rien ne part vers Bungie. **Toute écriture passe par
+  `usePlugWriter`**, et c'est tout l'objet de ce hook — voir l'avertissement
+  ci-dessous.
+- `buildColumns` lit le plug en place **sur l'objet** (`detail.sockets`) — ce
+  qu'il faut pour un objet porté, et exactement le contraire de ce qu'il faut
+  pour un instantané. Les `options`, en revanche, restent celles de l'objet : un
+  instantané qui retiendrait un plug inéquipable serait refusé le jour où le
+  groupe s'équipe.
+- la file d'actions est ignorée. Une insertion réelle en cours sur le même objet
+  n'a rien à voir avec l'instantané qu'on édite, et ne doit pas venir le grimer.
+
+Deux surfaces ont besoin des trois, et cela décide de la façon dont elles les
+reçoivent : `SnapshotEditProvider` est un **contexte**, pas une prop. Les
+rangées d'attributs d'une ligne (`EquipmentPlugs`) auraient pu prendre une prop ;
+l'**infobulle** de l'objet, non — elle est le seul endroit où se changent les
+**cosmétiques**, et elle est montée dans un `FloatingPortal`. Un portail React
+reste dans l'arbre React : l'infobulle lit donc le contexte même où se trouve la
+ligne qui l'a ouverte. Un contexte est abordable ici précisément parce qu'il
+n'enveloppe qu'un éditeur de groupe — une dizaine de vignettes, et non les mille
+du coffre, ce qui est la raison pour laquelle la *sélection* d'à côté est un
+store.
+
+Dans l'infobulle, la substitution n'a **qu'un** point d'application, et c'est ce
+qui rend la greffe tenable : `buildColumns`, chaque rangée et le sélecteur lisent
+tous le plug en place dans `detail.sockets`. Remplacer ce seul tableau par celui
+de l'instantané fait lire l'instantané à tout l'arbre d'un coup, au lieu d'une
+dérogation par consommateur. Le reste du détail — statistiques, énergie, sockets
+masqués — reste celui de l'objet : c'est bien lui qui porte l'instantané. Le
+tableau substitué vient de `savedSockets`, la même fusion qu'à l'affichage : la
+sentinelle `INVALID_HASH` marque un socket non enregistré **et** un socket à
+choix unique, et dans les deux cas la valeur courante de l'objet fait foi.
+
+> **Les colonnes d'attributs d'arme ne passent pas par le sélecteur flottant**,
+> et c'est là que la chose a dérapé deux fois. Un attribut d'arme n'offre que
+> deux ou trois choix, qui tiennent côte à côte : `PerkColumns` les rend donc en
+> ligne — avec son propre appel à l'insertion. Chacune des trois surfaces
+> d'écriture (la grille du sélecteur, le bouton de réinitialisation d'un
+> artéfact, ces colonnes) devait se souvenir d'interroger `onPick` d'abord, et
+> deux l'ont oublié tour à tour : l'édition d'un instantané de groupe partait
+> bel et bien chez Bungie depuis là, alors que mods, revêtements et ornements —
+> qui passent, *eux*, par le sélecteur — étaient correctement détournés. La
+> règle vit désormais en un seul endroit, `usePlugWriter`, et
+> `useInsertPlanner` n'a plus qu'un unique appelant : on ne peut plus
+> l'atteindre sans passer par le test de l'instantané. `usePlugQueueState` fait
+> de même pour l'état d'attente et de refus, à l'usage des descendants du
+> provider — un composant qui fournit lui-même le contexte lirait celui de son
+> parent, et non le sien.
+
+> **Une vignette de l'éditeur n'équipe rien.** `ItemIcon` y renonce à ses gestes
+> d'équipement : pas de déplacement (le mode groupes a sa propre `DragScope`,
+> interdite et préfixée — monter les mêmes objets équipés dans un troisième
+> endroit les aurait sinon fait se disputer une unique entrée de
+> `draggableNodes`), et pas d'équipement au double-clic. On désigne ce qu'un
+> groupe portera, pas ce qu'on équipe maintenant. Le retrait est de même un
+> **« − » dans le coin** et non un calque pleine taille : celui-ci captait le
+> clic dès le survol, et c'est la vignette elle-même qui doit rester cliquable.
+
+Un objet entre dans l'instantané avec ses attributs **du moment**, comme le fait
+le jeu quand il enregistre un emplacement. C'est ce que l'équipement du groupe
+rejouera, et ce que l'éditeur d'attributs modifie ensuite.
+
+Les vignettes sont celles de `LoadoutSlotTile`, partagé avec le panneau du
+personnage — même objet, même fond coloré et même glyphe, `.loadout-slot`. Il
+rend un fragment plutôt qu'un élément : le panneau en fait un `<button>`
+cliquable, la carte de groupe une case inerte. Les identifiants sont **reçus**,
+jamais lus là : les résoudre par vignette ferait une requête Dexie par case, soit
+des centaines pour une page de cartes. Un unique `useLoadoutIdentifiers` groupé
+couvre toute la page.
 
 ### Renommer et recolorer un équipement
 
@@ -2183,6 +2936,14 @@ retombe sur le cookie qu'en son absence, si elle est désactivée, ou si la requ
 échoue. Le cookie continue d'être écrit — c'est lui qui permet au serveur de
 rendre le bon thème sans attendre.
 
+**L'activation** est le seul moment où le sens s'inverse : l'appareil sur lequel
+l'utilisateur vient d'agir devient la source, et son état — préférences comme
+groupes d'équipements — part aussitôt en base, écrasant ce qui s'y trouvait.
+Relire à la place écraserait cet appareil avec une sauvegarde qu'il n'a
+peut-être jamais déposée ; à la première activation, la route des groupes
+répondant une liste vide, elle les effacerait purement et simplement.
+`LoadoutGroupsSync` saute donc sa relecture sur cette transition précise.
+
 `SettingsSync` fait le pont. Vers le bas, il impose l'état serveur au store
 *pendant le rendu* et non dans un effet : le HTML a déjà été produit avec lui, et
 un effet laisserait `SettingsEffects` appliquer d'abord le thème du cookie, le
@@ -2192,12 +2953,41 @@ d'inactivité. Les deux gestes qui coupent la synchronisation — l'interrupteur
 `sync-client.ts`, dont le minuteur est au niveau du module pour pouvoir annuler
 un envoi différé : sans quoi celui-ci recréerait la ligne tout juste supprimée.
 
+### Export et import
+
+L'onglet *Compte* offre aussi le pendant hors ligne de la synchronisation : les
+paramètres et les groupes d'équipements sortent dans un fichier JSON, et en
+reviennent. Là où la synchronisation dépose l'état sur le serveur, ceci le rend à
+son propriétaire — sous une forme qu'il peut lire, ranger et relire ailleurs.
+`lib/settings/backup.ts` est le module pur qui s'en charge, et il est vérifié
+(`scripts/checks/backup.check.ts`).
+
+Les paramètres voyagent sous leur forme **persistée**, celle du cookie et de la
+base : le même format se relit des trois côtés, et `mergeSettings` sait déjà
+écarter ce qu'il ne reconnaît pas — un fichier d'une version antérieure se
+charge donc sans migration. Les groupes, eux, sont vérifiés entrée par entrée,
+même raisonnement que `/api/loadout-groups` : un réglage inconnu retombe sur sa
+valeur par défaut, un groupe illisible s'équipe.
+
+> **Chaque moitié est relue pour elle-même.** Un fichier n'ayant que des groupes
+> est parfaitement valide, comme un fichier n'ayant que des paramètres — refuser
+> le premier parce que le second manque aurait rendu l'import inutilisable dès
+> qu'on exporte depuis un compte sans groupes. Seul un fichier n'ayant ni l'un ni
+> l'autre est refusé. Le numéro de version est écrit pour identifier le fichier
+> et ne conditionne jamais la relecture : refuser un fichier entier sur un
+> numéro serait le pire service à rendre à qui vient de tout perdre.
+
+L'import **remplace**, il ne fusionne pas : fusionner deux jeux de groupes
+demanderait de trancher les conflits d'identifiant, et rien ne dit lequel garder.
+D'où la confirmation, qui annonce ce qui va être écrasé.
+
 ## Structure du projet
 
 ```
 src/
   app/[locale]/      Pages (routing i18n : « / » = FR, « /en » = EN)
-  app/api/           Routes serveur (auth, manifest, profile, item, loadouts, health)
+  app/api/           Routes serveur (auth, manifest, profile, item, loadouts,
+                     loadout-groups, health)
   proxy.ts           Middleware de routing i18n (nommé « proxy » depuis Next 16)
   i18n/              Configuration next-intl (routing + request)
   lib/
@@ -2206,11 +2996,13 @@ src/
     db/              Client Prisma
     destiny/         Constantes de jeu, types, logique des sockets
     loadouts/        Équipements sauvegardés en jeu (contrat + écritures)
+    loadouts/groups/ Groupes d'équipements (moteurs purs édition/équipement, store)
     manifest/        Téléchargement & cache du manifeste (IndexedDB)
     settings/        Préférences utilisateur (store adossé au cookie)
   components/        Composants UI
   scss/              Styles (voir « Styles »)
   generated/prisma/  Client Prisma généré — non versionné, voir « Client Prisma »
+scripts/checks/     Vérifications exécutables des moteurs purs — voir « Vérifier son travail »
 prisma/schema.prisma Modèle de données serveur
 prisma.config.ts     Config du CLI Prisma (URL de connexion depuis la v7)
 messages/            Traductions FR / EN

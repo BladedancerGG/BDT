@@ -36,6 +36,9 @@ import {EquipmentModeView} from "./equipment/EquipmentModeView";
 import {LoadoutPanel} from "./loadouts/LoadoutPanel";
 import {LoadoutCreateButton} from "./loadouts/LoadoutCreateButton";
 import {LoadoutTitle} from "./loadouts/LoadoutTitle";
+import {GroupsModeView} from "./groups/GroupsModeView";
+import {GroupSelectionBar} from "./groups/GroupSelectionBar";
+import {useGroupSelection} from "@/lib/loadouts/groups/selection";
 import {VirtualItemGrid, type LeadSection} from "./VirtualItemGrid";
 import {ActionsPanel} from "./actions/ActionsPanel";
 import {DropZones} from "./dnd/DropZones";
@@ -61,6 +64,17 @@ const NO_ITEMS: DestinyItemComponent[] = [];
  * propres identifiants dnd-kit — voir DragScope.
  */
 const EQUIPMENT_DRAG_SCOPE: DragScope = {disabled: true, idPrefix: "equipment:"};
+
+/**
+ * Même chose pour le mode « groupes », et pour la même raison : l'éditeur d'un
+ * groupe monte des vignettes des mêmes objets équipés, et `draggableNodes` de
+ * dnd-kit est indexé par le **seul** identifiant — sans préfixe, les deux
+ * vignettes se disputaient une unique entrée et l'origine du calque de
+ * déplacement sautait de l'une à l'autre. Voir DragScope.
+ *
+ * Le geste y est de toute façon interdit : un instantané ne se déplace pas.
+ */
+const GROUPS_DRAG_SCOPE: DragScope = {disabled: true, idPrefix: "groups:"};
 const NO_LOADOUTS: DestinyLoadout[] = [];
 
 /** Une colonne d'emplacements d'équipement. */
@@ -124,7 +138,18 @@ function Inventory({data}: { data: ProfileData }) {
     const t = useTranslations("inventory");
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const current = selectedId ?? data.characters[0]?.characterId ?? null;
-    const viewMode = useSettings((s) => s.viewMode);
+
+    /**
+     * Une sélection d'équipement **impose** le mode inventaire : c'est là qu'on
+     * choisit les objets, dans les grilles qui les montrent déjà.
+     *
+     * Le mode est surchargé, pas écrit : la préférence de l'utilisateur n'est
+     * pas touchée — rien ne part dans le cookie — et la fin de la sélection le
+     * ramène de lui-même à l'onglet qu'il avait, celui des groupes.
+     */
+    const selecting = useGroupSelection((s) => s.active);
+    const preferredMode = useSettings((s) => s.viewMode);
+    const viewMode = selecting ? "inventory" : preferredMode;
 
     const currentEquipped = current
         ? (data.equipment[current] ?? NO_ITEMS)
@@ -217,6 +242,7 @@ function Inventory({data}: { data: ProfileData }) {
 
     const character = data.characters.find((c) => c.characterId === current);
     const equipmentMode = viewMode === "loadouts";
+    const groupsMode = viewMode === "groups";
 
     return (
         <EquippedSetsProvider counts={equippedSetCounts}>
@@ -239,10 +265,18 @@ function Inventory({data}: { data: ProfileData }) {
                             />
                         ))}
                     </div>
-                    <ViewModeTabs/>
+                    {/* La sélection prend la place des onglets : elle est un
+                        mode, exclusif des autres, et ses deux boutons en sont
+                        la seule sortie — de quoi ne pas laisser une sélection à
+                        moitié faite derrière un changement d'onglet. */}
+                    {selecting ? (
+                        <GroupSelectionBar data={data} slotCount={loadouts.length}/>
+                    ) : (
+                        <ViewModeTabs/>
+                    )}
                 </div>
 
-                {/* Les DEUX modes sont montés en permanence, superposés dans la
+                {/* Les TROIS modes sont montés en permanence, superposés dans la
                     même case de grille : la bascule est alors un simple fondu,
                     et rien n'est à reconstruire — ni le coffre virtualisé, ni les
                     définitions déjà lues. `inert` retire le mode caché du clavier
@@ -250,9 +284,9 @@ function Inventory({data}: { data: ProfileData }) {
                 <div className="inventory-view__modes">
                     <div
                         className={`inventory-view__mode${
-                            equipmentMode ? " inventory-view__mode--hidden" : ""
+                            viewMode === "inventory" ? "" : " inventory-view__mode--hidden"
                         }`}
-                        inert={equipmentMode}
+                        inert={viewMode !== "inventory"}
                     >
                         <div className="inventory-view__body">
                             {/* Équipement du personnage : deux colonnes d'emplacements */}
@@ -365,6 +399,28 @@ function Inventory({data}: { data: ProfileData }) {
                                         onSelect={selectLoadout}
                                     />
                                 </div>
+                            </div>
+                        </div>
+                    </DragScopeProvider>
+
+                    {/* Les groupes d'équipements du personnage. Aucun objet ne
+                        s'y déplace : le mode montre des instantanés, et il a sa
+                        propre portée dnd-kit — voir GROUPS_DRAG_SCOPE. */}
+                    <DragScopeProvider value={GROUPS_DRAG_SCOPE}>
+                        <div
+                            className={`inventory-view__mode${
+                                groupsMode ? "" : " inventory-view__mode--hidden"
+                            }`}
+                            inert={!groupsMode}
+                        >
+                            <div className="inventory-view__body inventory-view__body--groups">
+                                <GroupsModeView
+                                    characterId={current}
+                                    classType={character?.classType}
+                                    loadouts={loadouts}
+                                    data={data}
+                                    defs={defs}
+                                />
                             </div>
                         </div>
                     </DragScopeProvider>

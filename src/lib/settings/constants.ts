@@ -47,10 +47,11 @@ export function parseSearchMissMode(raw: unknown): SearchMissMode | undefined {
  *
  *  - `inventory`  : les deux colonnes d'emplacements et le coffre — le mode
  *                   historique, celui où l'on déplace des objets ;
- *  - `equipment`  : une ligne par objet équipé, avec ses attributs et ses mods,
- *                   et le panneau des équipements sauvegardés.
+ *  - `loadouts`   : une ligne par objet équipé, avec ses attributs et ses mods,
+ *                   et le panneau des équipements sauvegardés ;
+ *  - `groups`     : les groupes d'équipements du personnage, une carte chacun.
  */
-export const VIEW_MODES = ["inventory", "loadouts"] as const;
+export const VIEW_MODES = ["inventory", "loadouts", "groups"] as const;
 export type ViewMode = (typeof VIEW_MODES)[number];
 
 export const DEFAULT_VIEW_MODE: ViewMode = "inventory";

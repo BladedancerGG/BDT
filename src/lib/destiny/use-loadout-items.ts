@@ -34,7 +34,7 @@ export interface LoadoutContents {
  * Dans les deux cas la valeur courante de l'objet fait foi : sur un socket à
  * choix unique, elle *est* le plug enregistré.
  */
-function savedSockets(
+export function savedSockets(
     plugItemHashes: readonly number[],
     detail: ItemDetail | undefined,
 ): number[] {

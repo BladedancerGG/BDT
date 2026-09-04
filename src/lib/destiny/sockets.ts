@@ -1,7 +1,7 @@
 // Helpers génériques sur les sockets, indépendants de leur usage.
 
 import type {InventoryItemDefinition} from "./types";
-import {TIER} from "./display";
+import {SOCKET_CATEGORY, TIER} from "./display";
 
 /**
  * Catégories de sockets des artéfacts. Elles n'ont **aucun nom** dans le
@@ -65,6 +65,76 @@ export function socketsAfterInsert(
         }
     }
     return next;
+}
+
+/**
+ * Les index des sockets qui consomment l'énergie d'une armure.
+ *
+ * La catégorie `ARMOR_MODS` ne contient pas que des mods : la pièce maîtresse et
+ * les emplacements d'artifice y logent aussi (relevé sur le manifeste, sur
+ * « Masque de Bakris »). Ni l'une ni les autres ne portent de coût en énergie —
+ * c'est donc le coût, et non la famille du plug, qui départage. Voir
+ * `plug-energy.ts`.
+ */
+export function armorModSocketIndexes(
+    def: InventoryItemDefinition | undefined,
+): number[] {
+    return (def?.sockets?.socketCategories ?? [])
+        .filter(
+            (category) => category.socketCategoryHash === SOCKET_CATEGORY.ARMOR_MODS,
+        )
+        .flatMap((category) => category.socketIndexes);
+}
+
+/** Les index de sockets d'attributs d'un artéfact, dans l'ordre du manifeste. */
+function artifactSocketIndexes(
+    def: InventoryItemDefinition | undefined,
+): number[] {
+    return (def?.sockets?.socketCategories ?? [])
+        .filter((category) =>
+            ARTIFACT_SOCKET_CATEGORIES.includes(category.socketCategoryHash),
+        )
+        .flatMap((category) => category.socketIndexes);
+}
+
+/**
+ * Le socket du **même artéfact** qui porte déjà ce plug, s'il y en a un.
+ *
+ * Un artéfact n'équipe pas deux fois le même attribut : l'insertion serait
+ * refusée. Il faut donc d'abord le retirer de là où il est. Le cas se présente
+ * dès qu'on déplace un attribut d'une colonne à l'autre — geste courant, et
+ * l'API n'en dit rien d'exploitable.
+ *
+ * Le test est restreint aux artéfacts : ailleurs, deux sockets qui accepteraient
+ * le même plug tirent de pools distincts, et rien n'interdit le doublon.
+ */
+export function artifactDuplicateSocket(
+    def: InventoryItemDefinition | undefined,
+    sockets: readonly number[],
+    socketIndex: number,
+    plugItemHash: number,
+): number | undefined {
+    const indexes = artifactSocketIndexes(def);
+    // Le socket visé doit être un socket d'attribut d'artéfact : la
+    // réinitialisation, elle, a sa propre catégorie et son propre plug.
+    if (!indexes.includes(socketIndex)) return undefined;
+
+    return indexes.find(
+        (index) => index !== socketIndex && sockets[index] === plugItemHash,
+    );
+}
+
+/**
+ * Le plug qui **vide** un socket : celui d'origine.
+ *
+ * Pour un artéfact c'est le « Mod d'artéfact vide » — voir `socketsAfterInsert`,
+ * qui s'en sert déjà pour rejouer une réinitialisation.
+ */
+export function socketInitialPlug(
+    def: InventoryItemDefinition | undefined,
+    socketIndex: number,
+): number | undefined {
+    return def?.sockets?.socketEntries?.[socketIndex]?.singleInitialItemHash || undefined;
 }
 
 /**

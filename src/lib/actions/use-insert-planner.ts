@@ -30,29 +30,46 @@ export function useInsertPlanner() {
   const enqueueInsert = useActionQueue((s) => s.enqueueInsert);
 
   return useCallback(
-    (item: QueuedItem, socketIndex: number, plugItemHash: number) => {
+    (
+      item: QueuedItem,
+      socketIndex: number,
+      plugItemHash: number,
+      /**
+       * Personnage à faire agir, imposé.
+       *
+       * Utile quand l'objet n'est pas encore là où il sera à l'exécution :
+       * l'équipement d'un groupe pose les attributs **après** avoir équipé, et
+       * le détenteur lu à la mise en file serait le coffre. Les mods d'armure
+       * se débloquant par personnage, l'insertion aurait pu être refusée.
+       */
+      onCharacterId?: string,
+      /** Lot auquel rattacher l'action — voir BatchFailure */
+      batchId?: string,
+    ) => {
       const profile = queryClient.getQueryData<ProfileData>(PROFILE_KEY);
       const located = profile
         ? locateItem(profile, item.itemInstanceId)
         : null;
 
       if (!located || !profile) {
-        enqueueInsert({ ...item, failure: "notInstanced" });
+        enqueueInsert({ ...item, failure: "notInstanced", batchId });
         return;
       }
 
       const characterId =
-        located.place.kind === "vault"
+        onCharacterId ??
+        (located.place.kind === "vault"
           ? profile.characters[0]?.characterId
-          : located.place.characterId;
+          : located.place.characterId);
 
       if (!characterId) {
-        enqueueInsert({ ...item, failure: "noCharacter" });
+        enqueueInsert({ ...item, failure: "noCharacter", batchId });
         return;
       }
 
       enqueueInsert({
         ...item,
+        batchId,
         step: {
           kind: "insert",
           itemInstanceId: item.itemInstanceId,

@@ -6,7 +6,11 @@
     "open": "Open",
     "equip": "Equip",
     "logout": "Sign out",
-    "delete": "Delete"
+    "delete": "Delete",
+    "groups": "Groups",
+    "edit": "Edit",
+    "cancel": "Cancel",
+    "confirm": "Confirm"
   },
   "auth": {
     "login": "Sign in with Bungie"
@@ -57,7 +61,20 @@
       "clearSyncConfirm": "You are about to delete the settings synchronization data saved on the server and turn it off. Do you want to continue?",
       "deleteAll": "Delete all data",
       "deleteAllHint": "Deletes all of the data the site keeps about this Bungie account (this includes settings synchronization data, loadout groups, etc.), and signs you out.",
-      "deleteAllConfirm": "You are about to delete ALL of the data tied to this Bungie account saved on the server. You are also going to be signed out of your account. Do you want to continue?"
+      "deleteAllConfirm": "You are about to delete ALL of the data tied to this Bungie account saved on the server. You are also going to be signed out of your account. Do you want to continue?",
+      "export": "Export data",
+      "exportHint": "Downloads your settings and loadout groups as a JSON file, to keep or to load in another browser.",
+      "exportAction": "Export",
+      "import": "Import data",
+      "importHint": "Reads back an exported file. The settings and groups it holds replace those of this browser.",
+      "importAction": "Choose a file",
+      "importConfirm": "Replace this browser’s data with the file’s?\n\n• Settings: {settings, select, true {yes} other {no}}\n• Loadout groups: {groups}",
+      "importDone": "Imported — settings: {settings, select, true {yes} other {no}}, {groups, plural, =0 {no groups} one {1 group} other {# groups}}.",
+      "importFailure": {
+        "unreadable": "Unreadable file: this is not JSON exported from this site.",
+        "empty": "This file holds neither settings nor loadout groups.",
+        "badGroups": "The loadout groups in this file are malformed: nothing was imported."
+      }
     },
     "appearance": {
       "theme": "Theme",
@@ -178,7 +195,8 @@
       "vaultFull": "The vault is full.",
       "bucketFull": "The destination slot is full.",
       "noCharacter": "No character on this account.",
-      "noIdentifiers": "Manifest identifiers unavailable: saving would be refused."
+      "noIdentifiers": "Manifest identifiers unavailable: saving would be refused.",
+      "batchCancelled": "Cancelled: an earlier step in the sequence failed."
     }
   },
   "manifest": {
@@ -241,13 +259,39 @@
     "create": "Create",
     "snapshot": "Overwrite ",
     "clear": "Clear",
-    "groups": "View in loadout groups",
-    "groupsSoon": "Coming soon",
-    "editIdentifiers": "Edit",
     "applyIdentifiers": "Apply",
-    "cancelIdentifiers": "Cancel",
     "pickColor": "Pick the background colour",
     "pickIcon": "Pick the icon",
     "pickName": "Pick the name"
+  },
+  "groups": {
+    "create": "New group",
+    "fromEquipped": "From the current loadouts",
+    "fromBlank": "Empty group",
+    "defaultName": "Group {number}",
+    "nameLabel": "Group name",
+    "currentLoadouts": "Current loadouts",
+    "deleteConfirm": "Delete the group “{name}”?",
+    "noSlots": "The API returned no loadout slots for this character: there is nowhere to put a group.",
+    "dragHint": "Drag a card’s handle to change its rank",
+    "moveCard": "Move “{name}”, position {position} of {total}",
+    "back": "Back to groups",
+    "groupSlots": "Group slots",
+    "characterSlots": "Character slots",
+    "slotTitle": "Group slot #{number}",
+    "overwriteAll": "Overwrite the whole group from the character",
+    "overwriteOneHint": "Click a character slot to overwrite group slot #{number} with its contents.",
+    "clearSlot": "Clear slot #{number}",
+    "removeItem": "Remove",
+    "waitIdentifiers": "Reading the manifest constants… adding items is held back for a moment.",
+    "pickItems": "Pick the items",
+    "selecting": "Selecting for “{name}”",
+    "selectedCount": "Slot #{number} — {count} of {total} item(s) picked",
+    "selectHint": "Click one item per equipment slot, here or in the vault. Click it again to release it.",
+    "equipConfirm": "Equip the group “{name}” on this character?",
+    "equipSummary": "{slots} slot(s) will be equipped then saved, {cleared} cleared. About {requests} requests to Bungie, sent one at a time.",
+    "equipSkipped": "{count} slot(s) are skipped: their items are gone from the account, or their appearance is incomplete.",
+    "colorLabel": "Group colour",
+    "colorNone": "No colour"
   }
 }

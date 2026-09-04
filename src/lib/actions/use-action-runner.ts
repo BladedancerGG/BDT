@@ -19,7 +19,12 @@ import {
   applyLoadoutIdentifiers,
   applySnapshotLoadout,
 } from "@/lib/destiny/loadout-effects";
-import { socketsAfterInsert } from "@/lib/destiny/sockets";
+import {
+  armorModSocketIndexes,
+  socketsAfterInsert,
+} from "@/lib/destiny/sockets";
+import { planInsert } from "@/lib/destiny/insert-plan";
+import { readPlugCosts } from "@/lib/destiny/plug-energy";
 import { sendStep } from "./api";
 import {
   useActionQueue,
@@ -83,34 +88,13 @@ export function useActionRunner() {
       return error;
     };
 
-    /**
-     * Équiper un attribut : une requête, rien à planifier.
-     *
-     * Le cache du profil est corrigé sur-le-champ plutôt que rechargé, comme
-     * pour une étape de déplacement. Le rechargement final remet en revanche
-     * les statistiques d'accord avec le nouvel attribut — celles-là, on ne sait
-     * pas les recalculer localement.
-     */
-    const runInsert = async (action: QueuedInsertAction) => {
-      const { setActionStatus, setStepStatus } = queue();
-      const step = action.steps[0];
-      if (!step) {
-        setActionStatus(action.id, "done");
-        return;
-      }
-
-      setActionStatus(action.id, "running");
-      setStepStatus(action.id, step.id, "running");
-
-      const error = await send(step);
-      if (error) {
-        setStepStatus(action.id, step.id, "error", error.message);
-        setActionStatus(action.id, "error", error.message);
-        return;
-      }
-
-      setStepStatus(action.id, step.id, "done");
-
+    /** L'effet local d'une insertion aboutie, rejoué sur le cache du profil. */
+    const applyInsert = (step: {
+      itemInstanceId: string;
+      itemHash: number;
+      socketIndex: number;
+      plugItemHash: number;
+    }) => {
       // Socket visé : le rechargement final devra confirmer le nouvel attribut
       inserted.add(socketKey(step.itemInstanceId, step.socketIndex));
 
@@ -149,6 +133,83 @@ export function useActionRunner() {
             : current,
         );
       }
+    };
+
+    /**
+     * Équiper un attribut.
+     *
+     * **Replanifiée juste avant l'envoi**, comme un déplacement, et pour la
+     * même raison : entre la mise en file et ici, les actions précédentes ont pu
+     * changer les sockets de cet objet. Il en sort zéro requête (l'attribut y est
+     * déjà — l'API refuserait), une, ou deux (un autre socket du même artéfact le
+     * portait : il faut d'abord l'en retirer). Voir `planInsert`.
+     *
+     * Le cache du profil est corrigé sur-le-champ plutôt que rechargé, comme
+     * pour une étape de déplacement. Le rechargement final remet en revanche
+     * les statistiques d'accord avec le nouvel attribut — celles-là, on ne sait
+     * pas les recalculer localement.
+     */
+    const runInsert = async (action: QueuedInsertAction) => {
+      const { setActionStatus, setStepStatus, setInsertSteps } = queue();
+      const wanted = action.steps[0];
+      if (!wanted) {
+        setActionStatus(action.id, "done");
+        return;
+      }
+
+      const before = queryClient.getQueryData<ProfileData>(PROFILE_KEY);
+      const detail = before?.items?.[wanted.itemInstanceId];
+      const sockets = detail?.sockets ?? [];
+      const def = defs.get(wanted.itemHash);
+
+      // Le coût en énergie des attributs concernés, en une lecture groupée :
+      // celui qu'on veut poser, et ceux qui occupent les emplacements de mods —
+      // dont il faut savoir lesquels libéreraient quelque chose.
+      const costs = await readPlugCosts([
+        wanted.plugItemHash,
+        ...armorModSocketIndexes(def).map((index) => sockets[index] ?? 0),
+      ]);
+
+      const planned = planInsert(
+        {
+          def,
+          sockets,
+          energyCapacity: detail?.instance?.energy?.energyCapacity,
+          costOf: (plugHash) => costs.get(plugHash) ?? 0,
+        },
+        wanted,
+      );
+
+      // Rien à envoyer : l'attribut est déjà en place. L'action aboutit sans
+      // requête, exactement comme un déplacement devenu inutile.
+      if (planned.length === 0) {
+        setInsertSteps(action.id, []);
+        setActionStatus(action.id, "done");
+        return;
+      }
+
+      setInsertSteps(action.id, planned);
+      setActionStatus(action.id, "running");
+
+      // setInsertSteps a réattribué les identifiants d'étapes : on repart de
+      // l'état, comme le fait `runMove`.
+      const refreshed = queue().actions.find((a) => a.id === action.id);
+      const steps = refreshed?.kind === "insert" ? refreshed.steps : [];
+
+      for (const step of steps) {
+        setStepStatus(action.id, step.id, "running");
+
+        const error = await send(step);
+        if (error) {
+          setStepStatus(action.id, step.id, "error", error.message);
+          setActionStatus(action.id, "error", error.message);
+          return;
+        }
+
+        setStepStatus(action.id, step.id, "done");
+        applyInsert(step);
+      }
+
       setActionStatus(action.id, "done");
     };
 
@@ -328,6 +389,18 @@ export function useActionRunner() {
         if (next.kind === "insert") await runInsert(next);
         else if (next.kind === "loadout") await runLoadout(next);
         else await runMove(next);
+
+        // Une action d'un **lot** qui échoue emporte celles qui restent.
+        //
+        // Un lot est une séquence dont chaque étape suppose la précédente
+        // aboutie : l'équipement d'un groupe équipe, pose les attributs, puis
+        // écrase l'emplacement en jeu avec ce qui est équipé. Laisser la suite
+        // s'exécuter après un équipement raté aurait enregistré un équipement
+        // faux — pire qu'un échec, parce que silencieux. Voir BatchFailure.
+        const settled = queue().actions.find((a) => a.id === next.id);
+        if (settled?.batchId && settled.status === "error") {
+          queue().cancelBatch(settled.batchId);
+        }
       }
     };
 

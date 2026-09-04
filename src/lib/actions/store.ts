@@ -72,6 +72,15 @@ interface ActionBase {
   /** Refus renvoyé par Bungie pendant l'exécution */
   error?: string;
   createdAt: number;
+  /**
+   * Lot auquel l'action appartient, s'il y en a un.
+   *
+   * Les actions d'un même lot forment une **séquence** dont chaque étape suppose
+   * la précédente aboutie : l'échec de l'une annule celles qui restent. Sans
+   * cela, l'équipement d'un groupe aurait écrasé l'emplacement en jeu avec ce
+   * qui s'y trouvait après un équipement raté — un état faux, et silencieux.
+   */
+  batchId?: string;
 }
 
 /**
@@ -160,6 +169,7 @@ interface ActionQueueState {
       target: MoveTarget;
       steps: PlannedStep[];
       failure?: MoveFailure;
+      batchId?: string;
     },
   ) => string;
 
@@ -168,6 +178,7 @@ interface ActionQueueState {
     action: QueuedItem & {
       step?: InsertStepRequest;
       failure?: InsertFailure;
+      batchId?: string;
     },
   ) => string;
 
@@ -178,6 +189,17 @@ interface ActionQueueState {
       "id" | "steps" | "status" | "createdAt" | "kind"
     > & { step?: LoadoutStepRequest },
   ) => string;
+
+  /**
+   * Abandonne les actions d'un lot qui n'ont pas encore démarré.
+   *
+   * Appelée par l'exécuteur dès qu'une action d'un lot échoue. Les actions déjà
+   * abouties ne sont pas touchées — on n'annule pas ce qui est fait.
+   */
+  cancelBatch: (batchId: string) => void;
+
+  /** Remplace les requêtes d'une insertion, replanifiée avant son exécution. */
+  setInsertSteps: (actionId: string, steps: InsertStepRequest[]) => void;
 
   /** Remplace le plan d'un déplacement, replanifié juste avant son exécution. */
   setSteps: (actionId: string, steps: PlannedStep[]) => void;
@@ -244,6 +266,7 @@ export const useActionQueue = create<ActionQueueState>()((set) => ({
     target,
     steps,
     failure,
+    batchId,
   }) => {
     const id = nextId("action");
     set((state) => ({
@@ -263,6 +286,7 @@ export const useActionQueue = create<ActionQueueState>()((set) => ({
           status: failure ? "error" : "pending",
           failure,
           createdAt: Date.now(),
+          batchId,
         },
       ],
     }));
@@ -277,6 +301,7 @@ export const useActionQueue = create<ActionQueueState>()((set) => ({
     gearTier,
     step,
     failure,
+    batchId,
   }) => {
     const id = nextId("action");
     set((state) => ({
@@ -296,6 +321,7 @@ export const useActionQueue = create<ActionQueueState>()((set) => ({
           status: failure ? "error" : "pending",
           failure,
           createdAt: Date.now(),
+          batchId,
         },
       ],
     }));
@@ -312,6 +338,7 @@ export const useActionQueue = create<ActionQueueState>()((set) => ({
     itemInstanceIds,
     step,
     failure,
+    batchId,
   }) => {
     const id = nextId("action");
     set((state) => ({
@@ -333,11 +360,45 @@ export const useActionQueue = create<ActionQueueState>()((set) => ({
           status: failure ? "error" : "pending",
           failure,
           createdAt: Date.now(),
+          batchId,
         },
       ],
     }));
     return id;
   },
+
+  /**
+   * Remplace les requêtes d'une insertion, replanifiées juste avant l'envoi.
+   *
+   * Le pendant de `setSteps` pour les déplacements, et pour la même raison : une
+   * insertion peut en demander zéro (l'attribut est déjà en place) ou deux (un
+   * autre socket du même artéfact le portait, il faut d'abord l'en retirer) —
+   * et cela ne se sait qu'à l'envoi. Voir `planInsert`.
+   */
+  setInsertSteps: (actionId, steps) =>
+    set((state) => ({
+      actions: state.actions.map((action) =>
+        action.id === actionId && action.kind === "insert"
+          ? {
+              ...action,
+              steps: steps.map((step) => ({
+                ...step,
+                id: nextId("step"),
+                status: "pending" as const,
+              })),
+            }
+          : action,
+      ),
+    })),
+
+  cancelBatch: (batchId) =>
+    set((state) => ({
+      actions: state.actions.map((action) =>
+        action.batchId === batchId && action.status === "pending"
+          ? {...action, status: "error", failure: "batchCancelled"}
+          : action,
+      ),
+    })),
 
   setSteps: (actionId, steps) =>
     set((state) => ({

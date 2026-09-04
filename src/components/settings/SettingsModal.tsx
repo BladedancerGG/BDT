@@ -27,7 +27,13 @@ import {
     deleteSyncedSettings,
     pushSettings,
 } from "@/lib/settings/sync-client";
+import {
+    deleteSyncedGroups,
+    pushGroups,
+} from "@/lib/loadouts/groups/sync-client";
+import {useLoadoutGroups} from "@/lib/loadouts/groups/store";
 import {APP_VERSION, SUPPORT_EMAIL, BUNGIE_PROFILE_URL} from "@/lib/app-info";
+import {BackupRows} from "./BackupRows";
 
 type Category = "account" | "appearance" | "inventory" | "search" | "about";
 
@@ -141,22 +147,34 @@ function AccountPanel({
 
     const toggleSync = (next: boolean) => {
         setSyncEnabled(next);
-        // Activée, l'abonnement de `SettingsSync` dépose l'état de lui-même.
-        // Coupée, il ne dépose plus rien : c'est donc ici qu'il faut basculer
-        // le drapeau de la ligne, sans quoi l'autre appareil continuerait de
-        // lire une sauvegarde que celui-ci ne tient plus à jour.
-        if (!next) {
-            void pushSettings(false, {
-                ...persistedSettings(useSettings.getState()),
-                syncEnabled: false,
-            });
-        }
+        // Les deux sens écrivent tout de suite, sans passer par le délai
+        // d'inactivité de l'abonnement.
+        //
+        // **Activer, c'est désigner cet appareil comme source** : son état part
+        // en base et écrase ce qui s'y trouvait. C'est le seul moment où le sens
+        // s'inverse — partout ailleurs, la base prime. L'inverse écraserait
+        // l'appareil sur lequel l'utilisateur vient d'agir, avec une sauvegarde
+        // qu'il n'a peut-être jamais déposée.
+        //
+        // Couper, c'est basculer le drapeau de la ligne, sans quoi l'autre
+        // appareil continuerait de lire une sauvegarde que celui-ci ne tient
+        // plus à jour.
+        void pushSettings(next, {
+            ...persistedSettings(useSettings.getState()),
+            syncEnabled: next,
+        });
+
+        // Les groupes n'ont pas de drapeau à basculer : à l'activation leur
+        // liste est déposée, à la coupure leur ligne est effacée. Le stockage
+        // local garde la sienne — couper ne perd rien sur cet appareil.
+        if (next) void pushGroups(useLoadoutGroups.getState().groups);
+        else void deleteSyncedGroups();
     };
 
     const clearSync = async () => {
         if (!window.confirm(t("clearSyncConfirm"))) return;
         setBusy(true);
-        await deleteSyncedSettings();
+        await Promise.all([deleteSyncedSettings(), deleteSyncedGroups()]);
         setSyncEnabled(false);
         setBusy(false);
     };
@@ -164,9 +182,11 @@ function AccountPanel({
     const clearAll = async () => {
         if (!window.confirm(t("deleteAllConfirm"))) return;
         setBusy(true);
-        // Le compte parti, la session ne désigne plus rien : on repart de la
-        // page d'accueil, qui affichera l'écran de connexion.
-        if (await deleteAccount()) window.location.assign("/");
+        // Rechargement complet, et non une navigation client : le compte parti,
+        // la session ne désigne plus rien, et tout ce que les stores et le cache
+        // de requêtes gardent en mémoire doit partir avec lui. La page rendra
+        // alors l'écran de connexion.
+        if (await deleteAccount()) window.location.reload();
         else setBusy(false);
     };
 
@@ -203,6 +223,10 @@ function AccountPanel({
                     label={t("sync")}
                 />
             </SettingRow>
+
+            {/* Le pendant hors ligne de la synchronisation : elle dépose l'état
+                sur le serveur, ceux-ci le rendent au propriétaire. */}
+            <BackupRows/>
 
             <SettingRow label={t("clearSync")} hint={t("clearSyncHint")}>
                 <button
@@ -254,18 +278,18 @@ function AppearancePanel() {
 
     return (
         <div className="settings__group">
-            {/*<SettingRow label={t("theme")} htmlFor="setting-theme">*/}
-            {/*    <Select<ThemePreference>*/}
-            {/*        id="setting-theme"*/}
-            {/*        value={theme}*/}
-            {/*        onChange={setTheme}*/}
-            {/*        options={[*/}
-            {/*            {value: "light", label: t("themes.light")},*/}
-            {/*            {value: "dark", label: t("themes.dark")},*/}
-            {/*            {value: "system", label: t("themes.system")},*/}
-            {/*        ]}*/}
-            {/*    />*/}
-            {/*</SettingRow>*/}
+            <SettingRow label={t("theme")} htmlFor="setting-theme">
+                <Select<ThemePreference>
+                    id="setting-theme"
+                    value={theme}
+                    onChange={setTheme}
+                    options={[
+                        {value: "light", label: t("themes.light")},
+                        {value: "dark", label: t("themes.dark")},
+                        {value: "system", label: t("themes.system")},
+                    ]}
+                />
+            </SettingRow>
 
             <SettingRow label={t("language")} hint={t("languageHint")} htmlFor="setting-language">
                 <Select<Locale>

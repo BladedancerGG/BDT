@@ -62,6 +62,46 @@
     padding: 1rem;
   }
 
+  // —— Sauvegarde JSON : exporter et réimporter ————————————————
+
+  &__backup {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    justify-content: flex-end;
+
+    svg {
+      width: 0.875rem;
+      height: 0.875rem;
+    }
+  }
+
+  // Le champ de fichier natif est masqué : son habillage varie d'un système à
+  // l'autre et jurerait avec les autres lignes. Il reste dans le flux et
+  // atteignable au clavier — `display: none` l'en retirerait, et c'est bien lui
+  // que le bouton voisin ouvre.
+  &__file {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  &__backup-result {
+    flex-basis: 100%;
+    margin: 0;
+    color: var(--color-text-muted);
+    font-size: 0.8125rem;
+    text-align: right;
+
+    &--error {
+      color: var(--color-danger);
+    }
+  }
+
   &__group {
     display: flex;
     flex-direction: column;

@@ -6,7 +6,11 @@
     "open": "Ouvrir",
     "equip": "Équiper",
     "logout": "Se déconnecter",
-    "delete": "Supprimer"
+    "delete": "Supprimer",
+    "groups": "Groupes",
+    "edit": "Modifier",
+    "cancel": "Annuler",
+    "confirm": "Confirmer"
   },
   "auth": {
     "login": "Se connecter avec Bungie"
@@ -57,7 +61,20 @@
       "clearSyncConfirm": "Supprimer les paramètres enregistrés sur le serveur et désactiver la synchronisation ?",
       "deleteAll": "Supprimer toutes les données",
       "deleteAllHint": "Efface définitivement tout ce que le site conserve de ce compte Bungie, puis vous déconnecte. L’autorisation se retire depuis bungie.net.",
-      "deleteAllConfirm": "Supprimer définitivement toutes les données associées à ce compte Bungie ? Cette action est irréversible."
+      "deleteAllConfirm": "Supprimer définitivement toutes les données associées à ce compte Bungie ? Cette action est irréversible.",
+      "export": "Exporter les données",
+      "exportHint": "Télécharge les paramètres et les groupes d’équipements dans un fichier JSON, à conserver ou à reprendre sur un autre navigateur.",
+      "exportAction": "Exporter",
+      "import": "Importer des données",
+      "importHint": "Relit un fichier exporté. Les paramètres et les groupes qu’il contient remplacent ceux de ce navigateur.",
+      "importAction": "Choisir un fichier",
+      "importConfirm": "Remplacer les données de ce navigateur par celles du fichier ?\n\n• Paramètres : {settings, select, true {oui} other {non}}\n• Groupes d’équipements : {groups}",
+      "importDone": "Importé — paramètres : {settings, select, true {oui} other {non}}, {groups, plural, =0 {aucun groupe} one {1 groupe} other {# groupes}}.",
+      "importFailure": {
+        "unreadable": "Fichier illisible : ce n’est pas du JSON exporté depuis ce site.",
+        "empty": "Ce fichier ne contient ni paramètres ni groupes d’équipements.",
+        "badGroups": "Les groupes d’équipements de ce fichier sont mal formés : rien n’a été importé."
+      }
     },
     "appearance": {
       "theme": "Thème",
@@ -178,7 +195,8 @@
       "vaultFull": "Le coffre est plein.",
       "bucketFull": "L’emplacement de destination est plein.",
       "noCharacter": "Aucun personnage sur ce compte.",
-      "noIdentifiers": "Identifiants du manifeste indisponibles : l’enregistrement serait refusé."
+      "noIdentifiers": "Identifiants du manifeste indisponibles : l’enregistrement serait refusé.",
+      "batchCancelled": "Annulée : une étape précédente de la séquence a échoué."
     }
   },
   "manifest": {
@@ -241,13 +259,39 @@
     "create": "Créer",
     "snapshot": "Écraser",
     "clear": "Vider",
-    "groups": "Voir dans les groupes d’équipements",
-    "groupsSoon": "Bientôt disponible",
-    "editIdentifiers": "Modifier",
     "applyIdentifiers": "Appliquer",
-    "cancelIdentifiers": "Annuler",
     "pickColor": "Choisir la couleur de fond",
     "pickIcon": "Choisir l’icône",
     "pickName": "Choisir le nom"
+  },
+  "groups": {
+    "create": "Nouveau groupe",
+    "fromEquipped": "À partir des équipements actuels",
+    "fromBlank": "Groupe vide",
+    "defaultName": "Groupe {number}",
+    "nameLabel": "Nom du groupe",
+    "currentLoadouts": "Équipements actuels",
+    "deleteConfirm": "Supprimer le groupe « {name} » ?",
+    "noSlots": "Aucun emplacement d’équipement renvoyé par l’API pour ce personnage : il n’y a pas de place où poser un groupe.",
+    "dragHint": "Glissez la poignée d’une carte pour changer son rang",
+    "moveCard": "Déplacer « {name} », position {position} sur {total}",
+    "back": "Retour aux groupes",
+    "groupSlots": "Emplacements du groupe",
+    "characterSlots": "Emplacements du personnage",
+    "slotTitle": "Emplacement n°{number} du groupe",
+    "overwriteAll": "Écraser tout le groupe depuis le personnage",
+    "overwriteOneHint": "Cliquez un emplacement du personnage pour écraser l’emplacement n°{number} du groupe avec son contenu.",
+    "clearSlot": "Vider l’emplacement n°{number}",
+    "removeItem": "Retirer",
+    "waitIdentifiers": "Lecture des constantes du manifeste… l’ajout d’objets est momentanément retenu.",
+    "pickItems": "Choisir les objets",
+    "selecting": "Sélection pour « {name} »",
+    "selectedCount": "Emplacement n°{number} — {count} objet(s) retenu(s) sur {total}",
+    "selectHint": "Cliquez un objet par emplacement d’équipement, ici ou dans le coffre. Recliquez-le pour le relâcher.",
+    "equipConfirm": "Équiper le groupe « {name} » sur ce personnage ?",
+    "equipSummary": "{slots} emplacement(s) seront équipés puis enregistrés, {cleared} vidé(s). Environ {requests} requêtes vers Bungie, envoyées une à une.",
+    "equipSkipped": "{count} emplacement(s) sont ignorés : leurs objets ont disparu du compte, ou leur apparence est incomplète.",
+    "colorLabel": "Couleur du groupe",
+    "colorNone": "Aucune couleur"
   }
 }

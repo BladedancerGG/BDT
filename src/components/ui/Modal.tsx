@@ -38,11 +38,21 @@ export function Modal({
                           open,
                           onClose,
                           title,
+                          compact = false,
                           children,
                       }: {
     open: boolean;
     onClose: () => void;
     title: string;
+    /**
+     * La modale se dimensionne sur son contenu au lieu d'occuper la place des
+     * paramètres.
+     *
+     * Le gabarit par défaut est celui d'un panneau à catégories : hauteur
+     * imposée, largeur généreuse. Un formulaire de deux champs y flottait au
+     * milieu du vide.
+     */
+    compact?: boolean;
     children: ReactNode;
 }) {
     const {refs, context} = useFloating({
@@ -74,7 +84,7 @@ export function Modal({
                         {...getFloatingProps()}
                         aria-label={title}
                         data-status={status}
-                        className="modal"
+                        className={`modal${compact ? " modal--compact" : ""}`}
                     >
                         {children}
                     </div>

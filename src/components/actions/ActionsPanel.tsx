@@ -33,6 +33,36 @@ const FILTERS: readonly ActionFilter[] = ["all", "pending", "running", "done"];
  */
 const TRANSITION_MS = 250;
 
+/**
+ * Les actions dans l'ordre où le panneau les montre.
+ *
+ * Trois blocs, et non un tri : l'ordre voulu n'est pas celui d'un comparateur.
+ *
+ *  1. **celle en cours**, s'il y en a une — l'exécuteur n'en mène qu'une à la
+ *     fois, mais le filtre ne le suppose pas ;
+ *  2. **celles en attente, dans l'ordre de la file** : la prochaine à partir en
+ *     tête. C'est le seul ordre utile ici, puisque c'est celui dans lequel elles
+ *     s'exécuteront — l'exécuteur prend toujours la première en attente du
+ *     tableau ;
+ *  3. **celles qui sont terminées**, la plus récente d'abord. Celles-là sont de
+ *     l'histoire : on y cherche ce qui vient de se passer, pas ce qui va
+ *     arriver.
+ *
+ * `filter` rend un tableau neuf à chaque fois : le `reverse` du troisième bloc
+ * ne touche donc pas à la file.
+ */
+function inPanelOrder(actions: readonly QueuedAction[]): QueuedAction[] {
+  return [
+    ...actions.filter((action) => action.status === "running"),
+    ...actions.filter((action) => action.status === "pending"),
+    ...actions
+      .filter(
+        (action) => action.status === "done" || action.status === "error",
+      )
+      .reverse(),
+  ];
+}
+
 /** Le filtre parle des trois états visibles ; l'échec se range avec « effectuées ». */
 function matches(action: QueuedAction, filter: ActionFilter): boolean {
   switch (filter) {
@@ -90,8 +120,7 @@ export function ActionsPanel() {
 
   if (!isMounted) return null;
 
-  // La dernière demande en haut : c'est celle qu'on vient de faire
-  const visible = actions.filter((a) => matches(a, filter)).reverse();
+  const visible = inPanelOrder(actions.filter((a) => matches(a, filter)));
 
   return (
     <FloatingPortal>

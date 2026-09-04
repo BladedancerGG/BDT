@@ -24,7 +24,16 @@ export interface InventoryItemDefinition {
   itemSubType?: number;
   itemTypeDisplayName?: string;
   /** Présent sur les plugs (perks, mods, ornements, shaders…) */
-  plug?: { plugCategoryIdentifier?: string };
+  plug?: {
+    plugCategoryIdentifier?: string;
+    /**
+     * Coût en énergie d'armure. **Souvent absent**, et c'est significatif :
+     * seuls les mods d'armure en portent un, de 0 à 4 (relevé sur le manifeste).
+     * Pièces maîtresses et mods d'artifice n'en ont aucun, bien qu'ils logent
+     * dans la même catégorie de sockets — voir `plug-energy.ts`.
+     */
+    energyCost?: { energyCost: number };
+  };
   /** Écarts de statistiques conférés — voir plug-stats.ts */
   investmentStats?: {
     statTypeHash: number;

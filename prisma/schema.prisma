@@ -28,26 +28,8 @@ model User {
   tokenExpiresAt DateTime
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
-  loadouts       Loadout[]
   settings       UserSettings?
-}
-
-// Un snapshot d'équipement sauvegardé côté serveur
-model Loadout {
-  id          String   @id @default(cuid())
-  name        String
-  colorHash   Int? // identifiant de couleur (loadout identifier Destiny)
-  iconHash    Int? // identifiant d'icône
-  characterId String // personnage d'origine
-  // Contenu du loadout (items équipés) stocké en JSON — flexible face aux
-  // évolutions de l'API Bungie
-  items       Json
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId      String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@index([userId])
+  loadoutGroups  UserLoadoutGroups?
 }
 
 // Préférences synchronisées d'un utilisateur.
@@ -62,6 +44,26 @@ model UserSettings {
   enabled   Boolean  @default(true)
   // Mêmes clés que l'état persisté dans le cookie (cf. lib/settings/store.ts) :
   // le format suit l'UI, le stocker en JSON évite une migration par réglage.
+  data      Json
+  updatedAt DateTime @updatedAt
+}
+
+// Groupes d'équipements synchronisés d'un utilisateur.
+//
+// Une ligne par utilisateur et non par groupe : le client tient de toute façon
+// la liste entière en mémoire, la dépose d'un bloc et la relit de même — comme
+// UserSettings. Une table de groupes et une d'emplacements n'apporteraient
+// aucune requête utile et imposeraient une migration à chaque évolution du
+// format d'un instantané, qui suit celui de l'API Bungie.
+//
+// Pas de drapeau `enabled` ici, contrairement à UserSettings : la
+// synchronisation des groupes suit celle des préférences, et couper celle-ci
+// efface la ligne — le stockage local garde sa copie (cf. lib/loadouts/groups).
+model UserLoadoutGroups {
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String   @id
+  // Tableau de LoadoutGroup, même forme que le stockage local
+  // (cf. lib/loadouts/groups/types.ts)
   data      Json
   updatedAt DateTime @updatedAt
 }

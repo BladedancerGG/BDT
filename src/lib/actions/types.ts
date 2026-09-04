@@ -53,3 +53,15 @@ export function isMoveStepRequest(value: unknown): value is MoveStepRequest {
     step.characterId.length > 0
   );
 }
+
+/**
+ * Refus commun aux trois natures d'action : une étape antérieure du même lot a
+ * échoué, et la suite est abandonnée.
+ *
+ * Un équipement de groupe est une **séquence** : équiper, poser les attributs,
+ * puis écraser l'emplacement avec ce qui est équipé. Laisser la séquence
+ * continuer après un échec ferait enregistrer en jeu un équipement faux — pire
+ * qu'un échec visible, parce que silencieux. C'est pourquoi les actions d'un
+ * même lot s'annulent ensemble.
+ */
+export type BatchFailure = "batchCancelled";

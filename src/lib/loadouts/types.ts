@@ -4,6 +4,8 @@
 // constante exportée depuis un module client arrive `undefined` côté serveur
 // (voir lib/settings/constants.ts).
 
+import type {BatchFailure} from "@/lib/actions/types";
+
 export const LOADOUT_ACTIONS = [
     "equip",
     "snapshot",
@@ -82,4 +84,7 @@ export interface LoadoutStepRequest {
  * constantes du manifeste ne sont pas lues : `SnapshotLoadout` exige les trois
  * identifiants, l'appel partirait pour être refusé.
  */
-export type LoadoutFailure = "noCharacter" | "noIdentifiers";
+export type LoadoutFailure =
+    | "noCharacter"
+    | "noIdentifiers"
+    | BatchFailure;

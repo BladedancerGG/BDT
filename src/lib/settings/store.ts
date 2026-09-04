@@ -12,6 +12,7 @@ import {
     DEFAULT_VIEW_MODE,
     parseSearchMissMode,
     parseViewMode,
+    VIEW_MODES,
     type SearchMissMode,
     type ThemePreference,
     type ViewMode,
@@ -87,7 +88,7 @@ export interface SettingsState {
     setSearchMissMode: (mode: SearchMissMode) => void;
     setViewMode: (mode: ViewMode) => void;
     setSyncEnabled: (enabled: boolean) => void;
-    /** Bascule d'un mode à l'autre — c'est ce que fait la touche Tab */
+    /** Passe au mode suivant, en cycle — c'est ce que fait la touche Tab */
     toggleViewMode: () => void;
 
     /** Active ou désactive un critère, sans changer sa place */
@@ -196,9 +197,14 @@ export const useSettings = create<SettingsState>()(
             setSearchMissMode: (searchMissMode) => set({searchMissMode}),
             setViewMode: (viewMode) => set({viewMode}),
             setSyncEnabled: (syncEnabled) => set({syncEnabled}),
+            // Un cycle et non une bascule : il y a trois modes depuis les
+            // groupes d'équipements, et la touche Tab n'en a qu'un à donner.
             toggleViewMode: () =>
                 set((state) => ({
-                    viewMode: state.viewMode === "inventory" ? "loadouts" : "inventory",
+                    viewMode:
+                        VIEW_MODES[
+                            (VIEW_MODES.indexOf(state.viewMode) + 1) % VIEW_MODES.length
+                        ],
                 })),
 
             toggleSort: (id) =>
