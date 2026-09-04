@@ -47,11 +47,12 @@ Les modules **purs** — ceux qui ne connaissent ni React, ni le store, ni le r�
 malgré tout leurs vérifications, rangées dans `scripts/checks/` :
 
 ```bash
-scripts/checks/run.sh    # compile et exécute les trois, dans le conteneur
+scripts/checks/run.sh    # compile et exécute les vérifications, dans le conteneur
 ```
 
 Elles couvrent aujourd'hui `lib/loadouts/groups/edit.ts`, `lib/loadouts/groups/equip.ts`,
-`lib/destiny/insert-plan.ts` et `lib/settings/backup.ts`. **Les lancer après toute modification de ces modules**, et y
+`lib/destiny/insert-plan.ts` et `lib/settings/backup.ts`, et contrôlent au passage les
+règles CSS qui se recouvrent. **Les lancer après toute modification de ces modules**, et y
 ajouter un cas quand un piège Destiny est écarté : c'est là que la logique se casse en
 silence. Voir `scripts/checks/README.md` pour en écrire une.
 

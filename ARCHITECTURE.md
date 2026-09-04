@@ -844,8 +844,32 @@ the `onCharacterId` override on `useInsertPlanner`.
 > **Zero** when the plug is already in place — the API refuses to equip what
 > already is, and the case is real: two group slots holding the same weapon ask
 > for the same insertion, and the second arrives after the first has satisfied
-> it. The plan's own "already in place" filter only trims the queue; the runner
-> is the authority, because only it sees the current state.
+> it. The runner is the authority here, because only it sees the current state.
+
+> **A locked socket is not dropped either**, and it is the same trap. A subclass
+> unlocks its fragment sockets as aspects are equipped (see
+> `ItemDetail.disabledSockets`): with no aspect in place, all six fragment
+> sockets read as locked *at plan time*, and dropping them lost every fragment of
+> the slot. They are kept — the aspects, inserted first, will have unlocked them
+> by the time their turn comes. The benign case filters itself out: a socket that
+> stays locked holds the empty plug on both sides, and the equality test drops
+> it. What remains is a refusal from Bungie, visible in the panel, where the old
+> filter lost the plug in silence.
+>
+> **Insertion order is socket-index order**, and that is what puts aspects before
+> fragments. Not an assumption: read off the manifest, all **eighteen** subclasses
+> place their two aspect sockets before their six fragment sockets. Not to be
+> confused with the *display* order of the abilities, which does not follow the
+> indexes — see `subclass.ts`.
+
+> **The plan may only pre-filter a socket the sequence does not move.** The
+> runner turns a request that became pointless into zero requests; it cannot do
+> the reverse. Dropping a plug at plan time because it matched the profile *of
+> before* therefore loses it for good — the later slot inserted nothing and its
+> snapshot recorded the earlier slot's value. It showed on a subclass's
+> abilities: a character has only one subclass per element, and two group slots
+> fought over its sockets. Hence `volatileSockets`, which relieves the filter of
+> every socket the plan makes change value.
 >
 > **Two** when another socket of the same **artifact** holds that plug: an
 > artifact does not equip the same perk twice, so it must first be taken off
@@ -2358,8 +2382,36 @@ par personnage — d'où la surcharge `onCharacterId` de `useInsertPlanner`.
 > **Zéro** quand l'attribut est déjà en place — l'API refuse d'équiper ce qui
 > l'est, et le cas se présente pour de bon : deux emplacements d'un groupe
 > portant la même arme demandent la même insertion, la seconde arrivant après que
-> la première l'a satisfaite. Le filtre « déjà en place » du plan ne fait
-> qu'alléger la file ; l'autorité est l'exécuteur, seul à voir l'état courant.
+> la première l'a satisfaite. L'autorité est l'exécuteur, seul à voir l'état
+> courant.
+
+> **Un socket verrouillé n'est pas écarté non plus**, et c'est le même piège.
+> Une doctrine déverrouille ses emplacements de fragments au fil des aspects
+> équipés (voir `ItemDetail.disabledSockets`) : sans aucun aspect en place, les
+> six emplacements de fragments se lisent comme verrouillés *au moment du plan*,
+> et les écarter perdait tous les fragments de l'emplacement. Ils sont donc
+> conservés — les aspects, insérés avant, les auront déverrouillés le temps que
+> leur tour vienne. Le cas bénin se filtre de lui-même : un socket qui reste
+> verrouillé porte l'emplacement vide des deux côtés, et le test d'égalité
+> l'écarte. Reste un refus de Bungie, visible dans le panneau, là où l'ancien
+> filtre perdait l'attribut en silence.
+>
+> **L'ordre d'insertion est celui des index de sockets**, et c'est ce qui fait
+> passer les aspects avant les fragments. Ce n'est pas une supposition : relevé
+> sur le manifeste, les **dix-huit** doctrines placent leurs deux emplacements
+> d'aspects avant leurs six emplacements de fragments. À ne pas confondre avec
+> l'ordre d'*affichage* des compétences, qui lui ne suit pas les index — voir
+> `subclass.ts`.
+
+> **Le plan ne peut pré-filtrer qu'un socket que la séquence ne déplace pas.**
+> L'exécuteur sait transformer une requête devenue inutile en zéro requête ; il
+> ne sait pas faire l'inverse. Écarter un attribut au plan parce qu'il
+> correspondait au profil *d'avant* le perd donc pour de bon — l'emplacement
+> suivant n'insérait rien et son écrasement enregistrait la valeur du précédent.
+> Cela se voyait sur les compétences d'une doctrine : un personnage n'en a qu'une
+> par élément, et deux emplacements du groupe s'en disputaient les sockets. D'où
+> `volatileSockets`, qui dispense du filtre tout socket que le plan fait changer
+> de valeur.
 >
 > **Deux** quand un autre socket du même **artéfact** porte ce plug : un
 > artéfact n'équipe pas deux fois le même attribut, il faut donc d'abord l'en

@@ -383,6 +383,9 @@
     display: flex;
     flex-direction: column;
     min-width: 0;
+    // Bloc conteneur du bouton « objets équipés », centré par-dessus les lignes
+    // vides — comme `inventory-view__equipment` le fait pour `loadout-create`.
+    position: relative;
 
     @include m.from(v.$bp-lg) {
       min-height: 0;

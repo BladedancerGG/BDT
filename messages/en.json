@@ -292,6 +292,7 @@
     "equipSummary": "{slots} slot(s) will be equipped then saved, {cleared} cleared. About {requests} requests to Bungie, sent one at a time.",
     "equipSkipped": "{count} slot(s) are skipped: their items are gone from the account, or their appearance is incomplete.",
     "colorLabel": "Group colour",
-    "colorNone": "No colour"
+    "colorNone": "No colour",
+    "useEquipped": "Use the equipped items"
   }
 }

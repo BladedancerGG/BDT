@@ -292,6 +292,7 @@
     "equipSummary": "{slots} emplacement(s) seront équipés puis enregistrés, {cleared} vidé(s). Environ {requests} requêtes vers Bungie, envoyées une à une.",
     "equipSkipped": "{count} emplacement(s) sont ignorés : leurs objets ont disparu du compte, ou leur apparence est incomplète.",
     "colorLabel": "Couleur du groupe",
-    "colorNone": "Aucune couleur"
+    "colorNone": "Aucune couleur",
+    "useEquipped": "Utiliser les objets équipés"
   }
 }

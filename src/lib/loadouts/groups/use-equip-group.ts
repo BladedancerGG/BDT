@@ -71,8 +71,6 @@ export function useEquipGroup(characterId: string | null) {
                         };
                     },
                     socketsOf: (id) => profile.items[id]?.sockets ?? [],
-                    disabledOf: (id) =>
-                        new Set(profile.items[id]?.disabledSockets ?? []),
                 },
             );
         },

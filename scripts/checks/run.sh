@@ -18,6 +18,17 @@ for check in edit equip insert backup; do
   docker compose exec -T app node "/tmp/checks/scripts/checks/$check.check.js" || status=1
 done
 
+# —— La feuille de styles : règles qui se recouvrent.
+#
+# Sur le CSS **compilé** et non minifié : le SCSS est imbriqué, ses mixins
+# recopient des déclarations, et la minification de Next fusionne déjà une partie
+# de ce qu'on cherche à voir.
+printf '\n═══ css ═══\n'
+docker compose exec -T app npx sass src/scss/style.scss /tmp/style.css \
+  --no-source-map --style=expanded >/dev/null
+docker compose exec -T app cat /tmp/style.css > /tmp/bdt-style.css
+python3 scripts/checks/css-duplicates.py /tmp/bdt-style.css || status=1
+
 printf '\n'
-[ "$status" -eq 0 ] && echo "✓ Tous les moteurs passent." || echo "✗ Au moins une vérification a échoué."
+[ "$status" -eq 0 ] && echo "✓ Toutes les vérifications passent." || echo "✗ Au moins une vérification a échoué."
 exit "$status"

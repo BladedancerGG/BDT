@@ -10,11 +10,13 @@ Ils ne couvrent que les modules **purs** : ceux qui ne connaissent ni React, ni
 le store, ni le réseau, et dont la logique Destiny est justement celle qui se
 casse en silence.
 
-| Fichier            | Module vérifié                        |
-| ------------------ | ------------------------------------- |
-| `edit.check.ts`    | `lib/loadouts/groups/edit.ts`         |
-| `equip.check.ts`   | `lib/loadouts/groups/equip.ts`        |
-| `insert.check.ts`  | `lib/destiny/insert-plan.ts`          |
+| Fichier                | Vérifie                                        |
+| ---------------------- | ---------------------------------------------- |
+| `edit.check.ts`        | `lib/loadouts/groups/edit.ts`                  |
+| `equip.check.ts`       | `lib/loadouts/groups/equip.ts`                 |
+| `insert.check.ts`      | `lib/destiny/insert-plan.ts`                   |
+| `backup.check.ts`      | `lib/settings/backup.ts`                       |
+| `css-duplicates.py`    | la feuille de styles compilée (voir plus bas)  |
 
 ## Lancer
 
@@ -39,3 +41,20 @@ broncher — TypeScript résout l'alias — puis échoue à l'exécution en
 `import type` n'ont pas ce problème : la compilation les efface.
 
 Chaque fichier est autonome : il compte ses échecs et sort en code non nul.
+
+## Le contrôle CSS
+
+`css-duplicates.py` travaille sur la feuille **compilée et non minifiée** : le
+SCSS est imbriqué, ses mixins recopient des déclarations, et la minification de
+Next fusionne déjà une partie de ce qu'on cherche à voir.
+
+Il signale une propriété déclarée deux fois dans un même bloc, et un sélecteur
+déclaré plusieurs fois avec des propriétés qui se recouvrent — le cas d'un bloc
+oublié après une réécriture. Ces deux-là font échouer le script.
+
+Il liste par ailleurs les blocs strictement identiques entre sélecteurs
+différents, sans échouer : c'est souvent légitime, parfois une factorisation qui
+se demande.
+
+Une surcharge voulue d'une valeur de mixin se déclare dans `ALLOWED`, en haut du
+fichier, avec la raison.

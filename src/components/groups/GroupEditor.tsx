@@ -7,6 +7,7 @@ import type {ProfileData} from "@/lib/bungie/use-profile";
 import type {InventoryItemDefinition} from "@/lib/destiny/types";
 import {countEquippedSets} from "@/lib/destiny/set-bonus";
 import {useLoadoutItems} from "@/lib/destiny/use-loadout-items";
+import {useDisplayableItems} from "@/lib/destiny/use-displayable-items";
 import {isEmptyLoadout} from "@/lib/loadouts/loadout";
 import {
     useLoadoutIdentifierChoices,
@@ -21,6 +22,7 @@ import {
     putPlug,
     removeItem,
     setIdentifiers,
+    setItems,
     setLoadout,
 } from "@/lib/loadouts/groups/edit";
 import {
@@ -137,12 +139,21 @@ export function GroupEditor({
     // Le contenu de l'emplacement sélectionné, résolu contre le profil — le même
     // hook que le mode « équipements » pour un emplacement du jeu.
     const contents = useLoadoutItems(current, data, defs);
+    /**
+     * Les objets équipés du personnage, armes, armures et doctrine seulement.
+     *
+     * Ils servent l'emplacement **vide** : la vue les montre alors en aperçu, et
+     * le bouton posé par-dessus les y enregistre — le même geste que sur la vue
+     * des équipements, où un emplacement libre du jeu n'en propose pas d'autre.
+     */
+    const equipped = useDisplayableItems(data.equipment[group.characterId] ?? NO_ITEMS);
+
     // Référence stable pour l'emplacement vide : un tableau neuf relancerait le
     // comptage des bonus d'ensemble à chaque passe.
     const items = contents?.items ?? NO_ITEMS;
     const setCounts = useMemo(
-        () => countEquippedSets(items, defs),
-        [items, defs],
+        () => countEquippedSets(contents?.items ?? NO_ITEMS, defs),
+        [contents?.items, defs],
     );
 
     /**
@@ -202,6 +213,34 @@ export function GroupEditor({
     };
 
     const empty = isEmptyLoadout(current);
+    // Un emplacement vide montre l'équipement porté, estompé : c'est l'aperçu
+    // de ce que le bouton y enregistrerait. Voir `preview` d'EquipmentModeView.
+    const shown = empty ? equipped : items;
+
+    /** Enregistre les objets équipés dans l'emplacement vide sélectionné. */
+    const useEquipped = () => {
+        if (!ready) return;
+        const picked = new Map<number, string>();
+        for (const item of equipped) {
+            const bucket = bucketOf.get(item.itemInstanceId ?? "");
+            if (bucket !== undefined && item.itemInstanceId) {
+                picked.set(bucket, item.itemInstanceId);
+            }
+        }
+        write(
+            setItems(
+                slots,
+                selected,
+                picked,
+                (id) => data.items[id]?.sockets ?? [],
+                {
+                    colorHash: choices.colors[0].hash,
+                    iconHash: choices.icons[0].hash,
+                    nameHash: choices.names[0].hash,
+                },
+            ),
+        );
+    };
 
     return (
         <div className="group-editor">
@@ -325,7 +364,7 @@ export function GroupEditor({
                                 t("slotTitle", {number: selected + 1})
                             )
                         }
-                        items={items}
+                        items={shown}
                         details={data.items}
                         defs={defs}
                         setCounts={setCounts}
@@ -337,7 +376,28 @@ export function GroupEditor({
                         // Un emplacement de groupe vide a légitimement zéro
                         // objet : « Chargement… » y serait un mensonge définitif.
                         quiet
+                        // Vide, la vue montre l'équipement porté **estompé** :
+                        // le bouton ci-dessous le dévoile au survol, en aperçu
+                        // de ce qu'il enregistrerait.
+                        preview={empty}
                     />
+
+                    {/* Le seul geste d'un emplacement vide, posé là où le vide a
+                        laissé la place — comme `LoadoutCreateButton` sur la vue
+                        des équipements. */}
+                    {empty && (
+                        <div className="loadout-create">
+                            <button
+                                type="button"
+                                className="btn loadout-create__button"
+                                disabled={!ready || equipped.length === 0}
+                                title={ready ? undefined : t("waitIdentifiers")}
+                                onClick={useEquipped}
+                            >
+                                {t("useEquipped")}
+                            </button>
+                        </div>
+                    )}
                     </SnapshotEditProvider>
                 </div>
 
