@@ -39,7 +39,7 @@ $ease: cubic-bezier(0.16, 1, 0.3, 1); // décélération franche, sans rebond
   z-index: 40;
   display: flex;
   flex-direction: column;
-  width: min(22rem, 100vw);
+  width: min(25rem, 100vw);
   height: 100dvh;
   background-color: var(--color-panel);
   border-right: 1px solid var(--color-border);
@@ -116,6 +116,11 @@ $ease: cubic-bezier(0.16, 1, 0.3, 1); // décélération franche, sans rebond
 
     &--danger {
       color: var(--color-danger);
+    }
+
+    svg {
+      height: 1.5rem;
+      width: 1.5rem;
     }
   }
 

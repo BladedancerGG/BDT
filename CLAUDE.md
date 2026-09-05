@@ -51,8 +51,8 @@ scripts/checks/run.sh    # compile et exécute les vérifications, dans le conte
 ```
 
 Elles couvrent aujourd'hui `lib/loadouts/groups/edit.ts`, `lib/loadouts/groups/equip.ts`,
-`lib/destiny/insert-plan.ts` et `lib/settings/backup.ts`, et contrôlent au passage les
-règles CSS qui se recouvrent. **Les lancer après toute modification de ces modules**, et y
+`lib/loadouts/groups/sync-merge.ts`, `lib/destiny/insert-plan.ts` et `lib/settings/backup.ts`,
+et contrôlent au passage les règles CSS qui se recouvrent. **Les lancer après toute modification de ces modules**, et y
 ajouter un cas quand un piège Destiny est écarté : c'est là que la logique se casse en
 silence. Voir `scripts/checks/README.md` pour en écrire une.
 

@@ -16,6 +16,7 @@ casse en silence.
 | `equip.check.ts`       | `lib/loadouts/groups/equip.ts`                 |
 | `insert.check.ts`      | `lib/destiny/insert-plan.ts`                   |
 | `backup.check.ts`      | `lib/settings/backup.ts`                       |
+| `sync-merge.check.ts`  | `lib/loadouts/groups/sync-merge.ts`            |
 | `css-duplicates.py`    | la feuille de styles compilée (voir plus bas)  |
 
 ## Lancer

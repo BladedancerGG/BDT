@@ -34,6 +34,8 @@ import {
 import {useLoadoutGroups} from "@/lib/loadouts/groups/store";
 import {APP_VERSION, SUPPORT_EMAIL, BUNGIE_PROFILE_URL} from "@/lib/app-info";
 import {BackupRows} from "./BackupRows";
+import {RecoveryRow} from "./RecoveryRow";
+import {clearRescue} from "@/lib/loadouts/groups/rescue";
 
 type Category = "account" | "appearance" | "inventory" | "search" | "about";
 
@@ -56,23 +58,16 @@ const LOCALE_LABELS: Record<Locale, string> = {
     en: "English",
 };
 
-export function SettingsModal({
-                                  open,
-                                  onClose,
-                                  bungieMembershipId,
-                                  displayName,
-                              }: {
-    open: boolean;
-    onClose: () => void;
-    bungieMembershipId?: string;
-    displayName?: string;
-}) {
+const DEV_BUNGIE_PROFILE_URL = "https://www.bungie.net/7/en/User/Profile/2/4611686018443729606";
+
+
+export function SettingsModal({open, onClose, bungieMembershipId, displayName,}: { open: boolean; onClose: () => void; bungieMembershipId?: string; displayName?: string; }) {
     const t = useTranslations("settings");
     const tCommon = useTranslations("common");
     // Les libellés d'onglets sont des clés complètes : un traducteur sans
     // espace de noms les lit toutes.
     const tRoot = useTranslations();
-    const [category, setCategory] = useState<Category>("appearance");
+    const [category, setCategory] = useState<Category>("account");
 
     return (
         <Modal open={open} onClose={onClose} title={tCommon("settings")}>
@@ -132,13 +127,7 @@ export function SettingsModal({
  * qu'aucune modale maison ne fait, et l'enjeu ne mérite pas une seconde couche
  * de fenêtres par-dessus celle des paramètres.
  */
-function AccountPanel({
-                          bungieMembershipId,
-                          displayName,
-                      }: {
-    bungieMembershipId?: string;
-    displayName?: string;
-}) {
+function AccountPanel({bungieMembershipId, displayName,}: { bungieMembershipId?: string; displayName?: string; }) {
     const t = useTranslations("settings.account");
     const tCommon = useTranslations("common");
     const syncEnabled = useSettings((s) => s.syncEnabled);
@@ -182,6 +171,9 @@ function AccountPanel({
     const clearAll = async () => {
         if (!window.confirm(t("deleteAllConfirm"))) return;
         setBusy(true);
+        // Le filet part avec le reste : le garder ferait proposer, au
+        // rechargement, de « récupérer » les groupes d'un compte effacé.
+        clearRescue();
         // Rechargement complet, et non une navigation client : le compte parti,
         // la session ne désigne plus rien, et tout ce que les stores et le cache
         // de requêtes gardent en mémoire doit partir avec lui. La page rendra
@@ -223,6 +215,10 @@ function AccountPanel({
                     label={t("sync")}
                 />
             </SettingRow>
+
+            {/* Ce que la synchronisation a raté, et ce qu'un accident a
+                emporté. Muettes tant qu'il n'y a rien à dire. */}
+            <RecoveryRow/>
 
             {/* Le pendant hors ligne de la synchronisation : elle dépose l'état
                 sur le serveur, ceux-ci le rendent au propriétaire. */}
@@ -498,11 +494,35 @@ function SearchPanel() {
 function AboutPanel() {
     const t = useTranslations("settings.about");
     const tCommon = useTranslations("common");
+    const tMenu = useTranslations("menu");
+    const tAccount = useTranslations("settings.account");
 
     return (
         <div className="settings__group">
             <SettingRow label={t("version")}>
                 <span className="settings__value">{APP_VERSION}</span>
+            </SettingRow>
+
+            <SettingRow label={t("discord")}>
+                <a
+                    className="btn btn--small"
+                    href="https://discord.gg/Xz2BRVdGqr"
+                    target="_blank"
+                    rel="noreferrer noopener"
+                >
+                    {tCommon("join")}
+                </a>
+            </SettingRow>
+
+            <SettingRow label={tMenu("sourceCode")}>
+                <a
+                    className="btn btn--small"
+                    href="https://github.com/BladedancerGG/BDT"
+                    target="_blank"
+                    rel="noreferrer noopener"
+                >
+                    {tCommon("open")}
+                </a>
             </SettingRow>
 
             <SettingRow label={t("support")}>
@@ -511,14 +531,14 @@ function AboutPanel() {
                 </a>
             </SettingRow>
 
-            <SettingRow label={t("bungieApi")}>
+            <SettingRow label={t("madeBy") + "Bladedancer#9791"}>
                 <a
                     className="btn btn--small"
-                    href="https://github.com/Bungie-net/api"
+                    href="https://www.bungie.net/7/en/User/Profile/2/4611686018443729606"
                     target="_blank"
                     rel="noreferrer noopener"
                 >
-                    {tCommon("open")}
+                    {tAccount("profile")}
                 </a>
             </SettingRow>
         </div>

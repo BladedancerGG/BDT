@@ -195,6 +195,15 @@
     gap: 0.5rem;
     flex-shrink: 0;
   }
+
+  // Le pictogramme d'une ligne qui n'a rien à régler, seulement à signaler —
+  // un enregistrement en échec. Dimensionné à la main : il n'est dans aucun
+  // bouton, d'où il aurait hérité sa taille.
+  &__warning {
+    width: 1.25rem;
+    height: 1.25rem;
+    color: var(--color-danger);
+  }
   &:not(:last-child) {
     border-bottom: 1px solid var(--color-border);
   }

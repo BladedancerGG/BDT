@@ -10,7 +10,8 @@
     "groups": "Groupes",
     "edit": "Modifier",
     "cancel": "Annuler",
-    "confirm": "Confirmer"
+    "confirm": "Confirmer",
+    "join": "Rejoindre"
   },
   "auth": {
     "login": "Se connecter avec Bungie"
@@ -25,7 +26,9 @@
     "label": "Menu principal",
     "open": "Ouvrir le menu",
     "soon": "à venir",
-    "signedInAs": "Connecté en tant que"
+    "signedInAs": "Connecté en tant que",
+    "sourceCode": "Code source sur GitHub",
+    "discord": "Rejoindre le serveur Discord"
   },
   "criteria": {
     "none": "Aucun",
@@ -56,6 +59,15 @@
       "profile": "Profil Bungie",
       "sync": "Synchronisation",
       "syncHint": "Enregistre les paramètres sur le serveur et les retrouve sur vos autres appareils. Désactivée, ils restent dans ce navigateur.",
+      "syncFailed": "Dernier enregistrement en échec",
+      "syncFailedHint": {
+        "rejected": "Le serveur a refusé les groupes de ce navigateur : ils y sont conservés, mais la version enregistrée sur le compte est en retard.",
+        "offline": "Les groupes de ce navigateur n’ont pas pu être envoyés. Ils y sont conservés et l’envoi sera retenté."
+      },
+      "restore": "Récupérer des groupes perdus",
+      "restoreHint": "Ce navigateur garde une copie de sécurité du {date} qui contient {groups, plural, one {1 groupe absent} other {# groupes absents}} de la liste actuelle.",
+      "restoreAction": "Récupérer",
+      "restoreConfirm": "Ajouter {groups, plural, one {le groupe absent} other {les # groupes absents}} de la copie de sécurité à la liste actuelle ?",
       "clearSync": "Supprimer les données de synchronisation",
       "clearSyncHint": "Efface les paramètres enregistrés sur le serveur et désactive la synchronisation. Ceux de ce navigateur sont conservés.",
       "clearSyncConfirm": "Supprimer les paramètres enregistrés sur le serveur et désactiver la synchronisation ?",
@@ -134,7 +146,9 @@
     "about": {
       "version": "Version du site",
       "support": "Contact",
-      "bungieApi": "API Bungie"
+      "bungieApi": "API Bungie",
+      "madeBy": "Créé par ",
+      "discord": "Serveur Discord"
     }
   },
   "actions": {

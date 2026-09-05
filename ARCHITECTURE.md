@@ -763,6 +763,56 @@ preference. Two differences from the settings sync:
   preferences. An unknown setting degrades to a default; an unreadable group gets
   equipped. Better to refuse it on the way in — `isLoadoutGroupArray`.
 
+#### What keeps groups from vanishing
+
+Groups did vanish, typically after a page reload, and never through a single
+bug: four independent paths each turned a small mishap into a permanent loss.
+They are worth listing, because every guard below answers one of them.
+
+**The downward read overwrote instead of reconciling.** `GET` returned an empty
+list whenever it had nothing to return — no row, unreadable row — and the client
+took that for the account's truth, replacing its list *and* its localStorage with
+it. The route now answers `groups: null` for "the account knows nothing", which
+is not `groups: []` ("the account knows there is nothing left"), and carries the
+row's `updatedAt`. `mergeGroups` (`sync-merge.ts`, a pure module with its own
+check) settles the rest per group: newest `updatedAt` wins; a group the server
+does not have is kept if it postdates the deposit — created since — and dropped
+if it predates it — deleted elsewhere. Order follows whichever side was touched
+last.
+
+**A single malformed group discarded every one of them.** Rehydration validated
+the persisted array as a whole and fell back to an empty list, which the next
+write then committed over the stored one. It now filters entry by entry, and
+says on the console how many it dropped. A missing `migrate` had the same effect
+on any `version` bump — zustand logs and hands back `undefined` — so one is
+provided; sorting the entries does not depend on the version number.
+
+**A rejected push was silent.** A 400, a 413, an expired session: the database
+stayed behind while the interface showed nothing, and the next read served that
+stale list. The status is now kept (`PushStatus`), retried when the network is
+at fault, and shown in the settings.
+
+**The scheduled push died with the page.** The 800 ms idle delay is longer than
+a reload — a hot reload in development lands inside it every time, which is why
+"I edit the code and my groups are gone" was a reproducible sentence.
+`flushGroupsPush` sends what is still pending on `pagehide` and on the tab being
+hidden, over `sendBeacon` (hence the route's `POST`, the only method a beacon
+speaks).
+
+Two backstops sit under all of it:
+
+- **the upward subscription refuses to push an empty list nobody asked for.**
+  The store counts the user's own gestures (`edits`, session-only); `replaceAll`
+  is the one action that does not bump it. An emptying that comes from a failed
+  rehydration or an unlucky read is therefore recognisable, and stays local
+  instead of being committed over the account copy;
+- **a safety net, in a second localStorage key** (`rescue.ts`). The persisted
+  entry is rewritten by whatever changes the list, accident included, so it is no
+  fallback to itself. The net is written only by the user's own gestures, and by
+  `replaceAll` for what it is about to drop. `RecoveryRow` offers what is missing
+  back — appended, never replacing: the net may be old, and nothing justifies
+  losing what came after to recover what came before.
+
 The card's grid is always the size of the **character**, never of the group: an
 account that unlocks one more slot must see it appear, empty, on its existing
 groups rather than see them truncated.
@@ -2296,6 +2346,61 @@ Leur synchronisation avec le compte a donc sa route et sa ligne
   celui des préférences. Un réglage inconnu se dégrade en valeur par défaut ; un
   groupe illisible s'équipe. Autant le refuser au dépôt —
   `isLoadoutGroupArray`.
+
+#### Ce qui empêche les groupes de disparaître
+
+Des groupes ont bel et bien disparu, le plus souvent après un rechargement de
+page, et jamais par un seul défaut : quatre chemins indépendants transformaient
+chacun un incident bénin en perte définitive. Ils valent d'être énumérés, chaque
+garde ci-dessous répondant à l'un d'eux.
+
+**La relecture descendante écrasait au lieu de réconcilier.** `GET` rendait une
+liste vide dès qu'il n'avait rien à rendre — pas de ligne, ligne illisible — et
+le client y voyait la vérité du compte : il remplaçait sa liste *et* son
+localStorage par elle. La route répond désormais `groups: null` pour « le compte
+ne sait rien », qui n'est pas `groups: []` (« le compte sait qu'il n'y a plus
+rien »), et joint l'`updatedAt` de la ligne. `mergeGroups` (`sync-merge.ts`,
+module pur avec sa vérification) tranche le reste groupe par groupe :
+l'`updatedAt` le plus récent gagne ; un groupe que le serveur n'a pas est gardé
+s'il est postérieur au dépôt — créé depuis — et écarté s'il lui est antérieur —
+supprimé ailleurs. L'ordre suit le côté touché en dernier.
+
+**Un seul groupe mal formé les emportait tous.** La réhydratation validait le
+tableau persisté d'un bloc et retombait sur une liste vide, que la première
+écriture suivante confirmait par-dessus le stockage. Le tri se fait maintenant
+entrée par entrée, et la console dit combien ont été écartées. Une fonction
+`migrate` absente produisait le même effet à tout changement de `version` —
+zustand journalise et rend `undefined` — elle est donc fournie ; le tri des
+entrées, lui, ne dépend pas du numéro de version.
+
+**Un envoi refusé était silencieux.** Un 400, un 413, une session expirée : la
+base restait en retard sans que l'interface n'en dise rien, et la relecture
+suivante servait cette liste périmée. L'état est désormais retenu
+(`PushStatus`), réessayé quand c'est le réseau qui manque, et affiché dans les
+paramètres.
+
+**L'envoi programmé mourait avec la page.** Les 800 ms d'inactivité sont plus
+longues qu'un rechargement — en développement, un rechargement à chaud tombe
+dedans à tous les coups, d'où la phrase « je modifie le code et mes groupes
+disparaissent », parfaitement reproductible. `flushGroupsPush` envoie ce qui
+attendait encore sur `pagehide` et sur l'onglet masqué, via `sendBeacon` (d'où le
+`POST` de la route, seule méthode qu'un beacon sache parler).
+
+Deux filets sont tendus sous l'ensemble :
+
+- **l'abonnement montant refuse de déposer une liste vide que personne n'a
+  demandée.** Le store compte les gestes de l'utilisateur (`edits`, le temps de
+  la session), et `replaceAll` est la seule action à ne pas l'incrémenter. Un
+  vidage venu d'une réhydratation ratée ou d'une relecture malheureuse est donc
+  reconnaissable, et reste local au lieu d'être écrit par-dessus la copie du
+  compte ;
+- **une copie de sécurité, dans une seconde clé de localStorage** (`rescue.ts`).
+  L'entrée persistée est réécrite par tout ce qui change la liste, accident
+  compris : elle ne peut pas se servir de recours à elle-même. Ce filet-ci n'est
+  écrit que par les gestes de l'utilisateur, et par `replaceAll` pour ce qu'il
+  s'apprête à faire tomber. `RecoveryRow` rend ce qui manque — en l'ajoutant,
+  jamais en remplaçant : le filet peut dater, et rien ne justifie de perdre ce
+  qui a suivi pour récupérer ce qui a précédé.
 
 La grille d'une carte fait toujours la taille du **personnage**, jamais celle du
 groupe : un compte qui débloque un emplacement de plus doit le voir apparaître,

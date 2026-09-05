@@ -10,7 +10,8 @@
     "groups": "Groups",
     "edit": "Edit",
     "cancel": "Cancel",
-    "confirm": "Confirm"
+    "confirm": "Confirm",
+    "join": "Join"
   },
   "auth": {
     "login": "Sign in with Bungie"
@@ -25,7 +26,9 @@
     "label": "Main menu",
     "open": "Open the menu",
     "soon": "soon",
-    "signedInAs": "Signed in as"
+    "signedInAs": "Signed in as",
+    "discord": "Join the Discord server",
+    "sourceCode": "Source code on GitHub"
   },
   "criteria": {
     "none": "None",
@@ -56,6 +59,15 @@
       "profile": "Bungie profile",
       "sync": "Settings synchronization",
       "syncHint": "When enabled, saves your current settings on the server for your Bungie account and restores them on your other devices. When disabled, they are saved in a cookie stored in this browser.",
+      "syncFailed": "Last save failed",
+      "syncFailedHint": {
+        "rejected": "The server rejected this browser’s groups: they are kept here, but the version saved to the account is out of date.",
+        "offline": "This browser’s groups could not be sent. They are kept here and sending will be retried."
+      },
+      "restore": "Recover lost groups",
+      "restoreHint": "This browser keeps a safety copy from {date} holding {groups, plural, one {1 group missing} other {# groups missing}} from the current list.",
+      "restoreAction": "Recover",
+      "restoreConfirm": "Add {groups, plural, one {the missing group} other {the # missing groups}} from the safety copy to the current list?",
       "clearSync": "Delete settings synchronization data",
       "clearSyncHint": "Delete the settings synchronization data saved on the server and turns settings synchronization off. The ones in this browser are kept.",
       "clearSyncConfirm": "You are about to delete the settings synchronization data saved on the server and turn it off. Do you want to continue?",
@@ -134,7 +146,9 @@
     "about": {
       "version": "Site version",
       "support": "Contact",
-      "bungieApi": "Bungie API"
+      "bungieApi": "Bungie API",
+      "madeBy": "Made by ",
+      "discord": "Discord server"
     }
   },
   "actions": {

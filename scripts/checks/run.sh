@@ -6,14 +6,14 @@
 set -e
 cd "$(dirname "$0")/../.."
 
-# Une seule compilation pour les trois : les erreurs de type sortent d'un bloc.
+# Une seule compilation pour toutes : les erreurs de type sortent d'un bloc.
 docker compose exec -T app npx tsc -p scripts/checks/tsconfig.json
 
 # Les modules compilés cherchent leurs dépendances à côté d'eux.
 docker compose exec -T app ln -sfn /app/node_modules /tmp/checks/node_modules
 
 status=0
-for check in edit equip insert backup; do
+for check in edit equip insert backup sync-merge; do
   printf '\n═══ %s ═══\n' "$check"
   docker compose exec -T app node "/tmp/checks/scripts/checks/$check.check.js" || status=1
 done

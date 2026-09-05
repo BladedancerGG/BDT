@@ -11,9 +11,16 @@ import {
     FloatingFocusManager,
     FloatingPortal,
 } from "@floating-ui/react";
-import {Link, usePathname} from "@/i18n/navigation";
+import {Link} from "@/i18n/navigation";
 import {useUi} from "@/lib/ui/store";
+import {useSettings} from "@/lib/settings/store";
+import {VIEW_MODES} from "@/lib/settings/constants";
+import {useGroupSelection} from "@/lib/loadouts/groups/selection";
 import {APP_TITLE} from "@/lib/app-info";
+import {Cog6ToothIcon, SquaresPlusIcon} from "@heroicons/react/24/solid"
+import {LoadoutsIcon, VaultIcon} from "@/components/icons";
+import DiscordIcon from "@/components/icons/other/DiscordIcon"
+import GithubIcon from "@/components/icons/other/GithubIcon";
 
 /**
  * Durée du glissement d'entrée et de sortie, en millisecondes.
@@ -39,11 +46,15 @@ const TRANSITION_MS = 350;
 export function MainMenu({displayName}: { displayName?: string }) {
     const t = useTranslations("menu");
     const tCommon = useTranslations("common");
-    const pathname = usePathname();
 
     const open = useUi((s) => s.menuOpen);
     const setOpen = useUi((s) => s.setMenuOpen);
     const setSettingsOpen = useUi((s) => s.setSettingsOpen);
+    const viewMode = useSettings((s) => s.viewMode);
+    const setViewMode = useSettings((s) => s.setViewMode);
+    // Une sélection d'équipement impose son mode : comme pour les onglets, il
+    // n'y a alors rien à basculer.
+    const selecting = useGroupSelection((s) => s.active);
 
     const {refs, context} = useFloating({
         open,
@@ -83,26 +94,29 @@ export function MainMenu({displayName}: { displayName?: string }) {
                             <h2 className="main-menu__title">{APP_TITLE}</h2>
                         </header>
 
-                        <div className="main-menu__section">
-                            <Link
-                                href="/"
-                                className="main-menu__item"
-                                aria-current={pathname === "/" ? "page" : undefined}
-                                onClick={() => setOpen(false)}
-                            >
-                                {tCommon("inventory")}
-                            </Link>
-
-                            {/* La page des équipements n'existe pas encore : l'entrée
-                                est présente mais inerte, pour dire ce qui vient */}
-                            <span
-                                className="main-menu__item main-menu__item--soon"
-                                aria-disabled="true"
-                            >
-                                {tCommon("loadouts")}
-                                <span className="main-menu__badge">{t("soon")}</span>
-                            </span>
-                        </div>
+                        {/* Les vues ne sont pas des routes : basculer, c'est écrire
+                            la préférence, comme le font les onglets. */}
+                        {!selecting && (
+                            <div className="main-menu__section">
+                                {VIEW_MODES.map((mode) => (
+                                    <button
+                                        key={mode}
+                                        type="button"
+                                        className="main-menu__item"
+                                        aria-current={mode === viewMode ? "page" : undefined}
+                                        onClick={() => {
+                                            setViewMode(mode);
+                                            setOpen(false);
+                                        }}
+                                    >
+                                        {mode === "inventory" && <VaultIcon/>}
+                                        {mode === "loadouts" && <LoadoutsIcon/>}
+                                        {mode === "groups" && <SquaresPlusIcon/>}
+                                        {tCommon(mode)}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
 
                         <div className="main-menu__section">
                             <button
@@ -113,10 +127,35 @@ export function MainMenu({displayName}: { displayName?: string }) {
                                     setSettingsOpen(true);
                                 }}
                             >
+                                <Cog6ToothIcon/>
                                 {tCommon("settings")}
                             </button>
                         </div>
 
+                        <div className="main-menu__section">
+
+                            <Link
+                                href="https://discord.gg/Xz2BRVdGqr"
+                                className="main-menu__item"
+                                target='_blank'
+                                rel="noreferrer noopener"
+                            >
+                                <DiscordIcon />
+                                {t("discord")}
+
+                            </Link>
+
+                            <Link
+                            href="https://github.com/BladedancerGG/BDT"
+                            className="main-menu__item"
+                            target='_blank'
+                            rel="noreferrer noopener"
+                        >
+                            <GithubIcon />
+                            {t("sourceCode")}
+
+                        </Link>
+                        </div>
 
                         {/* Ancré en bas : le compte connecté et sa sortie */}
                         <footer className="main-menu__footer">

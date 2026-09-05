@@ -4,8 +4,10 @@ import {useMemo} from "react";
 import {create} from "zustand";
 import {createJSONStorage, persist} from "zustand/middleware";
 import {moveGroup} from "./edit";
+import {saveRescue} from "./rescue";
 import {
     GROUPS_STORAGE_KEY,
+    isLoadoutGroup,
     GROUP_NAME_MAX,
     isLoadoutGroupArray,
     type GroupLoadout,
@@ -28,6 +30,16 @@ import {
  */
 export interface LoadoutGroupsState {
     groups: LoadoutGroup[];
+    /**
+     * Nombre de gestes de l'utilisateur depuis le chargement.
+     *
+     * Ce n'est pas une statistique : c'est ce qui permet à la synchronisation de
+     * distinguer une liste vidée **par quelqu'un** d'une liste vidée par un
+     * accident — réhydratation qui échoue, relecture malheureuse. Sans ce
+     * repère, l'abonnement montant déposait le vide en base et la perte devenait
+     * définitive. Hors de `partialize` : il n'a de sens que dans la session.
+     */
+    edits: number;
 
     /** Crée un groupe et renvoie son identifiant. */
     createGroup: (input: {
@@ -58,11 +70,43 @@ export interface LoadoutGroupsState {
      */
     moveGroup: (characterId: string, from: number, to: number) => void;
     /**
-     * Remplace la liste entière — c'est ce que fait la relecture de la
-     * sauvegarde du compte, qui prime sur le stockage local comme pour les
-     * préférences.
+     * Réinsère des groupes récupérés dans le filet (`rescue.ts`).
+     *
+     * Ils s'**ajoutent** : le filet peut dater, et rien ne justifie de perdre ce
+     * qui a été fait depuis pour récupérer ce qui a été perdu avant. Un
+     * identifiant déjà présent est donc laissé de côté, la version en place
+     * étant la plus récente.
+     */
+    restoreGroups: (groups: readonly LoadoutGroup[]) => void;
+    /**
+     * Remplace la liste entière — ce que déposent la fusion avec la sauvegarde
+     * du compte (`mergeGroups`) et l'import d'un fichier.
+     *
+     * Le seul chemin par lequel un groupe disparaît sans que personne ne l'ait
+     * demandé : ce qu'il fait tomber part donc dans le filet (`rescue.ts`), et
+     * le compteur `edits` ne bouge pas — la synchronisation sait ainsi que le
+     * résultat ne vient pas d'une main.
      */
     replaceAll: (groups: LoadoutGroup[]) => void;
+}
+
+/**
+ * Applique un geste de l'utilisateur : nouvelle liste, compteur incrémenté,
+ * filet mis à jour.
+ *
+ * Toutes les actions passent par là, `replaceAll` excepté — et c'est toute la
+ * distinction dont dépendent le filet (`rescue.ts`) et la garde de la
+ * synchronisation : ce qui vient d'une main, et ce qui vient d'ailleurs.
+ */
+function edit(
+    set: (fn: (state: LoadoutGroupsState) => Partial<LoadoutGroupsState>) => void,
+    next: (groups: LoadoutGroup[]) => LoadoutGroup[],
+): void {
+    set((state) => {
+        const groups = next(state.groups);
+        saveRescue(groups);
+        return {groups, edits: state.edits + 1};
+    });
 }
 
 /** Nom ramené à ce qu'un affichage peut porter, jamais vide. */
@@ -75,6 +119,7 @@ export const useLoadoutGroups = create<LoadoutGroupsState>()(
     persist(
         (set) => ({
             groups: [],
+            edits: 0,
 
             createGroup: ({characterId, name, color, loadouts}) => {
                 const now = Date.now();
@@ -82,26 +127,24 @@ export const useLoadoutGroups = create<LoadoutGroupsState>()(
                 // les redirections en HTTP, l'application n'est donc jamais
                 // servie hors contexte sécurisé (voir le Caddyfile).
                 const id = crypto.randomUUID();
-                set((state) => ({
-                    groups: [
-                        ...state.groups,
-                        {
-                            id,
-                            name: cleanName(name, id.slice(0, 8)),
-                            characterId,
-                            color,
-                            loadouts,
-                            createdAt: now,
-                            updatedAt: now,
-                        },
-                    ],
-                }));
+                edit(set, (groups) => [
+                    ...groups,
+                    {
+                        id,
+                        name: cleanName(name, id.slice(0, 8)),
+                        characterId,
+                        color,
+                        loadouts,
+                        createdAt: now,
+                        updatedAt: now,
+                    },
+                ]);
                 return id;
             },
 
             renameGroup: (id, name) =>
-                set((state) => ({
-                    groups: state.groups.map((group) =>
+                edit(set, (groups) =>
+                    groups.map((group) =>
                         group.id === id
                             ? {
                                 ...group,
@@ -110,52 +153,90 @@ export const useLoadoutGroups = create<LoadoutGroupsState>()(
                             }
                             : group,
                     ),
-                })),
+                ),
 
             setGroupColor: (id, color) =>
-                set((state) => ({
-                    groups: state.groups.map((group) =>
+                edit(set, (groups) =>
+                    groups.map((group) =>
                         group.id === id
                             ? {...group, color, updatedAt: Date.now()}
                             : group,
                     ),
-                })),
+                ),
 
             deleteGroup: (id) =>
-                set((state) => ({
-                    groups: state.groups.filter((group) => group.id !== id),
-                })),
+                edit(set, (groups) => groups.filter((group) => group.id !== id)),
 
             setGroupLoadouts: (id, loadouts) =>
-                set((state) => ({
-                    groups: state.groups.map((group) =>
+                edit(set, (groups) =>
+                    groups.map((group) =>
                         group.id === id
                             ? {...group, loadouts, updatedAt: Date.now()}
                             : group,
                     ),
-                })),
+                ),
 
             moveGroup: (characterId, from, to) =>
-                set((state) => ({
-                    groups: moveGroup(state.groups, characterId, from, to),
-                })),
+                edit(set, (groups) => moveGroup(groups, characterId, from, to)),
 
-            replaceAll: (groups) => set({groups}),
+            restoreGroups: (restored) =>
+                edit(set, (groups) => {
+                    const known = new Set(groups.map((group) => group.id));
+                    return [
+                        ...groups,
+                        ...restored.filter((group) => !known.has(group.id)),
+                    ];
+                }),
+
+            replaceAll: (groups) =>
+                set((state) => {
+                    // Ce que le remplacement fait disparaître est mis de côté
+                    // avant de l'être : une relecture du compte et un import
+                    // passent par ici, et l'un comme l'autre peuvent rendre une
+                    // liste amputée sans que personne ne l'ait voulu.
+                    const next = new Set(groups.map((group) => group.id));
+                    if (state.groups.some((group) => !next.has(group.id))) {
+                        saveRescue(state.groups);
+                    }
+                    return {groups};
+                }),
         }),
         {
             name: GROUPS_STORAGE_KEY,
             version: 1,
             storage: createJSONStorage(() => localStorage),
             partialize: (state) => ({groups: state.groups}),
+            // Une version inconnue ne doit pas emporter la liste. Sans fonction
+            // de migration, zustand journalise une erreur et rend `undefined` —
+            // la liste repartait vide dans l'interface, puis le premier
+            // changement l'écrivait par-dessus le stockage. Ici, on garde ce
+            // qu'on sait lire : le tri des entrées est fait juste après, par
+            // `merge`, et il ne dépend pas du numéro de version.
+            migrate: (persisted) => persisted as {groups?: unknown},
             // Une entrée corrompue — écriture interrompue, format d'une version
-            // à venir — repartirait sinon dans l'interface puis en base. On
-            // préfère perdre la relecture que propager l'illisible.
+            // à venir — ne doit pas repartir dans l'interface puis en base.
+            // Mais elle ne doit pas non plus emporter ses voisines : le tri se
+            // fait **entrée par entrée**, et non sur la liste entière comme
+            // avant, où un seul groupe illisible faisait tout disparaître.
             merge: (persisted, current) => {
                 const groups = (persisted as {groups?: unknown} | undefined)?.groups;
-                return {
-                    ...current,
-                    groups: isLoadoutGroupArray(groups) ? groups : current.groups,
-                };
+                if (isLoadoutGroupArray(groups)) return {...current, groups};
+
+                const salvaged = Array.isArray(groups)
+                    ? groups.filter(isLoadoutGroup)
+                    : [];
+                if (Array.isArray(groups) && salvaged.length < groups.length) {
+                    // Le seul cas où la console vaut mieux que le silence :
+                    // l'utilisateur va voir des groupes manquer et n'aura
+                    // sinon aucune trace de la raison.
+                    console.error(
+                        `[groupes] ${groups.length - salvaged.length} entrée(s) illisible(s) écartée(s) à la relecture`,
+                    );
+                }
+                // Une liste partiellement récupérée est déposée dans le filet
+                // avant d'être servie : le stockage, lui, va être réécrit.
+                if (salvaged.length > 0) saveRescue(salvaged);
+                return {...current, groups: salvaged};
             },
         },
     ),

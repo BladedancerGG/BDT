@@ -22,6 +22,7 @@
     "edit.check.ts",
     "equip.check.ts",
     "insert.check.ts",
-    "backup.check.ts"
+    "backup.check.ts",
+    "sync-merge.check.ts"
   ]
 }
