@@ -147,7 +147,8 @@ It will build the required containers and launch the application after it is fin
 make prod-cold-start # builds and starts the application
 make prod-update-all # builds and restart the application if it's running
 make prod-logs      # app logs (capped at 3 × 10 MB)
-make prod-backup    # compressed database dump
+make prod-backup    # compressed database dump, written on the host as backup-<date>.sql.gz
+make prod-restore file=backup-….sql.gz # reimport a dump (overwrites the database)
 make prod-migrate   # replay migrations only
 make prod-down      # stop; data and certificates are kept
 
@@ -301,7 +302,8 @@ Cela construira les conteneurs nécessaires et lancera l'application une fois te
 make prod-cold-start # construit et démarre l'application
 make prod-update-all # construit et redémarre l'application si elle tourne
 make prod-logs      # logs de l'app (limités à 3 × 10 Mo)
-make prod-backup    # dump compressé de la base de données
+make prod-backup    # dump compressé de la base, écrit sur l'hôte en backup-<date>.sql.gz
+make prod-restore file=backup-….sql.gz # réimporte un dump (écrase la base)
 make prod-migrate   # rejoue uniquement les migrations
 make prod-down      # arrêt ; les données et les certificats sont conservés
 

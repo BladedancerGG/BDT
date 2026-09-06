@@ -3,9 +3,9 @@
 
 # ".PHONY" : ces cibles ne sont pas des fichiers, make les exécute toujours.
 .PHONY: prod-up prod-down prod-restart prod-build prod-logs prod-ps prod-migrate \
-        prod-backup prod-restart-next prod-build-next prod-cold-start prod-update \
+        prod-backup prod-restore prod-restart-next prod-build-next prod-cold-start prod-update \
         prod-update-next pull \
-        help start stop restart build up down logs logs-db shell db-shell \
+        help start stop restart build up down logs logs-db shell db-shell backup restore \
         ps migrate generate studio adminer install lint clean reset
 
 # Cible par défaut (exécutée quand on tape juste "make")
@@ -63,6 +63,37 @@ install: ## Installe une dépendance npm (ex: make install pkg=zod)
 lint: ## Lance le linter
 	docker compose exec app npm run lint
 
+## —— Sauvegarde / restauration ————————————————————————————
+# Les identifiants Postgres ne vivent que dans .env, que make ne charge pas :
+# les variables sont donc déréférencées DANS le conteneur, qui les a déjà.
+# $(1) : la commande docker compose visée (locale ou production).
+
+define dump_db
+	$(1) exec -T db sh -c 'pg_dump -U "$$POSTGRES_USER" "$$POSTGRES_DB"' \
+		| gzip > backup-$$(date +%Y%m%d-%H%M%S).sql.gz
+	@echo "Sauvegarde écrite."
+endef
+
+# Accepte un .sql ou un .sql.gz. Le schéma est vidé d'abord : un dump pg_dump
+# ne contient aucun DROP, sans quoi l'import échouerait sur les tables déjà là.
+define restore_db
+	@test -n "$(file)" || { echo "Usage : make $@ file=backup-<date>.sql.gz"; exit 1; }
+	@test -f "$(file)" || { echo "Fichier introuvable : $(file)"; exit 1; }
+	@printf "Le contenu de la base va être ÉCRASÉ par %s. Confirmer ? [y/N] " "$(file)"
+	@read reponse; [ "$$reponse" = "y" ] || { echo "Annulé."; exit 1; }
+	@$(1) exec -T db sh -c 'psql -v ON_ERROR_STOP=1 -q -U "$$POSTGRES_USER" -d "$$POSTGRES_DB" \
+		-c "SET client_min_messages = warning; DROP SCHEMA public CASCADE; CREATE SCHEMA public;"'
+	@case "$(file)" in *.gz) gunzip -c "$(file)";; *) cat "$(file)";; esac \
+		| $(1) exec -T db sh -c 'psql -v ON_ERROR_STOP=1 -q -o /dev/null -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"'
+	@echo "Dump importé."
+endef
+
+backup: ## Sauvegarde la base locale dans backup-<date>.sql.gz
+	$(call dump_db,docker compose)
+
+restore: ## Importe un dump dans la base locale (ex: make restore file=backup.sql.gz)
+	$(call restore_db,docker compose)
+
 ## —— Production ————————————————————————————————————————————
 # Ces cibles s'utilisent SUR LE SERVEUR, avec un .env de production
 # (voir .env.production.example).
@@ -90,10 +121,11 @@ prod-ps: ## État des conteneurs de production
 prod-migrate: ## Rejoue les migrations seules
 	$(COMPOSE_PROD) run --rm migrate
 
-prod-backup: ## Sauvegarde la base dans backup-<date>.sql.gz
-	$(COMPOSE_PROD) exec -T db pg_dump -U $${POSTGRES_USER} $${POSTGRES_DB} \
-		| gzip > backup-$$(date +%Y%m%d-%H%M%S).sql.gz
-	@echo "Sauvegarde écrite."
+prod-backup: ## Sauvegarde la base de production dans backup-<date>.sql.gz
+	$(call dump_db,$(COMPOSE_PROD))
+
+prod-restore: ## Importe un dump en production (ex: make prod-restore file=backup.sql.gz)
+	$(call restore_db,$(COMPOSE_PROD))
 
 
 ## -- Commandes de prod spécifiques
