@@ -13,7 +13,7 @@ import {getSessionUserId} from "@/lib/auth/session";
  */
 const MAX_BYTES = 16 * 1024;
 
-// PUT /api/settings — dépose l'état courant, ou coupe la synchronisation
+// PUT /api/settings — dépose l'état courant, et pose le drapeau du compte
 export async function PUT(request: Request) {
   const userId = await getSessionUserId();
   if (!userId) return NextResponse.json({error: "unauthenticated"}, {status: 401});
@@ -34,21 +34,36 @@ export async function PUT(request: Request) {
     return NextResponse.json({error: "settings_too_large"}, {status: 413});
   }
 
-  await prisma.userSettings.upsert({
-    where: {userId},
-    create: {userId, enabled, data},
-    update: {enabled, data},
-  });
+  // Deux écritures, deux tables depuis que le drapeau vit sur `User` : la
+  // ligne de préférences ne dit plus si la synchronisation est active, elle ne
+  // porte que ce qui a été déposé. L'état part en base même quand on coupe —
+  // c'est exactement ce que « couper sans effacer » veut dire, et il reste là
+  // pour un retour.
+  await prisma.$transaction([
+    prisma.user.update({where: {id: userId}, data: {syncEnabled: enabled}}),
+    prisma.userSettings.upsert({
+      where: {userId},
+      create: {userId, data},
+      update: {data},
+    }),
+  ]);
 
   return NextResponse.json({ok: true});
 }
 
-// DELETE /api/settings — efface la sauvegarde ; l'absence de ligne vaut
-// synchronisation coupée, le cookie reprend seul la main.
+// DELETE /api/settings — efface la sauvegarde et coupe la synchronisation.
+//
+// Le drapeau doit être baissé explicitement : l'absence de ligne ne vaut plus
+// synchronisation coupée depuis qu'elle est allumée par défaut sur le compte,
+// et la laisser allumée ferait redéposer l'état à la modification suivante —
+// juste après un geste qui demandait le contraire.
 export async function DELETE() {
   const userId = await getSessionUserId();
   if (!userId) return NextResponse.json({error: "unauthenticated"}, {status: 401});
 
-  await prisma.userSettings.deleteMany({where: {userId}});
+  await prisma.$transaction([
+    prisma.user.update({where: {id: userId}, data: {syncEnabled: false}}),
+    prisma.userSettings.deleteMany({where: {userId}}),
+  ]);
   return NextResponse.json({ok: true});
 }

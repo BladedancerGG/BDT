@@ -74,6 +74,11 @@ export interface SettingsState {
      * l'état est aussi déposé en base et c'est *lui* qui prime au chargement —
      * le cookie n'est plus qu'un miroir local, ce qui permet de servir le bon
      * thème sans attendre.
+     *
+     * Le drapeau qui fait autorité est `User.syncEnabled` en base, allumé par
+     * défaut : celui-ci n'en est que la copie locale, imposée au chargement par
+     * `SettingsSync`. Le `false` par défaut ci-dessous ne vaut donc que hors
+     * session, où il n'y a personne avec qui synchroniser.
      */
     syncEnabled: boolean;
 
@@ -182,7 +187,7 @@ export const useSettings = create<SettingsState>()(
             searchHistorySize: SEARCH_HISTORY_SIZE.default,
             searchMissMode: "hide",
             viewMode: DEFAULT_VIEW_MODE,
-            syncEnabled: false,
+            syncEnabled: true,
 
             setTheme: (theme) => set({theme}),
             setIconSize: (size) => set({iconSize: clampIconSize(size)}),

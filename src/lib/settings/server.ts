@@ -31,6 +31,16 @@ export interface ServerPreferences {
      * cookie pouvant dater d'un autre appareil.
      */
     synced?: unknown;
+    /**
+     * Drapeau de synchronisation du compte, ou `undefined` hors session.
+     *
+     * Il descend séparément de `synced` : un compte tout neuf synchronise
+     * (défaut de `User.syncEnabled`) sans avoir encore rien déposé, et le
+     * cookie de cet appareil dit encore le contraire. C'est la base qui
+     * tranche — sans quoi la synchronisation ne s'allumerait jamais d'elle-même
+     * pour un nouvel utilisateur.
+     */
+    syncEnabled?: boolean;
 }
 
 /** Borne une taille lue dans le cookie, ou `undefined` si elle est inexploitable. */
@@ -64,16 +74,33 @@ function readCookieState(raw: string | undefined): PersistedShape | null {
     }
 }
 
+/** Drapeau de synchronisation et état déposé, pour l'utilisateur en session. */
+interface SyncedAccount {
+    enabled: boolean;
+    /** État déposé, ou `null` : synchronisation coupée, ou rien encore déposé. */
+    state: PersistedShape | null;
+}
+
 /**
- * Préférences synchronisées de l'utilisateur en session, ou `null` — pas de
- * session, pas de ligne, ou synchronisation coupée.
+ * Ce que la base sait du compte en session, ou `null` hors session.
+ *
+ * Une seule requête pour les deux : le drapeau est sur `User`, l'état sur
+ * `UserSettings`, et la page a besoin des deux à chaque rendu.
  */
-async function readSyncedState(): Promise<PersistedShape | null> {
+async function readSyncedAccount(): Promise<SyncedAccount | null> {
     const userId = await getSessionUserId();
     if (!userId) return null;
-    const row = await prisma.userSettings.findUnique({where: {userId}});
-    if (!row?.enabled) return null;
-    return (row.data ?? null) as PersistedShape | null;
+    const user = await prisma.user.findUnique({
+        where: {id: userId},
+        select: {syncEnabled: true, settings: {select: {data: true}}},
+    });
+    if (!user) return null;
+    return {
+        enabled: user.syncEnabled,
+        state: user.syncEnabled
+            ? ((user.settings?.data ?? null) as PersistedShape | null)
+            : null,
+    };
 }
 
 export async function readPreferences(): Promise<ServerPreferences> {
@@ -82,12 +109,21 @@ export async function readPreferences(): Promise<ServerPreferences> {
     // La base prime sur le cookie : c'est tout l'objet de la synchronisation.
     // Une lecture en base ratée ne doit pas emporter la page — on retombe alors
     // sur le cookie, c'est-à-dire sur le comportement d'avant la synchro.
-    let synced: PersistedShape | null = null;
+    let account: SyncedAccount | null = null;
     try {
-        synced = await readSyncedState();
-    } catch {
-        synced = null;
+        account = await readSyncedAccount();
+    } catch (error) {
+        // Journalisé, et non avalé : la page survit, mais l'échec se traduit
+        // par une synchronisation qui paraît coupée alors qu'elle est active en
+        // base — un symptôme muet, impossible à rattacher à sa cause sans ceci.
+        console.error("[préférences] lecture du compte impossible :", error);
+        account = null;
     }
 
-    return {...pick(synced ?? cookieState ?? {}), synced: synced ?? undefined};
+    const synced = account?.state ?? null;
+    return {
+        ...pick(synced ?? cookieState ?? {}),
+        synced: synced ?? undefined,
+        syncEnabled: account?.enabled,
+    };
 }

@@ -19,7 +19,7 @@ function cancelPending(): void {
     timer = undefined;
 }
 
-/** Dépose l'état en base, ou bascule le drapeau de la ligne existante. */
+/** Dépose l'état en base et pose le drapeau de synchronisation du compte. */
 export async function pushSettings(
     enabled: boolean,
     data: PersistedSettings,
@@ -43,7 +43,7 @@ export function schedulePush(data: PersistedSettings): void {
     timer = setTimeout(() => void pushSettings(true, data), PUSH_DELAY_MS);
 }
 
-/** Efface la sauvegarde. L'absence de ligne vaut synchronisation coupée. */
+/** Efface la sauvegarde et coupe la synchronisation du compte. */
 export async function deleteSyncedSettings(): Promise<boolean> {
     cancelPending();
     try {

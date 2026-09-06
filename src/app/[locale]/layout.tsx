@@ -56,7 +56,7 @@ export default async function RootLayout(
             <body>
                 {/* Avant SettingsEffects : c'est lui qui impose au store l'état
                     lu en base, celui-là même qui a servi à rendre ce HTML. */}
-                <SettingsSync serverState={prefs.synced}/>
+                <SettingsSync serverState={prefs.synced} serverSync={prefs.syncEnabled}/>
                 <SettingsEffects/>
                 {/* Après SettingsSync : c'est lui qui fixe `syncEnabled`, dont
                     dépend la relecture des groupes. Ceux-là ne descendent pas

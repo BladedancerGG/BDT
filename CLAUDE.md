@@ -131,6 +131,12 @@ ne pas être rognées par le conteneur de défilement.
   d'armure exotique partagent la famille `intrinsics` des armatures d'armes ; un identifiant non
   renseigné vaut la sentinelle `2166136261` (base FNV-1a) et non zéro, si bien qu'un test de
   vérité le prend pour un vrai hash.
+- **Après une migration Prisma, redémarrer le conteneur `app`.** Le client est un
+  singleton posé sur `globalThis` (`lib/db/prisma.ts`) : le rechargement à chaud
+  garde l'instance construite avec l'*ancien* modèle, et toute requête touchant
+  un champ neuf lève une `PrismaClientValidationError`. Là où l'appel est
+  enveloppé d'un `try`, le symptôme est muet — un réglage lu en base paraît
+  simplement absent.
 - **`docker compose down -v` détruit le volume de la base.** En production il emporte aussi les
   certificats et le compte ACME de Caddy, soumis à des quotas Let's Encrypt. `make clean` fait
   exactement ça — ne pas le lancer sur un serveur.

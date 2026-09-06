@@ -145,9 +145,9 @@ function AccountPanel({bungieMembershipId, displayName,}: { bungieMembershipId?:
         // l'appareil sur lequel l'utilisateur vient d'agir, avec une sauvegarde
         // qu'il n'a peut-être jamais déposée.
         //
-        // Couper, c'est basculer le drapeau de la ligne, sans quoi l'autre
-        // appareil continuerait de lire une sauvegarde que celui-ci ne tient
-        // plus à jour.
+        // Couper, c'est baisser le drapeau du compte (`User.syncEnabled`),
+        // sans quoi l'autre appareil continuerait de lire une sauvegarde que
+        // celui-ci ne tient plus à jour.
         void pushSettings(next, {
             ...persistedSettings(useSettings.getState()),
             syncEnabled: next,

@@ -1460,9 +1460,23 @@ In "system" mode no `data-theme` attribute is set, and the CSS
 The *Account* settings tab can mirror those preferences onto the server
 (`UserSettings`, one row per user, the same shape as the cookie). Once on, the
 **database wins**: `readPreferences()` reads the row first and only falls back to
-the cookie when there is none, when the row is disabled, or when the query fails.
-The cookie stays written all the same — it is what lets the server paint the
-right theme without waiting.
+the cookie when there is none, when sync is off, or when the query fails. The
+cookie stays written all the same — it is what lets the server paint the right
+theme without waiting.
+
+The switch itself is `User.syncEnabled`, **on by default**: a fresh account syncs
+without being asked. It sits on `User` and not on `UserSettings` because it has to
+mean something before anything has been deposited — a missing row used to be read
+as "sync off", which left no way to default it on. It therefore comes down to the
+client separately from the state (`serverSync` on `SettingsSync`), and the
+database is what settles it: the cookie of a device that has never synced still
+says the opposite. For the same reason *Delete sync data* now lowers the flag
+explicitly instead of relying on the row's absence.
+
+A brand-new account syncs but has deposited nothing, so `SettingsSync` pushes its
+state once on load in that exact case (sync on, no `serverState`) — otherwise the
+database would stay empty until the first preference change, and a second device
+would find nothing to read.
 
 Turning sync **on** is the one moment the direction reverses: the device the user
 just acted on becomes the source, and its state — preferences and loadout groups
@@ -3089,9 +3103,24 @@ En mode « système », aucun attribut `data-theme` n'est posé et la règle CSS
 L'onglet « Compte » des paramètres peut recopier ces préférences sur le serveur
 (`UserSettings`, une ligne par utilisateur, au format du cookie). Une fois
 activée, **la base prime** : `readPreferences()` lit d'abord la ligne et ne
-retombe sur le cookie qu'en son absence, si elle est désactivée, ou si la requête
-échoue. Le cookie continue d'être écrit — c'est lui qui permet au serveur de
-rendre le bon thème sans attendre.
+retombe sur le cookie qu'en son absence, si la synchronisation est coupée, ou si
+la requête échoue. Le cookie continue d'être écrit — c'est lui qui permet au
+serveur de rendre le bon thème sans attendre.
+
+L'interrupteur lui-même est `User.syncEnabled`, **allumé par défaut** : un compte
+neuf synchronise sans qu'on le lui demande. Il vit sur `User` et non sur
+`UserSettings` parce qu'il doit valoir quelque chose avant que rien n'ait été
+déposé — l'absence de ligne valait auparavant « synchronisation coupée », ce qui
+interdisait tout défaut à `true`. Il descend donc au client séparément de l'état
+(`serverSync` sur `SettingsSync`), et c'est la base qui tranche : le cookie d'un
+appareil qui n'a jamais synchronisé dit encore le contraire. Pour la même raison,
+« Supprimer les données de synchronisation » baisse désormais le drapeau
+explicitement, au lieu de s'en remettre à l'absence de ligne.
+
+Un compte tout neuf synchronise sans avoir rien déposé : `SettingsSync` dépose
+donc son état une fois au chargement dans ce cas précis (synchronisation active,
+pas de `serverState`) — sans quoi la base resterait vide jusqu'à la première
+modification de préférence, et un second appareil n'y trouverait rien à relire.
 
 **L'activation** est le seul moment où le sens s'inverse : l'appareil sur lequel
 l'utilisateur vient d'agir devient la source, et son état — préférences comme

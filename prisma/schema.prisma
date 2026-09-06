@@ -28,20 +28,27 @@ model User {
   tokenExpiresAt DateTime
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
+  // Synchronisation des préférences et des groupes avec le compte.
+  //
+  // Sur le User et non sur UserSettings : le drapeau doit valoir quelque chose
+  // avant qu'aucune préférence n'ait été déposée — c'est ce qui permet de
+  // l'activer par défaut pour un nouveau compte, là où l'absence de ligne
+  // valait auparavant « synchronisation coupée ».
+  syncEnabled    Boolean    @default(true)
   settings       UserSettings?
   loadoutGroups  UserLoadoutGroups?
 }
 
 // Préférences synchronisées d'un utilisateur.
 //
-// L'absence de ligne vaut « jamais synchronisé » : c'est ce que rétablit
-// « Supprimer les données de synchronisation ». `enabled` distingue le cas où
-// l'utilisateur coupe la synchronisation sans effacer ce qu'il a déposé — le
+// L'absence de ligne vaut « rien de déposé » : c'est ce que rétablit
+// « Supprimer les données de synchronisation ». Elle ne dit plus si la
+// synchronisation est active — ce drapeau vit sur `User.syncEnabled`, ce qui
+// permet de couper la synchronisation sans effacer ce qui a été déposé : le
 // cookie reprend alors la main, et la sauvegarde reste là pour un retour.
 model UserSettings {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    String   @id
-  enabled   Boolean  @default(true)
   // Mêmes clés que l'état persisté dans le cookie (cf. lib/settings/store.ts) :
   // le format suit l'UI, le stocker en JSON évite une migration par réglage.
   data      Json
@@ -56,9 +63,9 @@ model UserSettings {
 // aucune requête utile et imposeraient une migration à chaque évolution du
 // format d'un instantané, qui suit celui de l'API Bungie.
 //
-// Pas de drapeau `enabled` ici, contrairement à UserSettings : la
-// synchronisation des groupes suit celle des préférences, et couper celle-ci
-// efface la ligne — le stockage local garde sa copie (cf. lib/loadouts/groups).
+// Pas de drapeau ici non plus : la synchronisation des groupes suit celle des
+// préférences (`User.syncEnabled`), et couper celle-ci efface la ligne — le
+// stockage local garde sa copie (cf. lib/loadouts/groups).
 model UserLoadoutGroups {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    String   @id
