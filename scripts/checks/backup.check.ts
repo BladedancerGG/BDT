@@ -26,6 +26,7 @@ const settings = {
     theme: "dark",
     iconSize: 75,
     vaultIconSize: 60,
+    loadoutIconSize: 90,
     showOrnaments: true,
     showOriginalOnHover: false,
     sorts: "p-,n+",

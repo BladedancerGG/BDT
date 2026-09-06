@@ -12,6 +12,10 @@
   // paramètres, elle ne s'applique que sous .inventory-view__storage, qui y
   // redéfinit --item-size pour tout son sous-arbre.
   --vault-item-size: #{v.$item-size};
+  // Taille des vignettes d'emplacement d'équipement (vues « équipements » et
+  // « groupes ») : elles ne montrent pas un objet mais un emplacement du jeu,
+  // et se règlent donc à part — voir components/loadout-panel.scss.
+  --loadout-item-size: #{v.$item-size};
   --item-gap: 8px;
   // Hauteur des en-têtes de groupe du coffre (voir components/item-group.scss).
   // Lues elles aussi par la virtualisation : les en-têtes sont des lignes de la

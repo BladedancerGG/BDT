@@ -20,8 +20,7 @@ import type {DestinyLoadout} from "@/lib/bungie/profile";
 import type {ProfileData} from "@/lib/bungie/use-profile";
 import type {InventoryItemDefinition} from "@/lib/destiny/types";
 import {useCharacterGroups, useLoadoutGroups} from "@/lib/loadouts/groups/store";
-import {useEquipGroup} from "@/lib/loadouts/groups/use-equip-group";
-import {planRequestCount} from "@/lib/loadouts/groups/equip";
+import {useConfirmEquipGroup} from "@/lib/loadouts/groups/use-confirm-equip";
 import {useLoadoutIdentifiers} from "@/lib/loadouts/use-loadout-identifiers";
 import {useSettings} from "@/lib/settings/store";
 import {SortableGroupCard, StaticGroupCard} from "./GroupCard";
@@ -65,7 +64,7 @@ export function GroupsModeView({
     const groups = useCharacterGroups(characterId);
     const deleteGroup = useLoadoutGroups((s) => s.deleteGroup);
     const moveGroup = useLoadoutGroups((s) => s.moveGroup);
-    const {plan, equip} = useEquipGroup(characterId);
+    const confirmEquip = useConfirmEquipGroup(characterId);
     const setViewMode = useSettings((s) => s.setViewMode);
 
     const [editingId, setEditingId] = useState<string | null>(null);
@@ -163,31 +162,7 @@ export function GroupsModeView({
                                 loadouts={group.loadouts}
                                 slotCount={slotCount}
                                 identifiers={identifiers}
-                                onEquip={() => {
-                                    // L'engagement se chiffre avant d'être pris :
-                                    // la séquence vide, équipe, pose les attributs
-                                    // et écrase — des dizaines de requêtes sur une
-                                    // API dont Bungie limite le débit, et qui
-                                    // remplace ce que le personnage porte.
-                                    const result = plan(group);
-                                    if (!result) return;
-                                    const message = [
-                                        t("equipConfirm", {name: group.name}),
-                                        t("equipSummary", {
-                                            slots: result.slots.length,
-                                            cleared: result.clear.length,
-                                            requests: planRequestCount(result),
-                                        }),
-                                        result.skipped.length > 0
-                                            ? t("equipSkipped", {
-                                                count: result.skipped.length,
-                                            })
-                                            : null,
-                                    ]
-                                        .filter(Boolean)
-                                        .join("\n\n");
-                                    if (window.confirm(message)) equip(group);
-                                }}
+                                onEquip={() => confirmEquip(group)}
                                 onEdit={() => setEditingId(group.id)}
                                 onDelete={() => {
                                     if (

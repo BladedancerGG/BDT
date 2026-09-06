@@ -13,7 +13,15 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;
+}
+
+// Mention qui précède le titre d'un emplacement — « Modification de »,
+// « Prévisualisation de ». Elle dit ce qu'on fait de l'emplacement et non ce
+// qu'il est : elle s'efface donc devant son nom, dans un conteneur dont la
+// police est celle d'un titre.
+@mixin slot-mention {
   color: var(--color-text-muted);
+  font-size: 0.75rem;
 }
 
 // Texte tronqué sur une ligne

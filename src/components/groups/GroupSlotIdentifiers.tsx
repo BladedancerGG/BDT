@@ -88,7 +88,7 @@ export function GroupSlotIdentifiers({
             // eslint-disable-next-line react-hooks/refs
             ref={refs.setReference}
         >
-            <span className="group-identifiers__number">{slotNumber}</span>
+            <span className="group-identifiers__label">{tGroups("editing")}</span>
 
             <button
                 type="button"
@@ -117,6 +117,9 @@ export function GroupSlotIdentifiers({
                     <img src={`${BUNGIE_ROOT}${icon}`} alt="" />
                 )}
             </button>
+
+
+            <span className="group-identifiers__number">#{slotNumber}</span>
 
             {/* Le nom vient d'une liste fermée du jeu : un `<select>` dit cela
                 mieux qu'une grille, et c'est déjà le choix fait pour un

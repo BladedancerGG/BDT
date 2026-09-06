@@ -43,6 +43,13 @@ export interface SettingsState {
     iconSize: number;
     /** Taille des icônes du coffre et des objets perdus en px, bornée à [40, 96] */
     vaultIconSize: number;
+    /**
+     * Taille des vignettes d'emplacement d'équipement en px, bornée à [40, 96].
+     * Elles ne montrent pas un objet mais un emplacement du jeu (fond + glyphe)
+     * et servent les vues « équipements » et « groupes » : leur lisibilité ne
+     * se règle pas avec celle du coffre, où elles vivaient auparavant.
+     */
+    loadoutIconSize: number;
     /** Afficher l'ornement équipé plutôt que l'icône de base */
     showOrnaments: boolean;
     /**
@@ -85,6 +92,7 @@ export interface SettingsState {
     setTheme: (theme: ThemePreference) => void;
     setIconSize: (size: number) => void;
     setVaultIconSize: (size: number) => void;
+    setLoadoutIconSize: (size: number) => void;
     setShowOrnaments: (show: boolean) => void;
     setShowOriginalOnHover: (show: boolean) => void;
     setWeaponGrouping: (grouping: WeaponGrouping) => void;
@@ -118,6 +126,7 @@ export function persistedSettings(state: SettingsState) {
         theme: state.theme,
         iconSize: state.iconSize,
         vaultIconSize: state.vaultIconSize,
+        loadoutIconSize: state.loadoutIconSize,
         showOrnaments: state.showOrnaments,
         showOriginalOnHover: state.showOriginalOnHover,
         sorts: serializeSortRules(state.sortRules),
@@ -179,6 +188,7 @@ export const useSettings = create<SettingsState>()(
             theme: "system",
             iconSize: ICON_SIZE.default,
             vaultIconSize: ICON_SIZE.default,
+            loadoutIconSize: ICON_SIZE.default,
             showOrnaments: true,
             showOriginalOnHover: true,
             sortRules: [...DEFAULT_SORT_RULES],
@@ -192,6 +202,8 @@ export const useSettings = create<SettingsState>()(
             setTheme: (theme) => set({theme}),
             setIconSize: (size) => set({iconSize: clampIconSize(size)}),
             setVaultIconSize: (size) => set({vaultIconSize: clampIconSize(size)}),
+            setLoadoutIconSize: (size) =>
+                set({loadoutIconSize: clampIconSize(size)}),
             setShowOrnaments: (showOrnaments) => set({showOrnaments}),
             setShowOriginalOnHover: (showOriginalOnHover) =>
                 set({showOriginalOnHover}),

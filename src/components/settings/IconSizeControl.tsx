@@ -61,7 +61,12 @@ export function IconSizeControl({
                     min={ICON_SIZE.min}
                     max={ICON_SIZE.max}
                     value={draft}
-                    onChange={(e) => onChange(Number(e.target.value))}
+                    // Ne borne rien pendant la frappe : le premier chiffre
+                    // d'une valeur à deux chiffres est toujours hors bornes
+                    // (« 4 » pour 48), et le remonter au minimum sur-le-champ
+                    // rendait le champ inutilisable — la valeur ne partait au
+                    // store qu'à la validation.
+                    onChange={(e) => setDraft(e.target.value)}
                     onBlur={commit}
                     onKeyDown={(e) => {
                         if (e.key === "Enter") commit();

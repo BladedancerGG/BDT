@@ -14,6 +14,7 @@ interface PersistedShape {
     theme?: ThemePreference;
     iconSize?: number;
     vaultIconSize?: number;
+    loadoutIconSize?: number;
 }
 
 export interface ServerPreferences {
@@ -25,6 +26,7 @@ export interface ServerPreferences {
     theme?: "light" | "dark";
     iconSize?: number;
     vaultIconSize?: number;
+    loadoutIconSize?: number;
     /**
      * État déposé en base, quand la synchronisation est active. C'est lui qui
      * a servi à rendre le HTML ci-dessus : le client doit s'y ranger, son
@@ -57,6 +59,7 @@ function pick(state: PersistedShape): Omit<ServerPreferences, "synced"> {
         theme: state.theme === "light" || state.theme === "dark" ? state.theme : undefined,
         iconSize: readIconSize(state.iconSize),
         vaultIconSize: readIconSize(state.vaultIconSize),
+        loadoutIconSize: readIconSize(state.loadoutIconSize),
     };
 }
 

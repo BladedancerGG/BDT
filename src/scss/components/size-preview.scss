@@ -1,0 +1,52 @@
+// Aperçu des trois tailles réglables, sous les curseurs des paramètres.
+//
+// Rien n'y est cliquable : ce sont les vignettes des grilles, montées telles
+// quelles pour qu'une taille se juge sur ce qu'on regarde vraiment.
+
+.size-preview {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 1.25rem;
+  width: 100%;
+
+  &__group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+    min-width: 0;
+
+    // Le coffre a son propre réglage : redéfinir --item-size ici suffit, tout
+    // le sous-arbre (`.item` comme `.item-thumb`) lit déjà cette variable —
+    // c'est exactement ce que fait .inventory-view__storage.
+    &--vault {
+      --item-size: var(--vault-item-size);
+    }
+  }
+
+  &__caption {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+  }
+
+  &__items {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: var(--item-gap);
+  }
+
+  // Les vignettes sont dessinées pour les grilles, où elles s'attrapent et
+  // s'ouvrent. Ici elles ne sont qu'un échantillon : annoncer un clic qui ne
+  // fait rien tromperait sur ce qui est réglable.
+  &__item,
+  .loadout-slot {
+    cursor: default;
+  }
+
+  &__empty {
+    margin: 0;
+    color: var(--color-text-muted);
+    font-size: 0.8125rem;
+  }
+}

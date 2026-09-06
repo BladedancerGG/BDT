@@ -15,6 +15,7 @@ export function SettingsEffects() {
     const theme = useSettings((s) => s.theme);
     const iconSize = useSettings((s) => s.iconSize);
     const vaultIconSize = useSettings((s) => s.vaultIconSize);
+    const loadoutIconSize = useSettings((s) => s.loadoutIconSize);
 
     useEffect(() => {
         const root = document.documentElement;
@@ -37,6 +38,13 @@ export function SettingsEffects() {
             `${vaultIconSize}px`,
         );
     }, [vaultIconSize]);
+
+    useEffect(() => {
+        document.documentElement.style.setProperty(
+            "--loadout-item-size",
+            `${loadoutIconSize}px`,
+        );
+    }, [loadoutIconSize]);
 
     return null;
 }

@@ -12,8 +12,10 @@ import {isEmptyLoadout} from "@/lib/loadouts/loadout";
 import {
     useLoadoutIdentifierChoices,
     useLoadoutIdentifiers,
+    type LoadoutIdentifiers,
 } from "@/lib/loadouts/use-loadout-identifiers";
 import {useLoadoutGroups} from "@/lib/loadouts/groups/store";
+import {useConfirmEquipGroup} from "@/lib/loadouts/groups/use-confirm-equip";
 import {foreignItems, useGroupSelection} from "@/lib/loadouts/groups/selection";
 import {SnapshotEditProvider} from "@/lib/loadouts/groups/snapshot-edit";
 import {
@@ -28,12 +30,13 @@ import {
 import {
     copyGroupLoadouts,
     emptyGroupLoadout,
-    GROUP_NAME_MAX,
     type LoadoutGroup,
 } from "@/lib/loadouts/groups/types";
 import {EquipmentModeView} from "@/components/equipment/EquipmentModeView";
-import {ArrowLeftIcon, Squares2X2Icon} from "@heroicons/react/24/solid";
+import {LoadoutSlotTile} from "@/components/loadouts/LoadoutSlotTile";
+import {ArrowLeftIcon, BoltIcon, Squares2X2Icon} from "@heroicons/react/24/solid";
 import {GroupColorPicker} from "./GroupColorPicker";
+import {GroupNameField} from "./GroupNameField";
 import {GroupSlotIdentifiers} from "./GroupSlotIdentifiers";
 import {GroupSlotGrid} from "./GroupSlotGrid";
 
@@ -73,16 +76,24 @@ export function GroupEditor({
     const t = useTranslations("groups");
     const tCommon = useTranslations("common");
     const tLoadouts = useTranslations("loadouts");
-    const tInventory = useTranslations("inventory");
 
     const setGroupLoadouts = useLoadoutGroups((s) => s.setGroupLoadouts);
     const renameGroup = useLoadoutGroups((s) => s.renameGroup);
     const setGroupColor = useLoadoutGroups((s) => s.setGroupColor);
+    const confirmEquip = useConfirmEquipGroup(group.characterId);
     const startSelection = useGroupSelection((s) => s.start);
     const choices = useLoadoutIdentifierChoices();
 
     const [selected, setSelected] = useState(0);
-    const [name, setName] = useState<string | null>(null);
+    /**
+     * L'emplacement du personnage retenu comme source, ou `null`.
+     *
+     * Le clic ne recopie plus rien de lui-même : écraser un emplacement du
+     * groupe est destructif, et le geste tombait sous le doigt de quiconque
+     * voulait seulement regarder ce que le personnage a enregistré. Il ne fait
+     * donc que désigner la source ; c'est un bouton qui engage la copie.
+     */
+    const [source, setSource] = useState<number | null>(null);
 
     // La liste normalisée à la taille du personnage. Toutes les écritures
     // partent de là : un groupe créé quand le compte possédait moins
@@ -136,9 +147,21 @@ export function GroupEditor({
     const write = (next: ReturnType<typeof padLoadouts>) =>
         setGroupLoadouts(group.id, next);
 
-    // Le contenu de l'emplacement sélectionné, résolu contre le profil — le même
-    // hook que le mode « équipements » pour un emplacement du jeu.
-    const contents = useLoadoutItems(current, data, defs);
+    /**
+     * L'emplacement du personnage prévisualisé, s'il y en a un.
+     *
+     * Désigner une source ne sert pas qu'à viser l'écrasement : on ne recopie
+     * pas à l'aveugle un emplacement dont les vignettes ne disent ni les
+     * attributs ni les cosmétiques. Le clic ouvre donc son contenu là où celui
+     * du groupe se lisait, en **lecture seule** — c'est un emplacement du jeu,
+     * rien n'y est à modifier ici.
+     */
+    const previewed = source === null ? undefined : loadouts[source];
+
+    // Le contenu affiché, résolu contre le profil — le même hook que le mode
+    // « équipements » pour un emplacement du jeu. Un seul appel pour les deux
+    // sources : il indexe tout le profil, le faire deux fois le doublerait.
+    const contents = useLoadoutItems(previewed ?? current, data, defs);
     /**
      * Les objets équipés du personnage, armes, armures et doctrine seulement.
      *
@@ -165,14 +188,19 @@ export function GroupEditor({
      */
     const snapshotEdit = useMemo(
         () => ({
-            sockets: contents?.sockets ?? EMPTY_SOCKETS,
+            // Vide en prévisualisation : c'est ce que `useSnapshotEdit` lit pour
+            // savoir qu'un objet est modifiable, et les attributs montrés sont
+            // alors ceux d'un emplacement du jeu — les écrire dans le groupe
+            // aurait mêlé les deux. Le contexte reste posé pour autant : c'est
+            // lui qui retire aux vignettes le double-clic qui équipe.
+            sockets: previewed ? EMPTY_SOCKETS : (contents?.sockets ?? EMPTY_SOCKETS),
             onPick: (id: string, socketIndex: number, plugHash: number) =>
                 setGroupLoadouts(
                     group.id,
                     putPlug(slots, selected, id, socketIndex, plugHash),
                 ),
         }),
-        [contents?.sockets, setGroupLoadouts, group.id, slots, selected],
+        [previewed, contents?.sockets, setGroupLoadouts, group.id, slots, selected],
     );
 
     // Une seule requête groupée pour toutes les vignettes des deux grilles.
@@ -212,7 +240,10 @@ export function GroupEditor({
         });
     };
 
-    const empty = isEmptyLoadout(current);
+    // L'aperçu de l'équipement porté n'a de sens que sur l'emplacement vide du
+    // groupe : en prévisualisation, ce qui est montré vient du personnage.
+    const groupEmpty = isEmptyLoadout(current);
+    const empty = !previewed && groupEmpty;
     // Un emplacement vide montre l'équipement porté, estompé : c'est l'aperçu
     // de ce que le bouton y enregistrerait. Voir `preview` d'EquipmentModeView.
     const shown = empty ? equipped : items;
@@ -254,49 +285,6 @@ export function GroupEditor({
                     {t("back")}
                 </button>
 
-                {/* Le nom se modifie sur place : un champ qui ne s'ouvre qu'au
-                    besoin, plutôt qu'une modale de plus pour une seule ligne. */}
-                {name === null ? (
-                    <>
-                        <h2 className="group-editor__name">{group.name}</h2>
-                        <button
-                            type="button"
-                            className="btn btn--small"
-                            onClick={() => setName(group.name)}
-                        >
-                            {tCommon("edit")}
-                        </button>
-                    </>
-                ) : (
-                    <form
-                        className="group-editor__rename"
-                        onSubmit={(event) => {
-                            event.preventDefault();
-                            renameGroup(group.id, name);
-                            setName(null);
-                        }}
-                    >
-                        <input
-                            className="group-name__input"
-                            value={name}
-                            maxLength={GROUP_NAME_MAX}
-                            aria-label={t("nameLabel")}
-                            autoFocus
-                            onChange={(event) => setName(event.target.value)}
-                        />
-                        <button type="submit" className="btn btn--small btn--primary">
-                            {tCommon("confirm")}
-                        </button>
-                        <button
-                            type="button"
-                            className="btn btn--small"
-                            onClick={() => setName(null)}
-                        >
-                            {tCommon("cancel")}
-                        </button>
-                    </form>
-                )}
-
                 {/* Le liseré s'applique au clic, sans confirmation : il ne
                     touche à rien d'autre que l'apparence de la carte, et le
                     voir changer sous le curseur est le retour attendu. */}
@@ -305,7 +293,31 @@ export function GroupEditor({
                     onChange={(color) => setGroupColor(group.id, color)}
                 />
 
+                {/* Le nom se modifie sur place, sans bouton pour l'y autoriser :
+                    l'éditeur EST l'écran de modification du groupe, un mode de
+                    plus n'y départageait rien. */}
+                <GroupNameField
+                    key={group.id}
+                    name={group.name}
+                    label={t("nameLabel")}
+                    onRename={(next) => renameGroup(group.id, next)}
+                />
+
+
+
                 <div className="group-editor__actions">
+                    {/* Le même geste que sur la carte du groupe, résumé et
+                        confirmé de la même façon : on vient ici pour composer un
+                        groupe, et repartir sur la grille pour l'équiper n'avait
+                        pas de raison d'être. */}
+                    <button
+                        type="button"
+                        className="btn btn--small btn--primary"
+                        onClick={() => confirmEquip(group)}
+                    >
+                        <BoltIcon/>
+                        {tCommon("equip")}
+                    </button>
                     <button
                         type="button"
                         className="btn btn--small btn--primary"
@@ -319,17 +331,33 @@ export function GroupEditor({
                     </button>
                     <button
                         type="button"
-                        className="btn btn--small"
+                        className="btn btn--small btn--danger"
                         // Rien à recopier si le personnage n'a aucun emplacement
                         disabled={loadouts.length === 0}
-                        onClick={() => write(copyGroupLoadouts(loadouts))}
+                        // Confirmé : le geste emporte les dix emplacements du
+                        // groupe d'un coup, et rien ne les rend.
+                        onClick={() => {
+                            if (
+                                window.confirm(
+                                    t("overwriteAllConfirm", {
+                                        name: group.name,
+                                        count: loadouts.length,
+                                    }),
+                                )
+                            ) {
+                                write(copyGroupLoadouts(loadouts));
+                            }
+                        }}
                     >
                         {t("overwriteAll")}
                     </button>
                     <button
                         type="button"
                         className="btn btn--small btn--danger"
-                        disabled={empty}
+                        // Le vidage vise l'emplacement du GROUPE, prévisualisation
+                        // ou non : c'est le sien qu'il faut regarder pour savoir
+                        // s'il reste quelque chose à vider.
+                        disabled={groupEmpty}
                         onClick={() =>
                             write(setLoadout(slots, selected, emptyGroupLoadout()))
                         }
@@ -352,7 +380,14 @@ export function GroupEditor({
                         // sinon les premiers choix du jeu, et tous se
                         // ressemblaient.
                         title={
-                            current ? (
+                            previewed ? (
+                                <PreviewTitle
+                                    loadout={previewed}
+                                    index={source ?? 0}
+                                    identifiers={identifiers}
+                                    label={t("previewing")}
+                                />
+                            ) : current ? (
                                 <GroupSlotIdentifiers
                                     identifiers={current}
                                     slotNumber={selected + 1}
@@ -372,7 +407,14 @@ export function GroupEditor({
                         // Rien n'est équipé : ce qu'on modifie est un
                         // instantané, et c'est `editing` qui en porte les gestes.
                         editable={false}
-                        onRemoveItem={(id) => write(removeItem(slots, selected, id))}
+                        // Absent en prévisualisation : les objets montrés sont
+                        // ceux d'un emplacement du jeu, et le retrait aurait
+                        // porté sur l'emplacement du groupe, resté hors de vue.
+                        onRemoveItem={
+                            previewed
+                                ? undefined
+                                : (id) => write(removeItem(slots, selected, id))
+                        }
                         // Un emplacement de groupe vide a légitimement zéro
                         // objet : « Chargement… » y serait un mensonge définitif.
                         quiet
@@ -408,45 +450,109 @@ export function GroupEditor({
                         slotCount={slotCount}
                         identifiers={identifiers}
                         selected={selected}
-                        onSelect={setSelected}
+                        // Revenir au groupe referme la prévisualisation : les
+                        // deux grilles se disputent le même panneau, et rien ne
+                        // dirait laquelle on regarde si le contenu ne suivait
+                        // pas le dernier emplacement touché.
+                        onSelect={(index) => {
+                            setSelected(index);
+                            setSource(null);
+                        }}
                         onMove={(from, to) => write(moveItem(slots, from, to))}
                     />
 
-                    {/* Les emplacements du jeu : un clic recopie celui-là dans
+                    {/* Les emplacements du jeu : un clic en ouvre le contenu à
+                        gauche, en lecture seule, et le bouton ci-dessous le
+                        recopie dans
                         l'emplacement sélectionné du groupe. C'est l'écrasement
-                        d'un seul emplacement demandé par le cahier des charges. */}
+                        d'un seul emplacement demandé par le cahier des charges,
+                        rendu à un geste délibéré. */}
                     <GroupSlotGrid
                         title={t("characterSlots")}
                         loadouts={loadouts}
                         slotCount={loadouts.length}
                         identifiers={identifiers}
-                        onSelect={(index) => {
-                            const source = loadouts[index];
-                            if (!source) return;
-                            write(
-                                setLoadout(
-                                    slots,
-                                    selected,
-                                    copyGroupLoadouts([source])[0],
-                                ),
-                            );
-                        }}
+                        selected={source}
+                        // Recliquer l'emplacement déjà ouvert le referme, et
+                        // rend le panneau à l'emplacement du groupe.
+                        onSelect={(index) =>
+                            setSource((current) => (current === index ? null : index))
+                        }
                         emptyHint={tLoadouts("noSlots")}
                     />
-                    <p className="group-editor__hint">
-                        {t("overwriteOneHint", {number: selected + 1})}
-                    </p>
-                    {!ready && (
-                        <p className="group-editor__hint group-editor__hint--wait">
-                            {t("waitIdentifiers")}
-                        </p>
-                    )}
-                    {items.length === 0 && !empty && (
-                        <p className="group-editor__hint">{tInventory("loading")}</p>
+                    {/* Le bouton n'apparaît qu'une fois la source désignée : il
+                        écrase, et un bouton d'écrasement posé là en permanence
+                        n'aurait rien eu à écraser — désactivé la plupart du
+                        temps, il aurait surtout fallu deviner pourquoi. C'est le
+                        clic sur un emplacement du personnage qui l'appelle. */}
+                    {previewed && (
+                        <div className="group-editor__slot-action">
+                            <button
+                                type="button"
+                                className="btn btn--small"
+                                onClick={() =>
+                                    write(
+                                        setLoadout(
+                                            slots,
+                                            selected,
+                                            copyGroupLoadouts([previewed])[0],
+                                        ),
+                                    )
+                                }
+                            >
+                                {t("overwriteOne", {number: selected + 1})}
+                            </button>
+                        </div>
                     )}
                 </div>
             </div>
         </div>
+    );
+}
+
+/**
+ * Le titre du panneau quand il montre un emplacement du **personnage**.
+ *
+ * Il dit d'où vient ce qu'on lit — sans quoi rien ne distinguait la
+ * prévisualisation du contenu du groupe, les deux occupant le même panneau. Le
+ * pendant en lecture seule de `GroupSlotIdentifiers` : ici il n'y a rien à
+ * choisir, c'est un emplacement du jeu.
+ *
+ * Les identifiants sont **reçus** et non lus : ils viennent de l'unique requête
+ * groupée de l'éditeur, comme pour les vignettes des deux grilles.
+ */
+function PreviewTitle({
+                          loadout,
+                          index,
+                          identifiers,
+                          label,
+                      }: {
+    loadout: DestinyLoadout;
+    /** Place de l'emplacement chez le personnage, à partir de 0 */
+    index: number;
+    identifiers: LoadoutIdentifiers;
+    label: string;
+}) {
+    const name = identifiers.names.get(loadout.nameHash);
+
+    return (
+        <span className="group-preview-title">
+            <span className="group-preview-title__label">{label}</span>
+            {/* La vignette des deux grilles, telle quelle : le fond coloré, le
+                glyphe par-dessus et le numéro dans l'angle. La recomposer ici
+                aurait redit ce que `LoadoutSlotTile` dessine déjà, et laissé les
+                deux se désaccorder à la première retouche. Elle n'est pas
+                cliquable ici — d'où le `<span>` et non le `<button>` des
+                grilles, l'habillage `.loadout-slot` étant commun. */}
+            <span className="loadout-slot group-preview-title__slot">
+                <LoadoutSlotTile
+                    loadout={loadout}
+                    index={index}
+                    identifiers={identifiers}
+                />
+            </span>
+            {name && <span className="group-preview-title__name">{name}</span>}
+        </span>
     );
 }
 

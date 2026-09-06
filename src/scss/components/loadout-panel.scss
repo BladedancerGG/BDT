@@ -12,7 +12,7 @@
 
   &__grid {
     display: grid;
-    grid-template-columns: repeat(4, var(--item-size));
+    grid-template-columns: repeat(4, var(--loadout-item-size));
     gap: var(--item-gap);
     justify-content: start;
   }
@@ -60,8 +60,8 @@
 
 .loadout-slot {
   position: relative;
-  width: var(--item-size);
-  height: var(--item-size);
+  width: var(--loadout-item-size);
+  height: var(--loadout-item-size);
   padding: 0;
   border: 1px solid var(--color-border-strong);
   background-color: var(--color-panel-alt);

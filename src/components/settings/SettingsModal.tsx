@@ -7,6 +7,7 @@ import {routing, type Locale} from "@/i18n/routing";
 import {Modal} from "@/components/ui/Modal";
 import {SettingRow, Toggle, Select} from "@/components/ui/SettingRow";
 import {IconSizeControl} from "./IconSizeControl";
+import {SizePreview} from "./SizePreview";
 import {SortRuleList} from "./SortRuleList";
 import {Cog6ToothIcon} from "@heroicons/react/24/solid"
 import {
@@ -262,6 +263,8 @@ function AppearancePanel() {
     const setIconSize = useSettings((s) => s.setIconSize);
     const vaultIconSize = useSettings((s) => s.vaultIconSize);
     const setVaultIconSize = useSettings((s) => s.setVaultIconSize);
+    const loadoutIconSize = useSettings((s) => s.loadoutIconSize);
+    const setLoadoutIconSize = useSettings((s) => s.setLoadoutIconSize);
     const showOrnaments = useSettings((s) => s.showOrnaments);
     const setShowOrnaments = useSettings((s) => s.setShowOrnaments);
     const showOriginalOnHover = useSettings((s) => s.showOriginalOnHover);
@@ -356,6 +359,30 @@ function AppearancePanel() {
                     unitLabel={t("vaultIconSize")}
                 />
             </SettingRow>
+
+            <SettingRow
+                label={t("loadoutIconSize")}
+                hint={t("loadoutIconSizeHint")}
+                htmlFor="setting-loadout-icon-size"
+            >
+                <IconSizeControl
+                    id="setting-loadout-icon-size"
+                    value={loadoutIconSize}
+                    onChange={setLoadoutIconSize}
+                    unitLabel={t("loadoutIconSize")}
+                />
+            </SettingRow>
+
+            {/* L'aperçu occupe toute la largeur, sous les trois curseurs : c'est
+                de la comparaison entre les trois tailles qu'il tire son intérêt,
+                il n'appartient à aucune des lignes. */}
+            <div className="settings__block">
+                <div className="setting-row__text">
+                    <span className="setting-row__label">{t("preview")}</span>
+                    <p className="setting-row__hint">{t("previewHint")}</p>
+                </div>
+                <SizePreview/>
+            </div>
         </div>
     );
 }

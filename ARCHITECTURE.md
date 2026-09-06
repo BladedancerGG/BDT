@@ -1455,6 +1455,28 @@ In "system" mode no `data-theme` attribute is set, and the CSS
 > constant exported from a `"use client"` module arrives `undefined` on the
 > server, which silently broke the cookie read.
 
+### Three icon sizes
+
+Three independent sizes, all bounded to `ICON_SIZE` and each carried by its own
+CSS variable on `<html>`:
+
+| Variable | Setting | Where it applies |
+| --- | --- | --- |
+| `--item-size` | *Icon size* | equipped items and character inventory |
+| `--vault-item-size` | *Vault icon size* | vault and postmaster — `.inventory-view__storage` redefines `--item-size` from it for its whole subtree |
+| `--loadout-item-size` | *Loadout slot size* | loadout slot tiles (`.loadout-slot`, the group grids), i.e. the *loadouts* and *groups* views |
+
+Loadout slots used to follow the vault size, which conflated two different
+things: a slot shows a game slot (background + glyph), not an item, and its
+legibility has nothing to do with a vault grid's density.
+
+The *Appearance* tab shows a preview row (`SizePreview`) under the three
+sliders, with items drawn at random from the profile and a real loadout slot, so
+each size is judged on what it actually renders. The profile is read from the
+React Query cache (`getQueryData(["profile"])`), never through `useProfile`: a
+preview must not trigger a Bungie call. The draw is frozen on mount — renewing it
+on every keystroke in a size field would make the row flicker.
+
 ### Account sync
 
 The *Account* settings tab can mirror those preferences onto the server
@@ -3097,6 +3119,30 @@ En mode « système », aucun attribut `data-theme` n'est posé et la règle CSS
 > `src/lib/settings/constants.ts`, **sans** directive `"use client"`. Une
 > constante exportée depuis un module `"use client"` arrive `undefined` côté
 > serveur, ce qui rendait la lecture du cookie silencieusement inopérante.
+
+### Trois tailles d'icônes
+
+Trois tailles indépendantes, toutes bornées par `ICON_SIZE`, chacune portée par
+sa propre variable CSS sur `<html>` :
+
+| Variable | Réglage | Où elle s'applique |
+| --- | --- | --- |
+| `--item-size` | « Taille des icônes » | objets équipés et inventaire du personnage |
+| `--vault-item-size` | « Taille des icônes du coffre » | coffre et objets perdus — `.inventory-view__storage` en redéfinit `--item-size` pour tout son sous-arbre |
+| `--loadout-item-size` | « Taille des emplacements d'équipement » | vignettes d'emplacement (`.loadout-slot`, les grilles de groupes), soit les vues « équipements » et « groupes » |
+
+Les emplacements suivaient auparavant la taille du coffre, ce qui confondait deux
+choses différentes : un emplacement montre un emplacement du jeu (fond + glyphe)
+et non un objet, et sa lisibilité n'a rien à voir avec la densité d'une grille de
+coffre.
+
+L'onglet « Apparence » affiche une ligne d'aperçu (`SizePreview`) sous les trois
+curseurs, avec des objets tirés au hasard dans le profil et un véritable
+emplacement : chaque taille se juge ainsi sur ce qu'elle dessine vraiment. Le
+profil est lu dans le cache de React Query (`getQueryData(["profile"])`) et jamais
+par `useProfile` — un aperçu ne doit pas déclencher d'appel à Bungie. Le tirage
+est figé au montage : le renouveler à chaque frappe dans un champ de taille
+ferait clignoter la ligne.
 
 ### Synchronisation avec le compte
 

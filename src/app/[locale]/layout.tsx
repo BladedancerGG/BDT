@@ -25,6 +25,9 @@ function rootSizeStyle(prefs: ServerPreferences): CSSProperties | undefined {
     if (prefs.vaultIconSize) {
         style["--vault-item-size"] = `${prefs.vaultIconSize}px`;
     }
+    if (prefs.loadoutIconSize) {
+        style["--loadout-item-size"] = `${prefs.loadoutIconSize}px`;
+    }
     return Object.keys(style).length ? (style as CSSProperties) : undefined;
 }
 

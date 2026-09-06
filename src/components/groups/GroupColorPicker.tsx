@@ -44,9 +44,9 @@ export function GroupColorPicker({
                 onChange={(event) => onChange(event.target.value)}
             />
 
-            <span className="group-colors__value">
-                {none ? t("colorNone") : value}
-            </span>
+            {/*<span className="group-colors__value">*/}
+            {/*    {none ? t("colorNone") : value}*/}
+            {/*</span>*/}
 
             {!none && (
                 <button
