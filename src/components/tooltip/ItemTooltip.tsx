@@ -49,6 +49,7 @@ import {
     ARTIFACT_SOCKET_CATEGORIES,
 } from "@/lib/destiny/sockets";
 import {gearRow, type GearRow} from "@/lib/destiny/gear";
+import {useFragmentLocks} from "@/lib/destiny/use-fragment-locks";
 import {subclassDamageType, isSubclass} from "@/lib/destiny/subclass";
 import {useItemProgress} from "@/lib/destiny/use-item-progress";
 import {useStatBonuses} from "@/lib/destiny/use-stat-bonuses";
@@ -576,6 +577,24 @@ export function ItemTooltip({
     // même objet n'auraient rien à voir avec ce qu'on édite.
     const {pending, error, failure} = snapshotEdit ? NEUTRAL_PLUG_QUEUE : queueState;
 
+    /**
+     * Les attributs tels que l'infobulle les **montre**, insertion en attente
+     * comprise.
+     *
+     * C'est cette liste-là qui décide des emplacements de fragments ouverts :
+     * changer un aspect doit les ouvrir ou les fermer sur-le-champ, alors que
+     * `detail.disabledSockets` décrit le dernier profil rendu par Bungie et ne
+     * bougera qu'une fois la file d'actions vidée.
+     */
+    const shownSockets = useMemo(() => {
+        const sockets = detail?.sockets;
+        if (!sockets || pending.size === 0) return sockets;
+        const next = [...sockets];
+        for (const [socketIndex, plugHash] of pending) next[socketIndex] = plugHash;
+        return next;
+    }, [detail?.sockets, pending]);
+    const liveLocks = useFragmentLocks(def, shownSockets);
+
     // Le panneau s'ancre à l'infobulle, pas à l'icône cliquée : il la longe sur
     // toute sa hauteur, comme dans la maquette. `size` la lui impose comme
     // plafond — au-delà, il défile.
@@ -675,10 +694,14 @@ export function ItemTooltip({
                     setPicker((current) =>
                         current?.socketIndex === next.socketIndex ? undefined : next,
                     ),
-                // Voir `useSnapshotLocks` : en édition d'instantané, les
-                // verrous viennent de l'instantané, pas de l'objet du moment.
+                // Trois sources, une seule vraie à la fois : l'instantané
+                // qu'on modifie, les aspects montrés pour une doctrine portée
+                // (voir `useFragmentLocks`), et l'API pour tout le reste.
                 disabled:
-                    snapshotEdit?.locked ?? new Set(detail?.disabledSockets ?? []),
+                    snapshotEdit?.locked ??
+                    (isSubclassItem
+                        ? liveLocks
+                        : new Set(detail?.disabledSockets ?? [])),
                 pending,
                 onPick: snapshotEdit?.onPick,
             }}

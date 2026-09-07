@@ -26,6 +26,7 @@
     "sync-merge.check.ts",
     "subclass.check.ts",
     "gear.check.ts",
-    "moves.check.ts"
+    "moves.check.ts",
+    "sockets.check.ts"
   ]
 }

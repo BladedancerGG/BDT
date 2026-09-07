@@ -16,7 +16,13 @@ import {
     isPlugApplied,
     isTrackerPlug,
 } from "./sockets";
-import {ABILITY_ORDER, isSubclass, subclassSocketKind} from "./subclass";
+import {
+    ABILITY_ORDER,
+    fragmentSlots,
+    isSubclass,
+    lockedFragmentSockets,
+    subclassSocketKind,
+} from "./subclass";
 import {itemSetHash, type EquippedSetCounts} from "./set-bonus";
 import {ARMOR_INTRINSIC_PLUG_CATEGORY} from "./use-armor-perks";
 
@@ -168,7 +174,6 @@ export function useEquippedPlugs(
                         detail?.sockets ??
                         [];
                     const hidden = new Set(detail?.hiddenSockets ?? []);
-                    const disabled = new Set(detail?.disabledSockets ?? []);
 
                     /** Plug équipé d'un socket, une fois les exclusions appliquées. */
                     const plugAt = (index: number): number | undefined => {
@@ -249,15 +254,29 @@ export function useEquippedPlugs(
                         const first = [...ABILITY_ORDER, "aspect" as const].flatMap(
                             (kind) => classified.filter((s) => s.kind === kind).map(chip),
                         );
-                        // Ligne 2 : les fragments. Un emplacement verrouillé (aspects
-                        // insuffisants) ou resté sur son placeholder n'a rien à montrer.
+                        // Ligne 2 : les fragments, **emplacements libres compris**.
+                        // Ils se remplissent d'ici, comme dans l'infobulle : les
+                        // masquer obligeait à ouvrir l'objet pour poser un
+                        // fragment sur un emplacement qu'un aspect venait
+                        // d'ouvrir.
+                        //
+                        // Les emplacements verrouillés, eux, restent hors de la
+                        // ligne, et leur nombre se déduit des aspects **montrés**
+                        // plutôt que de `detail.disabledSockets` : celui-ci
+                        // décrit le dernier profil rendu par Bungie, quand cette
+                        // ligne peut afficher un équipement sauvegardé — une
+                        // autre configuration — ou un aspect changé à l'instant.
+                        // Même règle que l'infobulle, même moteur pur.
+                        const kinds = new Map(
+                            classified.flatMap((s) =>
+                                s.kind ? [[s.index, s.kind] as const] : [],
+                            ),
+                        );
+                        const locked = lockedFragmentSockets(kinds, sockets, (hash) =>
+                            fragmentSlots(plugDefs.get(hash)),
+                        );
                         const fragments = classified
-                            .filter(
-                                (s) =>
-                                    s.kind === "fragment" &&
-                                    !disabled.has(s.index) &&
-                                    isPlugApplied(def, s.index, s.hash),
-                            )
+                            .filter((s) => s.kind === "fragment" && !locked.has(s.index))
                             .map(chip);
 
                         if (first.length > 0) rows.push(first);

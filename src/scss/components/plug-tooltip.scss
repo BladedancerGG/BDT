@@ -46,6 +46,14 @@
     white-space: pre-line;
   }
 
+  // Emplacements de fragments accordés par un aspect. Détaché de la
+  // description : c'est un chiffre, pas une phrase du manifeste.
+  &__slots {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--color-accent);
+  }
+
   // Écarts de statistiques
   &__stats {
     display: flex;

@@ -125,14 +125,13 @@ shaders, 82 leg mods…); what the player actually owns lives in
 `ItemSockets` (305) — already requested, so they cost no extra call. They were
 simply thrown away until the socket picker needed them.
 
-`src/lib/bungie/plug-sets.ts` trims them to `{ plugSetHash: [plugItemHash] }`,
-keeping only plugs whose `canInsert` is true — which is exactly what the picker
-may offer, and what makes the payload bearable:
+`src/lib/bungie/plug-sets.ts` trims them to two lists of hashes per plug set
+(see below), which is what makes the payload bearable:
 
 | Plug sets in `/api/profile` | Size |
 |---|---|
 | Raw components | ~870 KB |
-| After trimming (10646 / 12934 plugs kept, 1469 sets) | ~133 KB |
+| After trimming (10646 / 12934 plugs kept, 1469 sets — measured before `held` was added) | ~133 KB |
 
 **Which source feeds which socket is declared, not guessed**: the socket
 entry's `plugSources` bitmask (`SocketPlugSources`, mirrored as `PLUG_SOURCE` in
@@ -145,26 +144,46 @@ weapon's actual roll — hence the flags rather than a uniform rule.
 
 The flags decide **whether** plug sets are read, not **which of the two**: both
 levels are merged. The same plug set hash may be served by either component, and
-the flags do not always match where the data lands — elemental subclass aspect
-sockets declare `4` (profile only) where stasis declares `12`. DIM makes no
-distinction either: `gatherUnlockedPlugSetItems` stacks `profilePlugSets` and
-the character's `characterPlugSets`.
+the flags do not always match where the data lands. DIM makes no distinction
+either: `gatherUnlockedPlugSetItems` stacks `profilePlugSets` and the
+character's `characterPlugSets`.
 
 **`canInsert` is not the ownership signal — `enabled` is.** The two answer
 different questions: `canInsert` means “the insert would go through, here and
-now”, `enabled` means “the player owns this plug”. Trimming on `canInsert` alone
-cost subclass aspects: an aspect already slotted in the *other* aspect socket of
-the same subclass stays `enabled` but is no longer `canInsert`, and vanished
-from the picker. DIM reads `enabled` (`filterUnlockedPlugs`) and keeps
-`canInsert` only for universal armor ornament plug sets, where `enabled` is true
-for the whole pool and therefore says nothing.
+now”, `enabled` means “the player owns this plug”. DIM reads `enabled`
+(`filterUnlockedPlugs`) and keeps `canInsert` only for universal armor ornament
+plug sets, where `enabled` is true for the whole pool and therefore says
+nothing. So the trim keeps both, per plug set: `ready` (canInsert) and `held`
+(enabled without canInsert — absent from most sets, so barely any extra
+payload). `buildColumns` offers both, except on an ornament socket where it
+falls back to `ready` alone; it recognises one from the family of the socket's
+initial plug (`…skins…`, `isOrnamentFamily`) rather than from a list of plug set
+hashes to maintain.
 
-So the trim keeps both, per plug set: `ready` (canInsert) and `held` (enabled
-without canInsert — absent from most sets, so barely any extra payload).
-`buildColumns` offers both, except on an ornament socket where it falls back to
-`ready` alone. It recognises one from the family of the socket's initial plug
-(`…skins…`, `isOrnamentFamily`) rather than from a list of plug set hashes to
-maintain.
+### Subclasses read none of this
+
+Their aspects, fragments and abilities come from the **manifest pool**, taken as
+is — `usesAccountPlugs()` returns false for them, whatever their flags say, and
+`sockets.check.ts` pins that down.
+
+Not a shortcut, a Bungie bug ([api#1572]): subclass plug sets are declared
+profile-scoped by mistake and returned **from the perspective of a single
+character** — always the same one, and not necessarily the one being looked at.
+`canInsert` and `enabled` then describe somebody else, so aspects the player
+does own vanish from the picker, and the symptom changes from character to
+character — which is what made Stasis and Prismatic look fine while the Light
+subclasses looked broken. No reading of those two flags recovers the truth: the
+data is wrong at the source. DIM reached the same conclusion for the same reason
+(`SubclassPlugDrawer`: “there's no kind of unlock check here”).
+
+The cost is known and accepted: an aspect that is *not* unlocked may be offered,
+and Bungie refuses the insert with a message the picker shows. Nothing else is
+over-offered — none of the 426 plugs in the 101 plug sets of the eighteen
+subclasses is marked `currentlyCanRoll: false`. What the instance itself carries
+(`reusablePlugs`, component 310, used by the ability sockets) is unaffected: it
+is this item's data, on this character, and the bug does not touch it.
+
+[api#1572]: https://github.com/Bungie-net/api/issues/1572
 
 ## Displayed items
 
@@ -301,8 +320,33 @@ Socket indexes do not follow the display order either (the game puts class=0,
 movement=1, super=2, melee=3, grenade=4), so rows are sorted by kind.
 
 Only aspect and fragment slots can be empty — an ability is always equipped even
-when its plug is still the socket's initial one. Locked fragment slots are
-identified by `isEnabled: false`.
+when its plug is still the socket's initial one.
+
+**Fragment slots are opened by the aspects in place**, two or three each
+(`plug.energyCapacity.capacityValue`, mirrored in `investmentStats` under the
+“Aspect Energy Capacity” stat `2223994109` — the two agree on all 75 aspects in
+the manifest). `fragmentSlots()` reads it and the plug tooltip states it, which
+is the only place the number appears: the manifest puts it in no description.
+That helper checks the plug's **family** before anything else, and not out of
+tidiness — masterworks (10, 11) and armor energy tiers (2 to 10) carry an
+`energyCapacity` too, so without it a masterwork would announce “10 fragment
+slots”.
+
+Which slots are locked is computed from the aspects being **shown**, never read
+from `ItemDetail.disabledSockets` (the pure `lockedFragmentSockets`, through
+`useFragmentLocks` for the tooltip and a snapshot, inline in `useEquippedPlugs`
+for the loadout rows, which already hold every equipped plug's definition). The
+API field describes the profile as Bungie last rendered it, and two situations
+take it at fault: a group **snapshot** is a different configuration than the
+current one, and **changing an aspect** opens or closes slots there and then,
+while the profile is only refetched once the action queue drains. Every caller
+therefore passes what it displays — pending insert included in the tooltip.
+
+Both surfaces show the **free slots**, not just the filled ones: that is where a
+fragment is put, and hiding them meant opening the item to fill a slot an aspect
+had just unlocked. Locked slots stay out of the rows entirely — so nothing is
+left for the picker context to lock on a subclass, and it is handed an empty
+set rather than a stale one.
 
 ## Plug descriptions
 
@@ -1829,14 +1873,13 @@ que le joueur possède réellement vit dans `profilePlugSets` /
 demandé, ils ne coûtent donc aucune requête de plus. Ils étaient simplement
 jetés jusqu'à ce que le sélecteur de socket en ait besoin.
 
-`src/lib/bungie/plug-sets.ts` les élague en `{ hashPlugSet: [hashPlug] }`, en ne
-gardant que les plugs dont `canInsert` est vrai — exactement ce que le sélecteur
-peut proposer, et ce qui rend la réponse supportable :
+`src/lib/bungie/plug-sets.ts` les élague en deux listes de hashes par plug set
+(voir plus bas), ce qui rend la réponse supportable :
 
 | Plug sets dans `/api/profile` | Poids |
 |---|---|
 | Composants bruts | ~870 Ko |
-| Après élagage (10646 / 12934 plugs gardés, 1469 sets) | ~133 Ko |
+| Après élagage (10646 / 12934 plugs gardés, 1469 sets — mesuré avant l'ajout de `held`) | ~133 Ko |
 
 **Quelle source alimente quel socket est déclaré, pas deviné** : le masque
 `plugSources` de l'entrée de socket (`SocketPlugSources`, repris dans
@@ -1851,27 +1894,48 @@ drapeaux plutôt qu'une règle uniforme.
 Les drapeaux décident **si** les plug sets sont lus, pas **lequel des deux** :
 les deux niveaux sont réunis. Un même hash de plug set peut être servi par l'un
 ou l'autre composant, et les drapeaux ne suivent pas toujours l'endroit où la
-donnée arrive — les sockets d'aspects des doctrines élémentaires déclarent `4`
-(profil seul) là où la stase déclare `12`. DIM ne fait pas la distinction non
-plus : `gatherUnlockedPlugSetItems` empile `profilePlugSets` et les
+donnée arrive. DIM ne fait pas la distinction non plus :
+`gatherUnlockedPlugSetItems` empile `profilePlugSets` et les
 `characterPlugSets` du personnage.
 
 **Le signal de possession n'est pas `canInsert`, c'est `enabled`.** Les deux
 répondent à des questions différentes : `canInsert` dit « l'insertion passerait,
-ici et maintenant », `enabled` dit « le joueur possède ce plug ». N'élaguer que
-sur `canInsert` coûtait des aspects de doctrine : un aspect déjà équipé sur
-l'*autre* emplacement de la même doctrine reste `enabled` mais n'est plus
-`canInsert`, et disparaissait du sélecteur. DIM lit `enabled`
-(`filterUnlockedPlugs`) et ne garde `canInsert` que pour les plug sets
+ici et maintenant », `enabled` dit « le joueur possède ce plug ». DIM lit
+`enabled` (`filterUnlockedPlugs`) et ne garde `canInsert` que pour les plug sets
 d'ornements universels d'armure, où `enabled` vaut vrai pour tout le pool et ne
-dit donc rien.
+dit donc rien. L'élagage garde donc les deux, par plug set : `ready` (canInsert)
+et `held` (enabled sans canInsert — absent de la plupart des sets, le surcoût
+est négligeable). `buildColumns` propose les deux, sauf sur un socket d'ornement
+où il retombe sur `ready` seul ; il le reconnaît à la famille du plug d'origine
+du socket (`…skins…`, `isOrnamentFamily`) plutôt qu'à une liste de hashes de
+plug sets à tenir à jour.
 
-L'élagage garde donc les deux, par plug set : `ready` (canInsert) et `held`
-(enabled sans canInsert — absent de la plupart des sets, le surcoût est
-négligeable). `buildColumns` propose les deux, sauf sur un socket d'ornement où
-il retombe sur `ready` seul. Il le reconnaît à la famille du plug d'origine du
-socket (`…skins…`, `isOrnamentFamily`) plutôt qu'à une liste de hashes de plug
-sets à tenir à jour.
+### Les doctrines ne lisent rien de tout cela
+
+Leurs aspects, fragments et compétences viennent du **pool du manifeste**, pris
+tel quel : `usesAccountPlugs()` renvoie faux pour elles quoi que disent leurs
+drapeaux, et `sockets.check.ts` verrouille la règle.
+
+Ce n'est pas un raccourci, c'est un bug Bungie ([api#1572]) : leurs plug sets
+sont déclarés de portée compte à tort et renvoyés **du point de vue d'un seul
+personnage** — toujours le même, et pas forcément celui qu'on regarde.
+`canInsert` comme `enabled` décrivent alors quelqu'un d'autre : des aspects
+pourtant débloqués disparaissent du sélecteur, et le symptôme change d'un
+personnage à l'autre — ce qui donnait l'illusion que la stase et le prismatique
+fonctionnaient quand les doctrines de Lumière étaient cassées. Aucune lecture de
+ces deux drapeaux ne rattrape la vérité : la donnée est fausse à la source. DIM
+est arrivé à la même conclusion pour la même raison (`SubclassPlugDrawer` :
+« there's no kind of unlock check here »).
+
+Le prix est connu et assumé : un aspect **non** débloqué peut être proposé, et
+Bungie refuse l'insertion avec un message que le sélecteur affiche. Rien d'autre
+n'est proposé en trop — aucun des 426 plugs des 101 plug sets des dix-huit
+doctrines n'est marqué `currentlyCanRoll: false`. Ce que l'instance porte
+elle-même (`reusablePlugs`, composant 310, dont se servent les sockets de
+compétences) n'est pas concerné : c'est la donnée de CET objet, sur CE
+personnage, et le bug ne la touche pas.
+
+[api#1572]: https://github.com/Bungie-net/api/issues/1572
 
 ## Objets affichés
 
@@ -2017,7 +2081,34 @@ triées par nature.
 
 Seuls les emplacements d'aspects et de fragments peuvent être vides — une
 compétence est toujours équipée, même quand son plug est resté celui d'origine.
-Les emplacements de fragments verrouillés se reconnaissent à `isEnabled: false`.
+
+**Ce sont les aspects en place qui ouvrent les emplacements de fragments**, deux
+ou trois chacun (`plug.energyCapacity.capacityValue`, repris dans
+`investmentStats` sous la stat « Capacité d'énergie d'aspect » `2223994109` — les
+deux concordent sur les 75 aspects du manifeste). `fragmentSlots()` le lit et
+l'infobulle du plug l'annonce, seul endroit où ce nombre apparaisse : le
+manifeste ne le met dans aucune description. Ce helper teste la **famille** du
+plug avant tout, et pas par souci de propreté — les pièces maîtresses (10, 11) et
+les paliers d'énergie d'armure (2 à 10) portent eux aussi une `energyCapacity`,
+sans quoi une pièce maîtresse annoncerait « 10 emplacements de fragments ».
+
+Quels emplacements sont verrouillés se **calcule depuis les aspects montrés**, et
+jamais dans `ItemDetail.disabledSockets` (le module pur `lockedFragmentSockets`,
+via `useFragmentLocks` pour l'infobulle et les instantanés, en ligne dans
+`useEquippedPlugs` pour les rangées du mode « équipements », qui tient déjà la
+définition de chaque plug équipé). Le champ de l'API décrit le profil tel que
+Bungie l'a rendu la dernière fois, et deux situations le prennent en défaut : un
+**instantané** de groupe est une autre configuration que celle du moment, et
+**changer un aspect** ouvre ou ferme des emplacements sur-le-champ alors que le
+profil n'est rechargé qu'une fois la file d'actions vidée. Chaque appelant passe
+donc ce qu'il affiche — insertion en attente comprise dans l'infobulle.
+
+Les deux surfaces montrent les emplacements **libres** et pas seulement ceux qui
+sont remplis : c'est là qu'on pose un fragment, et les masquer obligeait à ouvrir
+l'objet pour remplir un emplacement qu'un aspect venait d'ouvrir. Les
+emplacements verrouillés, eux, ne figurent pas du tout dans les rangées — il ne
+reste donc rien à verrouiller pour le contexte du sélecteur sur une doctrine, à
+qui l'on passe un ensemble vide plutôt qu'un ensemble périmé.
 
 ## Descriptions des plugs
 

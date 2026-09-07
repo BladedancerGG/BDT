@@ -8,6 +8,7 @@ import type {
 } from "@/lib/destiny/types";
 import { plugStatModifiers } from "@/lib/destiny/plug-stats";
 import { usePlugDescription } from "@/lib/destiny/use-plug-description";
+import { fragmentSlots } from "@/lib/destiny/subclass";
 import { DestinySymbol } from "@/components/DestinySymbol";
 
 /** Une ligne « +10 Stabilité » / « -5 Maniement ». */
@@ -65,6 +66,10 @@ export function PlugTooltip({
   const tCommon = useTranslations("common");
   const def = useDefinition<InventoryItemDefinition>(table, hash);
   const modifiers = plugStatModifiers(def);
+  // Un aspect ouvre deux ou trois emplacements de fragments. Le jeu l'annonce,
+  // le manifeste ne le met dans aucune description : sans cette ligne, choisir
+  // entre deux aspects se faisait sans savoir ce qu'on y gagnait.
+  const slots = fragmentSlots(def);
   // Aspects, fragments et attributs d'artéfact ont une description vide :
   // le hook va la chercher dans leurs perks associés.
   const description = usePlugDescription(def);
@@ -81,10 +86,15 @@ export function PlugTooltip({
         {type && <span className="plug-tooltip__type">{type}</span>}
       </div>
 
-      {(description || modifiers.length > 0) && (
+      {(description || slots > 0 || modifiers.length > 0) && (
         <div className="plug-tooltip__body">
           {description && (
             <p className="plug-tooltip__description">{description}</p>
+          )}
+          {slots > 0 && (
+            <p className="plug-tooltip__slots">
+              {t("fragmentSlots", { count: slots })}
+            </p>
           )}
           {modifiers.length > 0 && (
             <ul className="plug-tooltip__stats">

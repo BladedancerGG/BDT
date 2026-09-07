@@ -20,6 +20,7 @@ import {useSnapshotEdit} from "@/lib/loadouts/groups/snapshot-edit";
 import type {PlugChipRows} from "@/lib/destiny/use-equipped-plugs";
 import {useSocketOptions} from "@/lib/destiny/use-sockets";
 import {usePlugAvailability} from "@/lib/destiny/use-plug-availability";
+import {isSubclass} from "@/lib/destiny/subclass";
 import {usePlugActionState, type QueuedItem} from "@/lib/actions/store";
 import {PlugIcon} from "../tooltip/PlugIcon";
 import {
@@ -55,6 +56,9 @@ const NO_INDEXES: number[] = [];
  * de gauche sont poussées contre la vignette, celles de droite s'en éloignent.
  * L'ordre de lecture reste celui du jeu dans les deux cas.
  */
+/** Référence stable : un ensemble neuf à chaque rendu re-rendrait le contexte. */
+const NO_LOCKS: ReadonlySet<number> = new Set();
+
 export function EquipmentPlugs({
                                    rows,
                                    side,
@@ -186,7 +190,18 @@ export function EquipmentPlugs({
                 // l'instantané et non de l'objet : une doctrine sans aspect
                 // équipé a ses fragments verrouillés, alors que l'instantané
                 // qu'on modifie en porte peut-être deux.
-                disabled: snapshot?.locked ?? new Set(detail?.disabledSockets ?? []),
+                //
+                // Une doctrine portée n'a plus rien à verrouiller ici : ses
+                // emplacements fermés sont déjà absents des lignes, calculés
+                // depuis les aspects montrés (voir `useEquippedPlugs`).
+                // `disabledSockets` décrirait, lui, le dernier profil rendu par
+                // Bungie — et refuserait d'ouvrir le sélecteur d'un emplacement
+                // qu'un aspect vient tout juste de libérer.
+                disabled:
+                    snapshot?.locked ??
+                    (isSubclass(def)
+                        ? NO_LOCKS
+                        : new Set(detail?.disabledSockets ?? [])),
                 pending,
                 onPick: snapshot?.onPick,
             }}

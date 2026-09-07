@@ -2,6 +2,7 @@
 
 import type {InventoryItemDefinition} from "./types";
 import {SOCKET_CATEGORY, TIER} from "./display";
+import {isSubclass} from "./subclass";
 
 /**
  * Catégories de sockets des artéfacts. Elles n'ont **aucun nom** dans le
@@ -156,6 +157,38 @@ export const PLUG_SOURCE = {
     /** `characterPlugSets` : débloqués sur un personnage */
     CharacterPlugSet: 8,
 } as const;
+
+/**
+ * Ce socket lit-il les plugs **débloqués du compte** (`profilePlugSets` /
+ * `characterPlugSets`) ?
+ *
+ * Les drapeaux le disent — sauf pour les doctrines, où la donnée elle-même est
+ * fausse : Bungie déclare leurs plug sets de portée compte à tort et les renvoie
+ * du point de vue d'**un seul personnage**, toujours le même et pas forcément
+ * celui qu'on regarde (Bungie-net/api#1572). `canInsert` comme `enabled` y
+ * décrivent alors quelqu'un d'autre, et des aspects pourtant débloqués
+ * disparaissent du sélecteur — le symptôme changeant d'un personnage à l'autre,
+ * ce qui donnait l'illusion que la stase et le prismatique fonctionnaient.
+ *
+ * Aucune lecture ne rattrape cela. Les doctrines prennent donc le pool du
+ * manifeste tel quel, comme DIM, qui a tranché de la même façon et pour la même
+ * raison (`SubclassPlugDrawer` : « there's no kind of unlock check here »). Le
+ * prix est connu et assumé : un aspect non débloqué peut être proposé, et
+ * Bungie refusera l'insertion en le disant.
+ *
+ * Ce que l'instance porte elle-même (`reusablePlugs`, composant 310) n'est pas
+ * concerné : c'est la donnée de CET objet, sur CE personnage, et le bug ne la
+ * touche pas.
+ */
+export function usesAccountPlugs(
+    def: InventoryItemDefinition | undefined,
+    plugSources: number,
+): boolean {
+    if (isSubclass(def)) return false;
+    return Boolean(
+        plugSources & (PLUG_SOURCE.ProfilePlugSet | PLUG_SOURCE.CharacterPlugSet),
+    );
+}
 
 /**
  * Un plug a-t-il réellement été inséré dans ce socket ?

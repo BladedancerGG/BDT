@@ -13,9 +13,11 @@
 // exactement deux aspects à 3.
 
 import {
+    fragmentSlots,
     lockedFragmentSockets,
     type SubclassSocketKind,
 } from "../../src/lib/destiny/subclass";
+import type {InventoryItemDefinition} from "../../src/lib/destiny/types";
 import {check, report, section} from "./assert";
 
 // Doctrine calquée sur « Revenant » : 5 compétences, 2 aspects, 6 fragments.
@@ -56,6 +58,34 @@ check("un 2 et un 3 : un seul reste verrouillé",
     locked([2, 3]), [12]);
 check("deux aspects à 3 : aucun verrou — les six sont ouverts",
     locked([3, 3]), []);
+
+section("les emplacements qu'un aspect accorde");
+
+/** Un plug réduit à ce que `fragmentSlots` en lit. */
+const plug = (family: string | undefined, capacityValue?: number) =>
+    ({
+        plug: family
+            ? {plugCategoryIdentifier: family, energyCapacity: capacityValue !== undefined
+                ? {capacityValue}
+                : undefined}
+            : undefined,
+    }) as unknown as InventoryItemDefinition;
+
+check("un aspect à 3", fragmentSlots(plug("warlock.solar.aspects", 3)), 3);
+check("un aspect à 2", fragmentSlots(plug("hunter.shared.aspects", 2)), 2);
+// La stase nomme encore ses aspects « totems » (Beyond Light).
+check("un aspect de stase", fragmentSlots(plug("hunter.stasis.totems", 3)), 3);
+check("l'emplacement d'aspect vide n'accorde rien",
+    fragmentSlots(plug("warlock.solar.aspects")), 0);
+// Le piège : pièces maîtresses et paliers d'énergie d'armure portent eux aussi
+// une `energyCapacity` — 10 ou 11 pour les premières, 2 à 10 pour les seconds.
+check("une pièce maîtresse n'accorde pas dix emplacements",
+    fragmentSlots(plug("v460.plugs.armor.masterworks.stat", 10)), 0);
+check("un palier d'énergie d'armure non plus",
+    fragmentSlots(plug("v460.plugs.armor.masterworks.stat.resistance_2", 4)), 0);
+check("un fragment n'accorde rien",
+    fragmentSlots(plug("shared.solar.fragments", 2)), 0);
+check("aucun plug", fragmentSlots(undefined), 0);
 
 section("l'ordre des emplacements");
 

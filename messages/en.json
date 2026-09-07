@@ -263,6 +263,7 @@
     "setPieces": "{count} pieces",
     "weaponLevel": "Weapon Lv. {level}",
     "browsePlugs": "Browse similar items",
+    "fragmentSlots": "{count, plural, one {# fragment slot} other {# fragment slots}}",
     "searchPlugs": "Search…"
   },
   "search": {

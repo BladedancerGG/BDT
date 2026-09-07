@@ -263,6 +263,7 @@
     "setPieces": "{count} pièces",
     "weaponLevel": "Niv. d’arme {level}",
     "browsePlugs": "Voir les objets similaires",
+    "fragmentSlots": "{count, plural, one {# emplacement de fragment} other {# emplacements de fragments}}",
     "searchPlugs": "Rechercher…"
   },
   "search": {

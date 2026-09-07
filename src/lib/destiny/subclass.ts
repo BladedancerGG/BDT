@@ -127,6 +127,27 @@ export function subclassSocketKind(
 }
 
 /**
+ * Emplacements de fragments qu'un aspect accorde. Zéro pour tout le reste.
+ *
+ * Le nombre vient de `plug.energyCapacity.capacityValue` — la même mécanique que
+ * l'énergie d'armure, sous d'autres noms — et vaut 2 ou 3 (relevé sur les 75
+ * aspects du manifeste ; leur `investmentStats` porte la même valeur sous la
+ * stat « Capacité d'énergie d'aspect », 2223994109, sans un seul écart).
+ *
+ * Le test de famille n'est pas une précaution de style : **les pièces maîtresses
+ * et les paliers d'énergie d'armure portent eux aussi une `energyCapacity`** —
+ * 10 ou 11 pour les premières, 2 à 10 pour les seconds. Sans lui, une pièce
+ * maîtresse annoncerait « 10 emplacements de fragments ».
+ */
+export function fragmentSlots(
+    def: InventoryItemDefinition | undefined,
+): number {
+    const kind = subclassSocketKind(def?.plug?.plugCategoryIdentifier);
+    if (kind !== "aspect") return 0;
+    return def?.plug?.energyCapacity?.capacityValue ?? 0;
+}
+
+/**
  * Les emplacements de fragments qu'un instantané laisse **verrouillés**.
  *
  * Une doctrine ne déverrouille ses emplacements de fragments qu'au fil des

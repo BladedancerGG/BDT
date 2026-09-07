@@ -133,6 +133,12 @@ ne pas être rognées par le conteneur de défilement.
   d'armure exotique partagent la famille `intrinsics` des armatures d'armes ; un identifiant non
   renseigné vaut la sentinelle `2166136261` (base FNV-1a) et non zéro, si bien qu'un test de
   vérité le prend pour un vrai hash.
+- **Les plug sets d'une doctrine sont faux, et aucune lecture ne les rattrape.** Bungie les
+  déclare de portée compte à tort et les renvoie du point de vue d'un seul personnage —
+  toujours le même, pas forcément celui qu'on regarde (Bungie-net/api#1572). `canInsert`
+  comme `enabled` y décrivent alors quelqu'un d'autre, et des aspects pourtant débloqués
+  disparaissent du sélecteur, avec un symptôme qui change d'un personnage à l'autre. Les
+  doctrines prennent donc le pool du manifeste tel quel (`usesAccountPlugs`), comme DIM.
 - **Après une migration Prisma, redémarrer le conteneur `app`.** Le client est un
   singleton posé sur `globalThis` (`lib/db/prisma.ts`) : le rechargement à chaud
   garde l'instance construite avec l'*ancien* modèle, et toute requête touchant

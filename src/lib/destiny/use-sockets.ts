@@ -13,6 +13,7 @@ import {
     isHiddenSocketPlug,
     isTrackerPlug,
     PLUG_SOURCE,
+    usesAccountPlugs,
 } from "@/lib/destiny/sockets";
 import {isOrnamentFamily} from "@/lib/destiny/ornaments";
 import type {PlugAvailability} from "@/lib/destiny/use-plug-availability";
@@ -255,20 +256,13 @@ async function buildColumns(
         if (sources === 0 || sources & PLUG_SOURCE.Reusable) {
             options.push(...(detail?.reusablePlugs?.[String(socketIndex)] ?? []));
         }
-        // Le socket tire-t-il des plugs débloqués ? C'est ce test-là qui compte,
-        // et non lequel des deux drapeaux est levé : les deux niveaux sont
-        // réunis. Un plug set a un contenu qui lui est propre, et le même hash
-        // peut être servi par l'un ou l'autre — les aspects des doctrines
-        // élémentaires ne déclarent que `ProfilePlugSet` (4) là où ceux de la
-        // stase déclarent les deux (12), sans que la donnée suive toujours.
-        // DIM ne fait pas la distinction non plus : il empile
-        // `profilePlugSets` et `characterPlugSets` du personnage
-        // (`gatherUnlockedPlugSetItems`).
-        if (
-            setHash &&
-            available &&
-            sources & (PLUG_SOURCE.ProfilePlugSet | PLUG_SOURCE.CharacterPlugSet)
-        ) {
+        // Les deux niveaux sont réunis, sans regarder lequel des deux drapeaux
+        // est levé : un plug set a un contenu qui lui est propre, et le même
+        // hash peut être servi par l'un ou l'autre. DIM ne fait pas la
+        // distinction non plus (`gatherUnlockedPlugSetItems`). Les doctrines,
+        // elles, ne lisent rien de tout cela — voir `usesAccountPlugs`, et le
+        // pool du manifeste juste en dessous.
+        if (setHash && available && usesAccountPlugs(def, sources)) {
             const key = String(setHash);
             // Les plugs possédés mais pas insérables à l'instant (`held`) sont
             // proposés partout, SAUF sur un socket d'ornement.
@@ -290,7 +284,8 @@ async function buildColumns(
             }
         }
 
-        // 2. Repli : pool théorique du manifeste
+        // 2. Le pool du manifeste — repli général, mais **seule** source pour
+        //    une doctrine (voir `fromManifest`).
         if (options.length === 0) {
             const plugSet = setHash ? plugSets.get(setHash) : undefined;
             if (plugSet) {
