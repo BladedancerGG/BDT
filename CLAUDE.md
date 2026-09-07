@@ -51,10 +51,12 @@ scripts/checks/run.sh    # compile et exécute les vérifications, dans le conte
 ```
 
 Elles couvrent aujourd'hui `lib/loadouts/groups/edit.ts`, `lib/loadouts/groups/equip.ts`,
-`lib/loadouts/groups/sync-merge.ts`, `lib/destiny/insert-plan.ts` et `lib/settings/backup.ts`,
-et contrôlent au passage les règles CSS qui se recouvrent. **Les lancer après toute modification de ces modules**, et y
-ajouter un cas quand un piège Destiny est écarté : c'est là que la logique se casse en
-silence. Voir `scripts/checks/README.md` pour en écrire une.
+`lib/loadouts/groups/sync-merge.ts`, `lib/destiny/insert-plan.ts`, `lib/settings/backup.ts`,
+`lib/destiny/subclass.ts`, `lib/destiny/gear.ts` et `lib/destiny/moves.ts` (les piles),
+et contrôlent au passage les règles CSS qui se recouvrent.
+**Les lancer après toute modification de ces modules**, et y ajouter un cas quand un piège
+Destiny est écarté : c'est là que la logique se casse en silence. Voir
+`scripts/checks/README.md` pour en écrire une.
 
 Pour un module pur qui n'en a pas encore, la voie praticable reste de le compiler puis de
 l'exécuter dans le conteneur :
@@ -137,6 +139,11 @@ ne pas être rognées par le conteneur de défilement.
   un champ neuf lève une `PrismaClientValidationError`. Là où l'appel est
   enveloppé d'un `try`, le symptôme est muet — un réglage lu en base paraît
   simplement absent.
+- **Un emplacement absent de `TRACKED` (`use-bucket-capacities.ts`) invente des refus.**
+  Le planificateur retombe alors sur la capacité par défaut — dix, celle d'une arme — et
+  refuse tout transfert vers un rangement qui en contient cinquante, avec « l'emplacement de
+  destination est plein » alors qu'il ne l'est pas. Toute nouvelle famille d'emplacements
+  affichée doit y entrer.
 - **`docker compose down -v` détruit le volume de la base.** En production il emporte aussi les
   certificats et le compte ACME de Caddy, soumis à des quotas Let's Encrypt. `make clean` fait
   exactement ça — ne pas le lancer sur un serveur.

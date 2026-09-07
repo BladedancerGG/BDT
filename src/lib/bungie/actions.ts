@@ -17,7 +17,11 @@ import { bungieFetch } from "./client";
 export interface ActionTarget {
   accessToken: string;
   membershipType: number;
-  /** Objet visé — instancié, donc porteur d'un itemInstanceId */
+  /**
+   * Objet visé : son `itemInstanceId`, ou « 0 » pour un objet non instancié —
+   * mods, consommables, matériaux, que l'API désigne par leur seul
+   * `itemReferenceHash`.
+   */
   itemId: string;
   /** Hash de définition, exigé par les deux endpoints de transfert */
   itemReferenceHash: number;

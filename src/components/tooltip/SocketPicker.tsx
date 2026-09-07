@@ -39,8 +39,14 @@ interface SocketPickerValue {
     item?: QueuedItem;
     target?: PickerTarget;
     toggle: (target: PickerTarget) => void;
-    /** Index des sockets verrouillés (fragments non déverrouillés…) */
-    disabled: Set<number>;
+    /**
+     * Index des sockets verrouillés (fragments non déverrouillés…).
+     *
+     * En lecture seule : le contexte ne fait que transmettre. C'est ce qui
+     * permet d'y passer l'ensemble déduit d'un **instantané** de groupe, calculé
+     * une fois et mémoïsé — voir `useSnapshotLocks`.
+     */
+    disabled: ReadonlySet<number>;
     /**
      * Attribut attendu dans chaque socket, par index : les insertions en file
      * s'affichent comme équipées sans attendre la réponse de Bungie.

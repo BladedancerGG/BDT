@@ -59,3 +59,29 @@ export const DEFAULT_VIEW_MODE: ViewMode = "inventory";
 export function parseViewMode(raw: unknown): ViewMode | undefined {
     return VIEW_MODES.includes(raw as ViewMode) ? (raw as ViewMode) : undefined;
 }
+
+/**
+ * Familles d'objets affichées par la vue d'inventaire.
+ *
+ * L'onglet choisi commande **les deux côtés** de la vue : les emplacements du
+ * personnage à gauche et le contenu du coffre à droite montrent toujours la
+ * même famille.
+ *
+ *  - `equipment`     : armes, armures, doctrines et artéfacts — la vue
+ *                      historique, celle où l'on compose un équipement ;
+ *  - `customization` : emblèmes, vaisseaux, passereaux, coques de Spectre,
+ *                      coups de grâce et interactions ;
+ *  - `inventory`     : le rangement partagé — modificateurs, objets à usage
+ *                      unique et matériaux. Il n'appartient à aucun personnage,
+ *                      la vue n'y montre donc pas de colonnes d'emplacements.
+ */
+export const ITEM_CATEGORIES = ["equipment", "customization", "inventory"] as const;
+export type ItemCategory = (typeof ITEM_CATEGORIES)[number];
+
+export const DEFAULT_ITEM_CATEGORY: ItemCategory = "equipment";
+
+export function parseItemCategory(raw: unknown): ItemCategory | undefined {
+    return ITEM_CATEGORIES.includes(raw as ItemCategory)
+        ? (raw as ItemCategory)
+        : undefined;
+}

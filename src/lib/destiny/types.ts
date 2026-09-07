@@ -31,8 +31,20 @@ export interface InventoryItemDefinition {
      * seuls les mods d'armure en portent un, de 0 à 4 (relevé sur le manifeste).
      * Pièces maîtresses et mods d'artifice n'en ont aucun, bien qu'ils logent
      * dans la même catégorie de sockets — voir `plug-energy.ts`.
+     *
+     * Les **fragments** de doctrine en portent un aussi, valant 1 : c'est la
+     * même mécanique que l'énergie d'armure, la capacité venant des aspects.
      */
     energyCost?: { energyCost: number };
+    /**
+     * Capacité accordée par le plug.
+     *
+     * Sur un **aspect** de doctrine, c'est le nombre d'emplacements de
+     * fragments qu'il ouvre : 2 ou 3 (relevé sur le manifeste). L'emplacement
+     * d'aspect vide n'a pas ce champ du tout — il n'accorde donc rien, et c'est
+     * ce qui verrouille les fragments. Voir `lockedFragmentSockets`.
+     */
+    energyCapacity?: { capacityValue: number };
   };
   /** Écarts de statistiques conférés — voir plug-stats.ts */
   investmentStats?: {

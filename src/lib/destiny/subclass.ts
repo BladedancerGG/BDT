@@ -127,6 +127,53 @@ export function subclassSocketKind(
 }
 
 /**
+ * Les emplacements de fragments qu'un instantané laisse **verrouillés**.
+ *
+ * Une doctrine ne déverrouille ses emplacements de fragments qu'au fil des
+ * aspects équipés, et le manifeste dit exactement combien : chaque aspect porte
+ * un `plug.energyCapacity.capacityValue` de 2 ou 3, c'est-à-dire le nombre
+ * d'emplacements qu'il accorde. Un fragment en consomme un
+ * (`plug.energyCost.energyCost` valant 1) — la même mécanique que l'énergie
+ * d'armure, sous d'autres noms.
+ *
+ * Relevé sur le manifeste, et les chiffres se recoupent : les capacités valent
+ * 2 ou 3, deux aspects au plus, soit six emplacements — précisément le nombre
+ * qu'affichent les dix-huit doctrines. L'emplacement d'aspect **vide** n'a pas
+ * d'`energyCapacity` du tout : il n'accorde donc rien, ce qui est le cas qui
+ * nous occupe.
+ *
+ * Cette fonction sert l'édition d'un **instantané** de groupe : les verrous y
+ * découlent des aspects que l'instantané porte, et non de ceux que l'objet
+ * porte en ce moment — c'est tout l'objet d'un instantané que d'être une autre
+ * configuration que celle du moment.
+ *
+ * Les emplacements déverrouillés sont les **premiers** dans l'ordre des index :
+ * c'est le seul agencement représentable, et celui du jeu, qui remplit ses
+ * emplacements de fragments de gauche à droite.
+ */
+export function lockedFragmentSockets(
+    /** Nature de chaque socket de la doctrine, par index */
+    kinds: ReadonlyMap<number, SubclassSocketKind>,
+    /** Attributs de l'instantané, indexés par index de socket */
+    sockets: readonly number[],
+    /** Emplacements qu'un aspect accorde — zéro pour tout le reste */
+    capacityOf: (plugHash: number) => number,
+): Set<number> {
+    let capacity = 0;
+    const fragments: number[] = [];
+
+    // Les index sont parcourus dans l'ordre : c'est lui qui décide quels
+    // emplacements de fragments sont les premiers.
+    for (const index of [...kinds.keys()].sort((a, b) => a - b)) {
+        const kind = kinds.get(index);
+        if (kind === "aspect") capacity += capacityOf(sockets[index] ?? 0);
+        else if (kind === "fragment") fragments.push(index);
+    }
+
+    return new Set(fragments.slice(capacity));
+}
+
+/**
  * Seuls les emplacements d'aspects et de fragments peuvent être vides.
  *
  * Une compétence est toujours équipée : son plug est fréquemment le plug

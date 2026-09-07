@@ -34,6 +34,14 @@ export interface ItemThumbProps {
    * glyphe n'apprendrait rien (un emplacement n'accueille qu'un type).
    */
   equipped?: boolean;
+  /**
+   * Taille de la pile, affichée à partir de deux.
+   *
+   * Seuls les consommables et les mods en portent une : armes et armures sont
+   * des instances uniques, dont la quantité vaut toujours 1. Sans elle, une
+   * pile de vingt éclats ressemble à un éclat.
+   */
+  quantity?: number;
 }
 
 /**
@@ -50,6 +58,7 @@ export function ItemThumb({
   versionNumber,
   gearTier,
   equipped,
+  quantity,
   className,
 }: ItemThumbProps & { className?: string }) {
   // Servies par ItemDefsProvider : une seule requête groupée pour tout
@@ -198,6 +207,9 @@ export function ItemThumb({
         // Icône locale, contrairement à tous les calques ci-dessus : le
         // manifeste n'en porte aucune pour les types de munitions.
         <AmmoIcon ammoType={ammoType} className="item-thumb__ammo" />
+      )}
+      {quantity !== undefined && quantity > 1 && (
+        <span className="item-thumb__quantity">{quantity}</span>
       )}
       {regularBorder && (
         // Cadre des objets ordinaires, pendant du cadre doré des pièces

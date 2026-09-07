@@ -23,6 +23,9 @@
     "equip.check.ts",
     "insert.check.ts",
     "backup.check.ts",
-    "sync-merge.check.ts"
+    "sync-merge.check.ts",
+    "subclass.check.ts",
+    "gear.check.ts",
+    "moves.check.ts"
   ]
 }

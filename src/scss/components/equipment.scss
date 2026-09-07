@@ -34,6 +34,13 @@
     justify-content: center;
     flex-wrap: wrap;
   }
+
+  // Onglet « personnalisation » : rien ne suit les colonnes — pas de résumé du
+  // personnage — et l'inventaire d'un emplacement grandit vers le bas au
+  // survol. Sans cette réserve, la dernière ligne déborde de la section.
+  &--customization {
+    padding-bottom: calc(var(--item-size) * 2.3);
+  }
 }
 
 .slot-column {

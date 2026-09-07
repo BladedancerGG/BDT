@@ -14,6 +14,7 @@ import {
     isTrackerPlug,
     PLUG_SOURCE,
 } from "@/lib/destiny/sockets";
+import {isOrnamentFamily} from "@/lib/destiny/ornaments";
 import type {PlugAvailability} from "@/lib/destiny/use-plug-availability";
 
 /** Une colonne de perks : le plug équipé + toutes les options possibles. */
@@ -254,13 +255,38 @@ async function buildColumns(
         if (sources === 0 || sources & PLUG_SOURCE.Reusable) {
             options.push(...(detail?.reusablePlugs?.[String(socketIndex)] ?? []));
         }
-        if (setHash && available) {
+        // Le socket tire-t-il des plugs débloqués ? C'est ce test-là qui compte,
+        // et non lequel des deux drapeaux est levé : les deux niveaux sont
+        // réunis. Un plug set a un contenu qui lui est propre, et le même hash
+        // peut être servi par l'un ou l'autre — les aspects des doctrines
+        // élémentaires ne déclarent que `ProfilePlugSet` (4) là où ceux de la
+        // stase déclarent les deux (12), sans que la donnée suive toujours.
+        // DIM ne fait pas la distinction non plus : il empile
+        // `profilePlugSets` et `characterPlugSets` du personnage
+        // (`gatherUnlockedPlugSetItems`).
+        if (
+            setHash &&
+            available &&
+            sources & (PLUG_SOURCE.ProfilePlugSet | PLUG_SOURCE.CharacterPlugSet)
+        ) {
             const key = String(setHash);
-            if (sources & PLUG_SOURCE.ProfilePlugSet) {
-                options.push(...(available.profile[key] ?? []));
-            }
-            if (sources & PLUG_SOURCE.CharacterPlugSet) {
-                options.push(...(available.character[key] ?? []));
+            // Les plugs possédés mais pas insérables à l'instant (`held`) sont
+            // proposés partout, SAUF sur un socket d'ornement.
+            //
+            // C'est ce qui rend les aspects de doctrine complets : celui qui est
+            // déjà équipé sur l'autre emplacement reste débloqué (`enabled`)
+            // mais n'est plus `canInsert`, et manquait donc à la liste. Les
+            // ornements universels d'armure font exception, et c'est la seule :
+            // `enabled` y vaut vrai pour tout le pool, possédé ou non — on y
+            // retombe donc sur `canInsert`, comme DIM (`filterUnlockedPlugs` et
+            // sa liste `universalOrnamentPlugSetHashes`). Le socket se reconnaît
+            // à la famille de son plug d'origine, sans liste de hashes à tenir.
+            const ornament = isOrnamentFamily(initials.get(entry.singleInitialItemHash));
+            for (const snapshot of [available.profile, available.character]) {
+                const set = snapshot[key];
+                if (!set) continue;
+                options.push(...set.ready);
+                if (!ornament) options.push(...(set.held ?? []));
             }
         }
 

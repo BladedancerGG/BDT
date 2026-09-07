@@ -80,7 +80,7 @@ export function EquipmentPlugs({
     // Régime « instantané modifiable », s'il y en a un pour cet objet. Il vient
     // du contexte et non d'une prop : l'infobulle en a besoin elle aussi, et
     // elle est montée dans un portail, hors de portée d'un passage de props.
-    const snapshot = useSnapshotEdit(item?.itemInstanceId, detail);
+    const snapshot = useSnapshotEdit(item?.itemInstanceId, detail, def);
 
     // Les sockets réellement présents sur l'objet : les bonus d'ensemble n'en
     // ont pas, ils viennent de la panoplie.
@@ -182,7 +182,11 @@ export function EquipmentPlugs({
                     setPicker((current) =>
                         current?.socketIndex === next.socketIndex ? undefined : next,
                     ),
-                disabled: new Set(detail?.disabledSockets ?? []),
+                // En édition d'instantané, les verrous se déduisent de
+                // l'instantané et non de l'objet : une doctrine sans aspect
+                // équipé a ses fragments verrouillés, alors que l'instantané
+                // qu'on modifie en porte peut-être deux.
+                disabled: snapshot?.locked ?? new Set(detail?.disabledSockets ?? []),
                 pending,
                 onPick: snapshot?.onPick,
             }}

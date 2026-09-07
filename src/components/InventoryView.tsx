@@ -12,7 +12,8 @@ import {
 import {
     ARMOR_COLUMN,
     BUCKET,
-    EQUIPMENT_BUCKETS,
+    CUSTOMIZATION_LEFT,
+    CUSTOMIZATION_RIGHT,
     WEAPON_COLUMN,
     groupByBucket,
     type SlotSide,
@@ -21,6 +22,7 @@ import {
     useDefinition,
     type DisplayProperties,
 } from "@/lib/manifest/use-definition";
+import type {ItemCategory} from "@/lib/settings/constants";
 import {useSettings} from "@/lib/settings/store";
 import {useDisplayableItems} from "@/lib/destiny/use-displayable-items";
 import {useLoadoutItems} from "@/lib/destiny/use-loadout-items";
@@ -31,6 +33,7 @@ import {useActionRunner} from "@/lib/actions/use-action-runner";
 import {CharacterTab} from "./CharacterTab";
 import {EquipmentSlot} from "./EquipmentSlot";
 import {ViewModeTabs} from "./ViewModeTabs";
+import {ItemCategoryTabs} from "./ItemCategoryTabs";
 import {CharacterSummary} from "./equipment/CharacterSummary";
 import {EquipmentModeView} from "./equipment/EquipmentModeView";
 import {LoadoutPanel} from "./loadouts/LoadoutPanel";
@@ -75,6 +78,22 @@ const EQUIPMENT_DRAG_SCOPE: DragScope = {disabled: true, idPrefix: "equipment:"}
  * Le geste y est de toute façon interdit : un instantané ne se déplace pas.
  */
 const GROUPS_DRAG_SCOPE: DragScope = {disabled: true, idPrefix: "groups:"};
+
+/**
+ * Emplacements montrés de part et d'autre, par onglet.
+ *
+ * Le rangement partagé n'en a aucun : modificateurs et objets à usage unique
+ * sont de portée compte, ils ne sont posés sur personne. La vue laisse alors
+ * toute la largeur au coffre.
+ */
+const COLUMNS: Record<
+    ItemCategory,
+    {left: readonly number[]; right: readonly number[]}
+> = {
+    equipment: {left: WEAPON_COLUMN, right: ARMOR_COLUMN},
+    customization: {left: CUSTOMIZATION_LEFT, right: CUSTOMIZATION_RIGHT},
+    inventory: {left: [], right: []},
+};
 const NO_LOADOUTS: DestinyLoadout[] = [];
 
 /** Une colonne d'emplacements d'équipement. */
@@ -84,12 +103,15 @@ function SlotColumn({
                         equipped,
                         inventory,
                         details,
+                        pad = true,
                     }: {
     buckets: readonly number[];
     side: SlotSide;
     equipped: Map<number, DestinyItemComponent[]>;
     inventory: Map<number, DestinyItemComponent[]>;
     details: ProfileData["items"];
+    /** Voir `EquipmentSlot.pad` */
+    pad?: boolean;
 }) {
     return (
         <div className={`slot-column slot-column--${side}`}>
@@ -101,6 +123,7 @@ function SlotColumn({
                     inventory={inventory.get(bucketHash) ?? NO_ITEMS}
                     details={details}
                     side={side}
+                    pad={pad}
                 />
             ))}
         </div>
@@ -136,6 +159,7 @@ function usePostmasterSection(items: DestinyItemComponent[]): LeadSection {
 /** Personnages, emplacements d'équipement, puis coffre. */
 function Inventory({data}: { data: ProfileData }) {
     const t = useTranslations("inventory");
+    const tCommon = useTranslations("common");
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const current = selectedId ?? data.characters[0]?.characterId ?? null;
 
@@ -158,29 +182,79 @@ function Inventory({data}: { data: ProfileData }) {
         ? (data.inventory[current] ?? NO_ITEMS)
         : NO_ITEMS;
 
-    // Armes, armures, doctrines et artéfacts uniquement
+    /**
+     * Famille d'objets montrée par le mode inventaire : équipement,
+     * personnalisation ou rangement partagé. Elle commande les deux côtés de la
+     * vue — les colonnes du personnage comme le contenu du coffre.
+     */
+    const category = useSettings((s) => s.itemCategory);
+
+    // Armes, armures, doctrines et artéfacts uniquement. Cette liste-ci ne suit
+    // PAS l'onglet : elle sert aussi les modes « équipements » et « groupes »,
+    // montés en même temps, où un emblème n'a rien à faire.
     const displayedEquipped = useDisplayableItems(currentEquipped);
-    const displayedInventory = useDisplayableItems(currentInventory);
+
+    // Les deux listes de l'onglet courant. Pour « équipement » elles répètent
+    // celle du dessus, au prix d'un filtrage déjà mémoïsé.
+    const shownEquipped = useDisplayableItems(currentEquipped, category);
+    const shownInventory = useDisplayableItems(currentInventory, category);
 
     // Regroupement par emplacement : l'API fournit `bucketHash` aussi bien sur
     // les objets équipés que sur ceux de l'inventaire du personnage.
     const equippedByBucket = useMemo(
-        () => groupByBucket(displayedEquipped),
-        [displayedEquipped],
+        () => groupByBucket(shownEquipped),
+        [shownEquipped],
     );
     const inventoryByBucket = useMemo(
-        () => groupByBucket(displayedInventory),
-        [displayedInventory],
+        () => groupByBucket(shownInventory),
+        [shownInventory],
     );
 
-    // Tout ce qui n'entre dans aucun emplacement d'équipement — en pratique le
-    // Courrier. Calculé par différence pour ne rien perdre si Bungie ajoute un
-    // emplacement.
+    // Les colonnes de l'onglet : rien pour le rangement partagé, qui
+    // n'appartient à aucun personnage.
+    const columns = COLUMNS[category];
+
+    // Le Courrier. Reconnu à son emplacement plutôt que par différence avec les
+    // colonnes : sous l'onglet du rangement partagé il n'y a aucune colonne, et
+    // tout l'inventaire du personnage se serait retrouvé sous l'en-tête
+    // « Objets perdus ».
     const leftovers = useMemo(
-        () => displayedInventory.filter((i) => !EQUIPMENT_BUCKETS.has(i.bucketHash)),
-        [displayedInventory],
+        () => shownInventory.filter((i) => i.bucketHash === BUCKET.Postmaster),
+        [shownInventory],
     );
     const postmaster = usePostmasterSection(leftovers);
+
+    /**
+     * Sous l'onglet du rangement partagé, la vue se coupe en deux : ce qui est
+     * **dans** l'inventaire partagé à gauche, ce qui dort au coffre à droite.
+     *
+     * Les deux arrivent dans le même composant (`profileInventory`) : c'est le
+     * `bucketHash` de l'objet qui les sépare — son emplacement du moment, et
+     * non son emplacement d'origine, qui vaut « Modificateurs » des deux côtés.
+     * L'inventaire du personnage est versé à gauche par précaution : rien ne
+     * garantit par quel composant Bungie livre ces objets. Le Courrier en est
+     * retiré, il a déjà sa section.
+     */
+    const shared = category === "inventory";
+    const pouchItems = useMemo(
+        () =>
+            shared
+                ? [
+                      ...data.vault,
+                      ...currentInventory.filter(
+                          (i) => i.bucketHash !== BUCKET.Postmaster,
+                      ),
+                  ].filter((i) => i.bucketHash !== BUCKET.Vault)
+                : NO_ITEMS,
+        [shared, data.vault, currentInventory],
+    );
+    const vaultItems = useMemo(
+        () =>
+            shared
+                ? data.vault.filter((i) => i.bucketHash === BUCKET.Vault)
+                : data.vault,
+        [shared, data.vault],
+    );
 
     // —— Équipements sauvegardés ————————————————————————————————
     const loadouts = current ? (data.loadouts?.[current] ?? NO_LOADOUTS) : NO_LOADOUTS;
@@ -288,30 +362,74 @@ function Inventory({data}: { data: ProfileData }) {
                         }`}
                         inert={viewMode !== "inventory"}
                     >
-                        <div className="inventory-view__body">
-                            {/* Équipement du personnage : deux colonnes d'emplacements */}
-                            <section className="equipment">
-                                <div className="equipment__columns">
-                                    <SlotColumn
-                                        buckets={WEAPON_COLUMN}
-                                        side="left"
-                                        equipped={equippedByBucket}
-                                        inventory={inventoryByBucket}
+                        {/* Onglets de famille d'objets : ils commandent à la
+                            fois les colonnes du personnage et le coffre. */}
+                        <ItemCategoryTabs/>
+
+                        <div
+                            className={`inventory-view__body${
+                                shared ? " inventory-view__body--shared" : ""
+                            }`}
+                        >
+                            {/* Colonne de gauche du rangement partagé : ce que
+                                le personnage porte sur lui, modificateurs et
+                                objets à usage unique séparés par leurs
+                                sections. */}
+                            {shared && (
+                                <div className="inventory-view__storage">
+                                    <VirtualItemGrid
+                                        title={tCommon("inventory")}
+                                        items={pouchItems}
                                         details={data.items}
-                                    />
-                                    <SlotColumn
-                                        buckets={ARMOR_COLUMN}
-                                        side="right"
-                                        equipped={equippedByBucket}
-                                        inventory={inventoryByBucket}
-                                        details={data.items}
+                                        lead={postmaster}
+                                        category={category}
                                     />
                                 </div>
-                                <CharacterSummary
-                                    stats={character?.stats ?? {}}
-                                    setCounts={equippedSetCounts}
-                                />
-                            </section>
+                            )}
+
+                            {/* Emplacements du personnage : deux colonnes.
+                                Absentes du rangement partagé, qui n'appartient à
+                                personne — le coffre prend alors toute la place. */}
+                            {!shared && (
+                                <section
+                                    className={`equipment${
+                                        category === "customization"
+                                            ? " equipment--customization"
+                                            : ""
+                                    }`}
+                                >
+                                    <div className="equipment__columns">
+                                        <SlotColumn
+                                            buckets={columns.left}
+                                            side="left"
+                                            equipped={equippedByBucket}
+                                            inventory={inventoryByBucket}
+                                            details={data.items}
+                                            // Les emplacements de personnalisation ont
+                                            // eux aussi une capacité de dix, mais on
+                                            // n'y range rien : des rangées de cases
+                                            // vides n'apprendraient rien.
+                                            pad={category === "equipment"}
+                                        />
+                                        <SlotColumn
+                                            buckets={columns.right}
+                                            side="right"
+                                            equipped={equippedByBucket}
+                                            inventory={inventoryByBucket}
+                                            details={data.items}
+                                            pad={category === "equipment"}
+                                        />
+                                    </div>
+                                    {/* Les statistiques décrivent l'armure portée :
+                                        elles n'ont de sens que sous cet onglet. */}
+                                    {category === "equipment" && (
+                                        <CharacterSummary
+                                            stats={character?.stats ?? {}}
+                                            setCounts={equippedSetCounts}
+                                        />
+                                    )}
+                                </section>
+                            )}
 
                             {/* Colonne de droite : le Courrier et le coffre, dans un
                                 seul défilement virtualisé. Le coffre est commun à tous
@@ -319,19 +437,25 @@ function Inventory({data}: { data: ProfileData }) {
                             <div className="inventory-view__storage">
                                 <VirtualItemGrid
                                     title={t("vault")}
-                                    items={data.vault}
+                                    items={vaultItems}
                                     details={data.items}
-                                    lead={postmaster}
+                                    // Le Courrier est passé à gauche quand la
+                                    // vue est coupée : il tient au personnage,
+                                    // pas au coffre.
+                                    lead={shared ? undefined : postmaster}
+                                    category={category}
                                 />
                             </div>
 
                             {/* Zones de dépôt : trois calques, enfants DIRECTS de
                                 __body. Ils s'accrochent à ses colonnes pour épouser
                                 exactement l'équipement et le stockage — les imbriquer
-                                romprait ce lien. */}
+                                romprait ce lien. Leur découpage suit l'onglet :
+                                voir DropZones. */}
                             <DropZones
                                 characters={data.characters}
                                 selectedCharacterId={current}
+                                category={category}
                             />
                         </div>
                     </div>

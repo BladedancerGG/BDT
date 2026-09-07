@@ -11,6 +11,8 @@ import {
     autoUpdate,
     FloatingPortal,
 } from "@floating-ui/react";
+import {useLiveQuery} from "dexie-react-hooks";
+import {manifestDb} from "@/lib/manifest/db";
 import {useDefinition} from "@/lib/manifest/use-definition";
 import {useItemData} from "@/lib/bungie/use-item-data";
 import {
@@ -46,6 +48,7 @@ import {
     ARTIFACT_RESET_CATEGORY,
     ARTIFACT_SOCKET_CATEGORIES,
 } from "@/lib/destiny/sockets";
+import {gearRow, type GearRow} from "@/lib/destiny/gear";
 import {subclassDamageType, isSubclass} from "@/lib/destiny/subclass";
 import {useItemProgress} from "@/lib/destiny/use-item-progress";
 import {useStatBonuses} from "@/lib/destiny/use-stat-bonuses";
@@ -70,6 +73,7 @@ import {
     NEUTRAL_PLUG_QUEUE,
     usePlugQueueState,
     usePlugWriter,
+    useSocketPicker,
     type PickerTarget,
 } from "./SocketPicker";
 
@@ -85,8 +89,39 @@ const WEAPON_SOCKET_ROW = [
     SOCKET_CATEGORY.WEAPON_MODS,
     SOCKET_CATEGORY.WEAPON_COSMETICS,
 ] as const;
+const WEAPON_PERK_ROW = [SOCKET_CATEGORY.WEAPON_PERKS] as const;
 const ARMOR_MOD_ROW = [SOCKET_CATEGORY.ARMOR_MODS] as const;
 const ARMOR_COSMETIC_ROW = [SOCKET_CATEGORY.ARMOR_COSMETICS] as const;
+
+/**
+ * Coques de Spectre, vaisseaux et passereaux : tous leurs emplacements sur une
+ * seule rangée.
+ *
+ * Les catégories sont réunies plutôt que traitées à part parce qu'aucun objet
+ * n'en porte plus de trois — un même objet ne verra jamais la rangée déborder,
+ * et il n'y a qu'une lecture pour toutes. L'ordre est celui des index de
+ * sockets, donc celui du jeu : revêtement, projection, puis les mods.
+ */
+const GEAR_SOCKET_ROW = [
+    SOCKET_CATEGORY.GHOST_COSMETICS,
+    SOCKET_CATEGORY.GHOST_PERKS,
+    SOCKET_CATEGORY.GHOST_MODS,
+    SOCKET_CATEGORY.GHOST_TIER,
+    SOCKET_CATEGORY.SHIP_MODS,
+    SOCKET_CATEGORY.SPARROW_MODS,
+    SOCKET_CATEGORY.VEHICLE_PERKS,
+] as const;
+
+/**
+ * Les quatre emplacements de la collection d'interactions.
+ *
+ * Sur sa propre rangée : c'est le seul contenu de cet objet, et ses quatre
+ * emplacements tirent du même pool de 824 interactions.
+ */
+const EMOTE_ROW = [SOCKET_CATEGORY.EMOTES] as const;
+
+/** Repli de `PerkColumns`, qui désigne ses emplacements par leurs index. */
+const NO_CATEGORIES: readonly number[] = [];
 
 /**
  * Attributs d'un artéfact.
@@ -166,6 +201,29 @@ function ArtifactPerks({
     );
 }
 
+/**
+ * Index des sockets de ces catégories, dans l'ordre du manifeste.
+ *
+ * Le tableau sert de dépendance à des lectures groupées : il est mémoïsé sur la
+ * définition et sur la liste de catégories, elles-mêmes des constantes de
+ * module. Voir l'en-tête des rangées.
+ */
+function useCategoryIndexes(
+    def: InventoryItemDefinition | undefined,
+    categoryHashes: readonly number[],
+): number[] {
+    return useMemo(
+        () =>
+            categoryHashes.flatMap(
+                (categoryHash) =>
+                    def?.sockets?.socketCategories?.find(
+                        (c) => c.socketCategoryHash === categoryHash,
+                    )?.socketIndexes ?? [],
+            ),
+        [def, categoryHashes],
+    );
+}
+
 /** Nom d'une catégorie de sockets ("Perks d'arme", "Mods d'armure"…). */
 function useCategoryName(categoryHash: number): string {
     const def = useDefinition<SocketCategoryDefinition>(
@@ -194,23 +252,33 @@ function PerkColumns({
                          def,
                          detail,
                          item,
-                         categoryHash,
+                         categoryHashes = NO_CATEGORIES,
+                         indexes,
                      }: {
     def: InventoryItemDefinition;
     detail: ItemDetail | undefined;
     /** L'arme telle qu'elle part en file — ses habillages compris, pour que la
         carte du panneau puisse redessiner sa vignette. */
     item?: QueuedItem;
-    categoryHash: number;
+    categoryHashes?: readonly number[];
+    /**
+     * Emplacements désignés un à un, quand une catégorie ne les décrit pas.
+     * C'est le cas des véhicules et des coques : leurs attributs et leurs
+     * décors partagent les mêmes catégories — voir `lib/destiny/gear.ts`.
+     */
+    indexes?: number[];
 }) {
     const t = useTranslations("actions");
-    const all = useSocketColumns(def, detail, categoryHash);
-    const title = useCategoryName(categoryHash);
+    const fromCategories = useCategoryIndexes(def, categoryHashes);
+    const all = useSocketOptions(def, detail, indexes ?? fromCategories);
     // Où va le choix, et l'état à montrer : les deux sont résolus par le
     // contexte du sélecteur, que ces colonnes contournent par ailleurs.
     const write = usePlugWriter(item);
     const {pending, error, failure} = usePlugQueueState(item?.itemInstanceId);
-    const disabled = new Set(detail?.disabledSockets ?? []);
+    // Les verrous viennent du contexte et non de `detail` : c'est lui qui sait
+    // s'ils décrivent l'objet du moment ou l'instantané qu'on modifie. Une
+    // seconde source ici aurait divergé de la première au premier changement.
+    const {disabled} = useSocketPicker();
 
     // Le compte-frags occupe une colonne de cette catégorie sans être un
     // attribut : le compte est déjà repris dans le résumé de l'arme, l'icône
@@ -296,25 +364,24 @@ function PlugRow({
                      detail,
                      available,
                      categoryHashes,
+                     indexes,
                      square = true,
                  }: {
     def: InventoryItemDefinition;
     detail: ItemDetail | undefined;
     available: PlugAvailability;
     categoryHashes: readonly number[];
+    /** Emplacements désignés un à un — voir `PerkColumns.indexes` */
+    indexes?: number[];
     square?: boolean;
 }) {
-    const indexes = useMemo(
-        () =>
-            categoryHashes.flatMap(
-                (categoryHash) =>
-                    def.sockets?.socketCategories?.find(
-                        (c) => c.socketCategoryHash === categoryHash,
-                    )?.socketIndexes ?? [],
-            ),
-        [def, categoryHashes],
+    const fromCategories = useCategoryIndexes(def, categoryHashes);
+    const columns = useSocketOptions(
+        def,
+        detail,
+        indexes ?? fromCategories,
+        available,
     );
-    const columns = useSocketOptions(def, detail, indexes, available);
     // Nom de repli quand le plug équipé n'a pas de type affichable : celui de
     // la première catégorie, la plus représentative de la rangée.
     const title = useCategoryName(categoryHashes[0]);
@@ -347,6 +414,87 @@ function PlugRow({
     );
 }
 
+/**
+ * Emplacements d'une coque de Spectre, d'un vaisseau ou d'un passereau, en
+ * trois rangées.
+ *
+ * Le découpage vient de la **famille** du plug d'origine de chaque socket et
+ * non de sa catégorie — voir `lib/destiny/gear.ts`, qui explique pourquoi le
+ * klaxon d'un passereau partage la catégorie de son revêtement :
+ *
+ *   1. les attributs (moteur, mod de passereau, mod de vaisseau, module de
+ *      Spectre) : ils ne se changent pas, on les montre comme les attributs
+ *      d'une arme ;
+ *   2. les mods de Spectre et le palier, qui, eux, s'échangent ;
+ *   3. les décors : revêtement, projection, effet d'apparition, klaxon.
+ */
+function GearSockets({
+                         def,
+                         detail,
+                         available,
+                         item,
+                     }: {
+    def: InventoryItemDefinition;
+    detail: ItemDetail | undefined;
+    available: PlugAvailability;
+    item?: QueuedItem;
+}) {
+    const indexes = useCategoryIndexes(def, GEAR_SOCKET_ROW);
+
+    // Une seule lecture groupée pour tous les emplacements : la famille se lit
+    // sur le plug d'ORIGINE, qu'il faut donc aller chercher dans le manifeste.
+    const rows = useLiveQuery(
+        async () => {
+            const hashes = indexes.map(
+                (index) => def.sockets?.socketEntries[index]?.singleInitialItemHash ?? 0,
+            );
+            const plugRows = await manifestDb.definitions.bulkGet(
+                hashes.map(
+                    (hash) =>
+                        ["DestinyInventoryItemDefinition", hash] as [string, number],
+                ),
+            );
+
+            const out: Record<GearRow, number[]> = {perk: [], cosmetic: [], mod: []};
+            indexes.forEach((index, i) => {
+                const plugDef = plugRows[i]?.data as InventoryItemDefinition | undefined;
+                out[gearRow(plugDef)].push(index);
+            });
+            return out;
+        },
+        // Le tableau est recréé à chaque rendu : la dépendance porte sur son
+        // contenu, comme partout ailleurs dans le projet.
+        [def, indexes.join(",")],
+    );
+
+    if (!rows) return null;
+
+    return (
+        <>
+            <PerkColumns
+                def={def}
+                detail={detail}
+                item={item}
+                indexes={rows.perk}
+            />
+            <PlugRow
+                def={def}
+                detail={detail}
+                available={available}
+                categoryHashes={GEAR_SOCKET_ROW}
+                indexes={rows.mod}
+            />
+            <PlugRow
+                def={def}
+                detail={detail}
+                available={available}
+                categoryHashes={GEAR_SOCKET_ROW}
+                indexes={rows.cosmetic}
+            />
+        </>
+    );
+}
+
 export function ItemTooltip({
                                 itemHash,
                                 itemInstanceId,
@@ -376,7 +524,7 @@ export function ItemTooltip({
      * Le contexte traverse le portail qui la monte : c'est la ligne de
      * l'éditeur qui l'a ouverte, et son emplacement de groupe qui fait foi.
      */
-    const snapshotEdit = useSnapshotEdit(itemInstanceId, liveDetail);
+    const snapshotEdit = useSnapshotEdit(itemInstanceId, liveDetail, def);
 
     /**
      * Le détail de l'objet, avec les attributs de l'instantané substitués.
@@ -527,7 +675,10 @@ export function ItemTooltip({
                     setPicker((current) =>
                         current?.socketIndex === next.socketIndex ? undefined : next,
                     ),
-                disabled: new Set(detail?.disabledSockets ?? []),
+                // Voir `useSnapshotLocks` : en édition d'instantané, les
+                // verrous viennent de l'instantané, pas de l'objet du moment.
+                disabled:
+                    snapshotEdit?.locked ?? new Set(detail?.disabledSockets ?? []),
                 pending,
                 onPick: snapshotEdit?.onPick,
             }}
@@ -648,7 +799,7 @@ export function ItemTooltip({
                                 def={def}
                                 detail={detail}
                                 item={queued}
-                                categoryHash={SOCKET_CATEGORY.WEAPON_PERKS}
+                                categoryHashes={WEAPON_PERK_ROW}
                             />
                         )}
                         {/* Armure exotique : son attribut intrinsèque, mis en page
@@ -689,6 +840,22 @@ export function ItemTooltip({
                             detail={detail}
                             available={available}
                             categoryHashes={ARMOR_COSMETIC_ROW}
+                        />
+
+                        {/* Coque de Spectre, vaisseau, passereau : attributs,
+                            mods, puis décors — trois rangées, découpées par
+                            famille de plug (voir GearSockets). */}
+                        <GearSockets
+                            def={def}
+                            detail={detail}
+                            available={available}
+                            item={queued}
+                        />
+                        <PlugRow
+                            def={def}
+                            detail={detail}
+                            available={available}
+                            categoryHashes={EMOTE_ROW}
                         />
 
                         {/* Attributs équipés sur un artéfact, et sa remise à zéro */}

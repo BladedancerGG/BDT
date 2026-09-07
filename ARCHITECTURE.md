@@ -143,6 +143,29 @@ Measured values: weapon perks `0`, weapon mods and cosmetics `7`, armor mods
 Reading plug sets for a weapon perk would show the manifest pool instead of the
 weapon's actual roll — hence the flags rather than a uniform rule.
 
+The flags decide **whether** plug sets are read, not **which of the two**: both
+levels are merged. The same plug set hash may be served by either component, and
+the flags do not always match where the data lands — elemental subclass aspect
+sockets declare `4` (profile only) where stasis declares `12`. DIM makes no
+distinction either: `gatherUnlockedPlugSetItems` stacks `profilePlugSets` and
+the character's `characterPlugSets`.
+
+**`canInsert` is not the ownership signal — `enabled` is.** The two answer
+different questions: `canInsert` means “the insert would go through, here and
+now”, `enabled` means “the player owns this plug”. Trimming on `canInsert` alone
+cost subclass aspects: an aspect already slotted in the *other* aspect socket of
+the same subclass stays `enabled` but is no longer `canInsert`, and vanished
+from the picker. DIM reads `enabled` (`filterUnlockedPlugs`) and keeps
+`canInsert` only for universal armor ornament plug sets, where `enabled` is true
+for the whole pool and therefore says nothing.
+
+So the trim keeps both, per plug set: `ready` (canInsert) and `held` (enabled
+without canInsert — absent from most sets, so barely any extra payload).
+`buildColumns` offers both, except on an ornament socket where it falls back to
+`ready` alone. It recognises one from the family of the socket's initial plug
+(`…skins…`, `isOrnamentFamily`) rather than from a list of plug set hashes to
+maintain.
+
 ## Displayed items
 
 Only item types that make up a loadout are shown: **weapons, armor, subclasses
@@ -165,15 +188,71 @@ filtering happens client-side in `useDisplayableItems()`.
 Measured on a real account: equipped 17 → 9, character inventory 143 → 76,
 vault 1039 → 981 (671 weapons + 310 armor), plus artifacts.
 
+That filter is really one of **three**, picked by the item-category tabs at the
+top of the inventory mode (`ItemCategoryTabs`, `itemCategory` in the settings
+cookie). The tab drives **both sides of the view at once** — the character's
+slots on the left and the vault on the right — because finding a ship in the
+vault to slot it means seeing both at the same time:
+
+| Tab | Contents | Columns |
+|---|---|---|
+| `equipment` | weapons, armor, subclasses, artifacts | the historical two |
+| `customization` | emblems, ships, sparrows / ghost shells, finishers, emotes | the six customization buckets |
+| `inventory` | modifications, consumables, materials | none — the view splits in two instead |
+
+The last two families are recognised by their **home bucket**
+(`inventory.bucketTypeHash`), never by `itemType`: the emote collection carries
+`itemType: 0`, like artifacts. Shared storage is account-scoped (`scope: 1`), so
+Bungie ships it in `profileInventory` next to the vault even though the game
+shows it on every character — hence a tab with no character columns. That tab
+splits the view differently instead: what is **in** the shared inventory on the
+left, what sits in the vault on the right, two grids of equal width. Both come
+from the same component, so it is the item's `bucketHash` — where it is right
+now, not its home bucket, which reads “Modifications” on either side — that
+tells them apart. Stack size comes from `quantity` and is drawn on the thumbnail
+from two upwards.
+
+`useDisplayableItems(items, category)` carries the choice down through
+`useSortedItems` and `useGroupedItems`, so the vault's sections and their order
+follow (`BUCKET_ORDER` lists the customization and storage buckets after the
+equipment ones). The character columns of the loadout and group modes keep the
+`equipment` list regardless of the tab: those modes are mounted at the same
+time, and an emblem has no business in a loadout.
+
+Ghost shells, ships and sparrows carry plugs of their own — shader, projection,
+mods, horn, spawn effects, tier — and the emote collection has four slots
+drawing from the same pool of 824 emotes (`EMOTE_ROW`, a plain `PlugRow`).
+
+Their tooltip splits into **three rows, by plug family and not by socket
+category** (`lib/destiny/gear.ts`, checked by `gear.check.ts`). The categories
+cannot do the job: a sparrow's horn shares “VEHICLE MODS” with its shader while
+its engine sits in “VEHICLE PERKS” with its mod, so a split along category lines
+would file the horn with the mods and separate the two decorations. Reading the
+family of each socket's *initial* plug instead gives the three rows the game
+itself draws: perks that cannot be changed (engine, sparrow mod, ship mod, ghost
+module), ghost mods and tier which can, then the decorations (shader,
+projection, spawn effect, horn). The display name is no help — horns are typed
+“Sparrow Mod” like real mods.
+
 ## Item icons
 
 `displayProperties.icon` is a JPEG with the rarity background **baked into the
-image**. The `DestinyIconDefinition` table — keyed by the item hash — exposes the
-cut-out version: `foreground` (transparent PNG), `background`,
-`secondaryBackground`, `highResForeground`.
+image**. The `DestinyIconDefinition` table exposes the cut-out version:
+`foreground` (transparent PNG), `background`, `secondaryBackground`,
+`highResForeground`.
 
-Coverage: ~62 % of manifest weapons and armor, ~82 % of items actually present in
-an inventory. A JPEG fallback is therefore mandatory (`bestIconPath()`).
+That table is **not keyed by the item hash**: it has hashes of its own, and
+`displayProperties.iconHash` is what points into it. The two often coincide —
+enough for a lookup by item hash to appear to work — but they differ for 24 263
+of the manifest's 38 894 items, 22 105 of which do have a cut-out icon. Looking
+them up by item hash silently found 62 % of weapons and armor; by `iconHash`,
+coverage is 100 % of them (94 % of the whole manifest). This is how DIM reads
+the table too (`defs.Icon.get(displayProperties.iconHash)`). `loadIconDefs()` in
+`item-defs.tsx` does the two grouped reads and re-keys the result by item hash;
+ornament plugs go through the very same helper.
+
+A JPEG fallback stays in place for the few items with no `foreground`
+(`bestIconPath()`).
 
 The rarity background is restored in SCSS via `item-thumb--tier-*` classes; the
 palette lives once in `layout/theme.scss` and `tierColor()` returns those CSS
@@ -348,6 +427,9 @@ Everything follows from what the graph *lacks*:
   (which item takes its place);
 - **the Postmaster only empties into its own character's inventory.**
 
+`TransferItem` and `PullFromPostMaster` also take a `stackSize` — see **Stacks**
+below.
+
 Hence a weapon equipped on character 1, wanted on character 2, costs four
 requests: equip a replacement on 1, transfer to the vault, transfer to 2, equip.
 
@@ -372,6 +454,41 @@ When a destination bucket is full the planner adds an **eviction** step (its
 least valuable item goes to the vault) rather than failing — the same thing the
 game does. Exotics are picked last as replacements or evictions: equipping one
 can force another one off, which nobody asked for.
+
+### Stacks
+
+Mods, consumables and materials are **not instanced**: the API knows them by
+`itemReferenceHash` and takes `itemId: "0"`, so they have no identity to key the
+queue, the greyed-out thumbnail or the profile-freshness check on. They get a
+synthetic one instead — `stackId()`, the hash plus where the stack currently is,
+mirroring `matchKey` in the search. Both halves matter: the same mod can have a
+stack in the vault and another in the shared storage, and only the second half
+tells them apart. The id is resolved against the cached profile when planning
+and never kept beyond that; the API route translates it back to `itemId: "0"`
+before the call, and each step carries its `stackSize`.
+
+Dropping a stack of more than one opens an **amount prompt** (`AmountPrompt`), a
+slider and a field over the shared modal, opened on the whole stack — the common
+case, so confirming without touching anything moves everything. The amount is
+kept on the queued action and not only on its steps: the plan is recomputed just
+before sending, and without it the stack would go whole. `applyStep` splits
+accordingly — the remainder stays where it was.
+
+Their plan is its own branch (`planStackMove`, checked by `moves.check.ts`):
+never an equip, never an eviction to make room, and one transfer — two when
+pulling from the Postmaster first. Those buckets are account-scoped, so aiming
+at one character's inventory or another's moves nothing, and the shared storage
+and the vault live in the *same* array (`profileInventory`): a transfer between
+them changes a `bucketHash` without moving the item from one list to another.
+Two stacks of the same item never coexist in one place — `applyStep` merges
+quantities, otherwise the next plan would run against a state the game does not
+have.
+
+> An unknown bucket capacity means “no known limit”, never the planner's default
+> of ten. That default is a weapon's, and applying it to a 50-slot pouch invented
+> refusals: every transfer into shared storage was turned down as “destination
+> full”. The real fix is upstream — `useBucketCapacities` must track **every**
+> bucket that can receive an item, customization and shared storage included.
 
 ### Queue
 
@@ -466,7 +583,12 @@ player touches the same item in-game at that exact moment.
 ### Interface
 
 Dragging an item reveals seven drop zones over the view — equip / inventory for
-each character, plus the vault. They overlay rather than insert themselves: the
+each character, plus the vault. The shared-storage tab is the exception, with
+two: “inventory” on the left, the vault on the right, mirroring the split of the
+view underneath. Modifications and consumables are account-scoped, so naming a
+character would mean nothing — the API demands one for any transfer all the
+same, and the displayed character serves as the way in. They overlay rather than
+insert themselves: the
 layout does not shift at the moment the user is aiming. Each zone asks the
 planner whether it is reachable, and a zone that is not stays visible, disabled,
 carrying its reason.
@@ -1100,6 +1222,23 @@ the very context the row that opened it sits in. A context is affordable here
 precisely because it wraps one group editor — a dozen tiles, not the vault's
 thousand, which is why the *selection* next door is a store instead.
 
+> **The editor's locks come from the snapshot, not from the item.**
+> `ItemDetail.disabledSockets` describes the item as it stands: a subclass with
+> no aspect equipped has all six of its fragment sockets locked — and
+> `SubclassSockets` does not merely grey those out, it hides them. A snapshot
+> carrying two aspects therefore showed no fragments at all. `useSnapshotLocks`
+> recomputes them from the snapshot instead, and the socket-picker context
+> carries the result so there is a single source: `PerkColumns` and
+> `SubclassSockets` both read `disabled` from it rather than from `detail`.
+>
+> The manifest says exactly how many slots an aspect opens: its
+> `plug.energyCapacity.capacityValue`, 2 or 3, while each fragment costs 1
+> (`plug.energyCost.energyCost`) — the same mechanism as armour energy under
+> other names. The figures corroborate each other: two aspects at 3 make six,
+> precisely the number of fragment sockets all eighteen subclasses carry. The
+> **empty** aspect socket has no `energyCapacity` at all, which is what locks the
+> fragments. The calculation is `lockedFragmentSockets`, pure and verified.
+
 In the tooltip the override has **one** touch point, and that is what makes the
 graft tenable: `buildColumns`, every row and the picker all read the plug in
 place from `detail.sockets`. Substituting that one array with the snapshot's
@@ -1709,6 +1848,31 @@ aspects / fragments de doctrine `4`. Lire les plug sets pour un attribut d'arme
 afficherait le pool du manifeste à la place du tirage réel de l'arme — d'où les
 drapeaux plutôt qu'une règle uniforme.
 
+Les drapeaux décident **si** les plug sets sont lus, pas **lequel des deux** :
+les deux niveaux sont réunis. Un même hash de plug set peut être servi par l'un
+ou l'autre composant, et les drapeaux ne suivent pas toujours l'endroit où la
+donnée arrive — les sockets d'aspects des doctrines élémentaires déclarent `4`
+(profil seul) là où la stase déclare `12`. DIM ne fait pas la distinction non
+plus : `gatherUnlockedPlugSetItems` empile `profilePlugSets` et les
+`characterPlugSets` du personnage.
+
+**Le signal de possession n'est pas `canInsert`, c'est `enabled`.** Les deux
+répondent à des questions différentes : `canInsert` dit « l'insertion passerait,
+ici et maintenant », `enabled` dit « le joueur possède ce plug ». N'élaguer que
+sur `canInsert` coûtait des aspects de doctrine : un aspect déjà équipé sur
+l'*autre* emplacement de la même doctrine reste `enabled` mais n'est plus
+`canInsert`, et disparaissait du sélecteur. DIM lit `enabled`
+(`filterUnlockedPlugs`) et ne garde `canInsert` que pour les plug sets
+d'ornements universels d'armure, où `enabled` vaut vrai pour tout le pool et ne
+dit donc rien.
+
+L'élagage garde donc les deux, par plug set : `ready` (canInsert) et `held`
+(enabled sans canInsert — absent de la plupart des sets, le surcoût est
+négligeable). `buildColumns` propose les deux, sauf sur un socket d'ornement où
+il retombe sur `ready` seul. Il le reconnaît à la famille du plug d'origine du
+socket (`…skins…`, `isOrnamentFamily`) plutôt qu'à une liste de hashes de plug
+sets à tenir à jour.
+
 ## Objets affichés
 
 Seuls les types d'objets qui composent un équipement sont affichés : **armes,
@@ -1732,15 +1896,74 @@ filtrage côté client dans `useDisplayableItems()`.
 Effet mesuré sur un compte réel : équipé 17 → 9, inventaire 143 → 76, coffre
 1039 → 981 (671 armes + 310 armures), plus les artéfacts.
 
+Ce filtre est en réalité l'un de **trois**, choisi par les onglets de famille en
+tête du mode inventaire (`ItemCategoryTabs`, `itemCategory` dans le cookie de
+préférences). L'onglet commande **les deux côtés de la vue à la fois** — les
+emplacements du personnage à gauche, le coffre à droite — parce que chercher un
+vaisseau au coffre pour le poser demande de voir les deux en même temps :
+
+| Onglet | Contenu | Colonnes |
+|---|---|---|
+| `equipment` | armes, armures, doctrines, artéfacts | les deux historiques |
+| `customization` | emblèmes, vaisseaux, passereaux / coques, coups de grâce, interactions | les six emplacements de personnalisation |
+| `inventory` | modificateurs, objets à usage unique, matériaux | aucune — la vue se coupe autrement |
+
+Les deux dernières familles se reconnaissent à leur **emplacement d'origine**
+(`inventory.bucketTypeHash`), jamais à leur `itemType` : la collection
+d'interactions porte `itemType: 0`, comme les artéfacts. Le rangement partagé
+est de portée compte (`scope: 1`) : Bungie le livre dans `profileInventory`, à
+côté du coffre, quand bien même le jeu le montre sur chaque personnage — d'où un
+onglet sans colonnes d'emplacements. Cet onglet coupe la vue autrement : ce qui
+est **dans** l'inventaire partagé à gauche, ce qui dort au coffre à droite, deux
+grilles à parts égales. Les deux arrivent dans le même composant, c'est donc le
+`bucketHash` de l'objet — son emplacement du moment, et non son emplacement
+d'origine, qui vaut « Modificateurs » des deux côtés — qui les sépare. La taille
+de la pile vient de `quantity` et s'affiche sur la vignette à partir de deux.
+
+`useDisplayableItems(items, category)` porte le choix jusqu'à `useSortedItems`
+et `useGroupedItems` : les sections du coffre et leur ordre suivent
+(`BUCKET_ORDER` range les emplacements de personnalisation et de rangement à la
+suite de ceux d'équipement). Les colonnes des modes « équipements » et
+« groupes », elles, gardent la liste `equipment` quel que soit l'onglet : ces
+modes sont montés en même temps, et un emblème n'a rien à faire dans un
+équipement.
+
+Coques de Spectre, vaisseaux et passereaux portent leurs propres plugs —
+revêtement, projection, mods, klaxon, effets d'apparition, palier — et la
+collection d'interactions a quatre emplacements tirant du même pool de 824
+interactions (`EMOTE_ROW`, un simple `PlugRow`).
+
+Leur infobulle se découpe en **trois rangées, par famille de plug et non par
+catégorie de sockets** (`lib/destiny/gear.ts`, couvert par `gear.check.ts`). Les
+catégories n'y suffisent pas : le klaxon d'un passereau partage « MODS DE
+VÉHICULES » avec son revêtement tandis que son moteur est dans « ATTRIBUTS DE
+VÉHICULES » avec son mod — un découpage par catégorie mettrait donc le klaxon
+avec les mods et séparerait les deux décors. Lire la famille du plug *d'origine*
+de chaque socket rend les trois rangées du jeu : les attributs qui ne se
+changent pas (moteur, mod de passereau, mod de vaisseau, module de Spectre), les
+mods de Spectre et le palier qui, eux, s'échangent, puis les décors (revêtement,
+projection, effet d'apparition, klaxon). Le nom affiché n'est d'aucun secours :
+les klaxons sont typés « Mod pour Passereau », comme les vrais mods.
+
 ## Icônes des objets
 
 `displayProperties.icon` est un JPEG avec le fond de rareté **incrusté dans
-l'image**. La table `DestinyIconDefinition` — indexée par le hash de l'objet —
-expose la version détourée : `foreground` (PNG transparent), `background`,
-`secondaryBackground`, `highResForeground`.
+l'image**. La table `DestinyIconDefinition` expose la version détourée :
+`foreground` (PNG transparent), `background`, `secondaryBackground`,
+`highResForeground`.
 
-Couverture : ~62 % des armes et armures du manifeste, ~82 % des objets réellement
-présents dans un inventaire. Un repli sur le JPEG est donc indispensable
+Cette table n'est **pas indexée par le hash de l'objet** : elle a ses propres
+hashes, et c'est `displayProperties.iconHash` qui y renvoie. Les deux coïncident
+souvent — assez pour qu'une lecture au hash d'objet paraisse marcher — mais ils
+diffèrent pour 24 263 des 38 894 objets du manifeste, dont 22 105 ont bien une
+icône détourée. Cherchées au hash de l'objet, elles n'étaient trouvées que pour
+62 % des armes et armures ; par `iconHash`, la couverture est totale sur
+celles-ci (94 % du manifeste entier). C'est aussi la lecture que fait DIM
+(`defs.Icon.get(displayProperties.iconHash)`). `loadIconDefs()`, dans
+`item-defs.tsx`, fait les deux lectures groupées et réindexe le résultat par
+hash d'objet ; les plugs d'ornement passent par le même helper.
+
+Le repli sur le JPEG reste en place pour les quelques objets sans `foreground`
 (`bestIconPath()`).
 
 Le fond de rareté est rétabli en SCSS via les classes `item-thumb--tier-*` ; la
@@ -1929,6 +2152,9 @@ Tout découle de ce que ce graphe **n'a pas** :
   prend sa place) ;
 - **les Objets perdus ne se vident que vers leur propre personnage.**
 
+`TransferItem` et `PullFromPostMaster` prennent en plus un `stackSize` — voir
+**Les piles** plus bas.
+
 Une arme équipée sur le personnage 1 et voulue sur le personnage 2 coûte donc
 quatre requêtes : équiper un remplaçant sur 1, transférer au coffre, transférer
 vers 2, équiper.
@@ -1956,6 +2182,46 @@ d'**éviction** (son objet le moins précieux part au coffre) plutôt que
 d'échouer — c'est ce que fait le jeu. Les exotiques sont choisis en dernier comme
 remplaçants ou comme évincés : en équiper un peut en faire sauter un autre, ce
 que personne n'a demandé.
+
+### Les piles
+
+Mods, consommables et matériaux ne sont **pas instanciés** : l'API les connaît
+par leur `itemReferenceHash` et attend un `itemId` à « 0 ». Ils n'ont donc
+aucune identité sur laquelle indexer la file d'actions, la vignette grisée ou le
+contrôle de fraîcheur du profil. On leur en donne une de synthèse — `stackId()`,
+le hash **et** l'endroit où la pile se trouve, sur le modèle de `matchKey` dans
+la recherche. Les deux moitiés comptent : le même mod peut avoir une pile au
+coffre et une autre dans le rangement partagé, et seule la seconde les
+distingue. L'identifiant est résolu contre le profil en cache à la
+planification, jamais conservé au-delà ; la route le retraduit en `itemId: "0"`
+avant l'appel, et chaque étape porte son `stackSize`.
+
+Le dépôt d'une pile de plus d'un exemplaire ouvre un **sélecteur de quantité**
+(`AmountPrompt`), un curseur et un champ posés dans la modale commune, ouverts
+sur la pile entière — c'est le cas courant, valider sans rien toucher revient
+donc à tout déplacer. La quantité est conservée sur l'action en file et pas
+seulement sur ses étapes : le plan est rejoué juste avant l'envoi, et sans elle
+la pile repartirait entière. `applyStep` fait la coupe — le reste demeure là où
+il était.
+
+Leur planification est une branche à part (`planStackMove`, couverte par
+`moves.check.ts`) : jamais d'équipement, jamais d'éviction pour faire de la
+place, et un seul transfert — deux quand il faut d'abord sortir du Courrier. Ces
+emplacements sont de portée compte : viser l'inventaire d'un personnage ou d'un
+autre ne déplace rien, et le rangement partagé comme le coffre vivent dans le
+*même* tableau (`profileInventory`) — un transfert de l'un à l'autre change un
+`bucketHash` sans faire passer l'objet d'une liste à une autre. Deux piles du
+même objet ne coexistent jamais au même endroit : `applyStep` fusionne les
+quantités, sans quoi le déplacement suivant serait planifié contre un état que
+le jeu n'a pas.
+
+> Une capacité d'emplacement inconnue vaut « aucune limite connue », jamais la
+> valeur par défaut du planificateur — dix, celle d'une arme. L'appliquer à un
+> rangement de cinquante places inventait des refus : tout transfert vers
+> l'inventaire partagé était rejeté d'un « emplacement de destination plein ».
+> La vraie correction est en amont : `useBucketCapacities` doit suivre **tous**
+> les emplacements pouvant recevoir un objet, personnalisation et rangement
+> partagé compris.
 
 ### File d'actions
 
@@ -2057,7 +2323,12 @@ déclenche aussi quand le joueur touche au même objet en jeu à cet instant pr�
 ### Interface
 
 Saisir un objet fait apparaître sept zones de dépôt par-dessus la vue —
-équiper / inventaire pour chaque personnage, plus le coffre. Elles recouvrent au
+équiper / inventaire pour chaque personnage, plus le coffre. L'onglet du
+rangement partagé fait exception, avec deux : « inventaire » à gauche, le coffre
+à droite, reprenant la coupe de la vue qu'elles recouvrent. Modificateurs et
+objets à usage unique sont de portée compte : désigner un personnage n'y
+signifierait rien — l'API en réclame pourtant un pour tout transfert, et c'est
+le personnage affiché qui sert de porte d'entrée. Elles recouvrent au
 lieu de s'insérer : la mise en page ne bouge pas au moment où l'utilisateur vise.
 Chaque zone demande au planificateur si elle est atteignable ; celle qui ne l'est
 pas reste affichée, désactivée, avec son motif.
@@ -2744,6 +3015,24 @@ ligne qui l'a ouverte. Un contexte est abordable ici précisément parce qu'il
 n'enveloppe qu'un éditeur de groupe — une dizaine de vignettes, et non les mille
 du coffre, ce qui est la raison pour laquelle la *sélection* d'à côté est un
 store.
+
+> **Les verrous de l'éditeur viennent de l'instantané, pas de l'objet.**
+> `ItemDetail.disabledSockets` décrit l'objet tel qu'il est : une doctrine sans
+> aspect équipé a ses six emplacements de fragments verrouillés — et
+> `SubclassSockets` ne se contente pas de les griser, il les masque. Un
+> instantané portant deux aspects n'affichait donc aucun fragment.
+> `useSnapshotLocks` les recalcule depuis l'instantané, et le contexte du
+> sélecteur porte le résultat pour qu'il n'y ait qu'une source : `PerkColumns`
+> comme `SubclassSockets` lisent `disabled` là, et non dans `detail`.
+>
+> Le manifeste dit exactement combien d'emplacements un aspect ouvre : son
+> `plug.energyCapacity.capacityValue`, 2 ou 3, quand chaque fragment en coûte 1
+> (`plug.energyCost.energyCost`) — la même mécanique que l'énergie d'armure,
+> sous d'autres noms. Les chiffres se recoupent : deux aspects à 3 font six,
+> précisément le nombre d'emplacements de fragments que portent les dix-huit
+> doctrines. L'emplacement d'aspect **vide** n'a pas d'`energyCapacity` du tout,
+> et c'est ce qui verrouille les fragments. Le calcul est
+> `lockedFragmentSockets`, pur et vérifié.
 
 Dans l'infobulle, la substitution n'a **qu'un** point d'application, et c'est ce
 qui rend la greffe tenable : `buildColumns`, chaque rangée et le sélecteur lisent

@@ -21,6 +21,7 @@ import {
 import { useMovePlanner } from "@/lib/actions/use-move-planner";
 import type { MoveTarget } from "@/lib/destiny/moves";
 import { ItemThumb, type ItemThumbProps } from "../ItemThumb";
+import { AmountPrompt } from "./AmountPrompt";
 
 /**
  * L'objet saisi, tel qu'il voyage dans `active.data`.
@@ -32,7 +33,12 @@ import { ItemThumb, type ItemThumbProps } from "../ItemThumb";
  * marquages en cours de geste.
  */
 export interface DraggedItem extends ItemThumbProps {
-  /** Un objet non instancié ne se déplace pas : ici l'identifiant est requis. */
+  /**
+   * De quoi désigner l'objet : son `itemInstanceId`, ou — pour une pile de mods
+   * ou de consommables, que l'API ne sait pas nommer — l'identifiant de
+   * synthèse construit par `stackSubject`. Requis : une vignette qui n'a ni
+   * l'un ni l'autre ne se saisit pas.
+   */
   itemInstanceId: string;
 }
 
@@ -171,6 +177,19 @@ export const useDraggedItem = () => useContext(DraggedItemContext);
  * l'exécuteur traduira en requêtes. C'est ce qui permet d'en enchaîner
  * plusieurs sans attendre.
  */
+/**
+ * Un dépôt en attente d'une quantité.
+ *
+ * Seules les piles en passent par là : le dépôt est retenu, la fenêtre demande
+ * combien, et c'est sa réponse qui met l'action en file.
+ */
+interface PendingDrop {
+  item: DraggedItem;
+  target: MoveTarget;
+  /** Taille de la pile au moment du dépôt */
+  max: number;
+}
+
 export function MoveDnd({
   selectedCharacterId,
   children,
@@ -179,7 +198,8 @@ export function MoveDnd({
   children: ReactNode;
 }) {
   const [dragged, setDragged] = useState<DraggedItem | null>(null);
-  const { enqueue } = useMovePlanner();
+  const [pending, setPending] = useState<PendingDrop | null>(null);
+  const { plan, enqueue } = useMovePlanner();
 
   // Dernière position connue du curseur. Une ref, pas un état : elle change à
   // chaque mouvement et ne doit rien re-rendre.
@@ -231,6 +251,19 @@ export function MoveDnd({
 
     const item = event.active.data.current as DraggedItem | undefined;
     if (!target || !item) return;
+
+    // Une pile de plusieurs exemplaires demande combien en déplacer — mais
+    // seulement s'il y a quelque chose à déplacer : un dépôt sans effet ne
+    // mérite pas une fenêtre.
+    const max = item.quantity ?? 1;
+    if (max > 1) {
+      const result = plan(item.itemInstanceId, target);
+      if (result?.ok && result.steps.length > 0) {
+        setPending({ item, target, max });
+        return;
+      }
+    }
+
     enqueue(item, target);
   };
 
@@ -282,10 +315,24 @@ export function MoveDnd({
               state={dragged.state}
               versionNumber={dragged.versionNumber}
               gearTier={dragged.gearTier}
+              quantity={dragged.quantity}
             />
           </div>
         )}
       </DragOverlay>
+
+      {/* Le dépôt d'une pile est retenu le temps d'en fixer la quantité. */}
+      {pending && (
+        <AmountPrompt
+          itemHash={pending.item.itemHash}
+          max={pending.max}
+          onCancel={() => setPending(null)}
+          onConfirm={(amount) => {
+            setPending(null);
+            enqueue(pending.item, pending.target, amount);
+          }}
+        />
+      )}
     </DndContext>
   );
 }

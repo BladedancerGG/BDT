@@ -15,7 +15,7 @@ import {
 import {useSocketOptions} from "@/lib/destiny/use-sockets";
 import type {PlugAvailability} from "@/lib/destiny/use-plug-availability";
 import {PlugIcon} from "./PlugIcon";
-import {PlugSlot} from "./SocketPicker";
+import {PlugSlot, useSocketPicker} from "./SocketPicker";
 
 interface SubclassSocket {
     socketIndex: number;
@@ -32,10 +32,17 @@ interface SubclassSocket {
  *
  * La nature vient du plug équipé, dont il faut lire la définition : une lecture
  * groupée dans IndexedDB, une seule fois pour toute la doctrine.
+ *
+ * Les verrous arrivent en paramètre plutôt que d'être lus dans `detail` : selon
+ * qu'on regarde l'objet porté ou qu'on modifie un **instantané** de groupe, ils
+ * ne se déduisent pas du même endroit — et une doctrine sans aspect équipé
+ * masquait alors tous les fragments d'un instantané qui en portait pourtant.
+ * Voir `useSnapshotLocks`.
  */
 function useSubclassSockets(
     def: InventoryItemDefinition | undefined,
     detail: ItemDetail | undefined,
+    disabled: ReadonlySet<number>,
 ): SubclassSocket[] {
     return (
         useLiveQuery(
@@ -52,8 +59,6 @@ function useSubclassSockets(
                             ["DestinyInventoryItemDefinition", s.plugHash] as [string, number],
                     ),
                 );
-
-                const disabled = new Set(detail.disabledSockets ?? []);
 
                 const sockets: SubclassSocket[] = [];
                 hashes.forEach((s, i) => {
@@ -77,7 +82,9 @@ function useSubclassSockets(
 
                 return sockets;
             },
-            [def, detail],
+            // Les verrous sont un ensemble : la dépendance porte sur son
+            // contenu, comme ailleurs dans le projet.
+            [def, detail, [...disabled].sort((a, b) => a - b).join(",")],
             [] as SubclassSocket[],
         ) ?? []
     );
@@ -171,7 +178,10 @@ export function SubclassSockets({
     available: PlugAvailability;
 }) {
     const t = useTranslations("subclass");
-    const sockets = useSubclassSockets(def, detail);
+    // Le contexte sait si les verrous décrivent l'objet du moment ou
+    // l'instantané qu'on modifie — voir SocketPickerValue.disabled.
+    const {disabled} = useSocketPicker();
+    const sockets = useSubclassSockets(def, detail, disabled);
 
     if (sockets.length === 0) return null;
 

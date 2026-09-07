@@ -19,8 +19,16 @@ export type MoveStepKind =
 /** Une requête Bungie, et une seule. */
 export interface MoveStepRequest {
   kind: MoveStepKind;
+  /**
+   * L'objet déplacé : son `itemInstanceId`, ou — pour un objet non instancié —
+   * l'identifiant de synthèse de sa pile (voir `stackId` dans
+   * `lib/destiny/moves.ts`). La route le traduit en `itemId` avant l'appel :
+   * une pile se transfère avec un `itemId` à « 0 ».
+   */
   itemInstanceId: string;
   itemHash: number;
+  /** Taille de la pile, pour un objet non instancié. Une instance vaut 1. */
+  stackSize?: number;
   /**
    * Personnage concerné. Toujours renseigné, y compris pour `toVault` : le
    * coffre n'étant rattaché à aucun personnage, l'API demande celui qui dépose.
@@ -49,6 +57,8 @@ export function isMoveStepRequest(value: unknown): value is MoveStepRequest {
     typeof step.itemInstanceId === "string" &&
     step.itemInstanceId.length > 0 &&
     typeof step.itemHash === "number" &&
+    (step.stackSize === undefined ||
+      (typeof step.stackSize === "number" && step.stackSize > 0)) &&
     typeof step.characterId === "string" &&
     step.characterId.length > 0
   );

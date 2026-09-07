@@ -37,6 +37,20 @@ export function isOrnamentPlug(def: InventoryItemDefinition | undefined): boolea
   return family.includes("skins") && !family.includes("empty");
 }
 
+/**
+ * Même famille, emplacement vide **compris**.
+ *
+ * Sert à reconnaître un socket d'ornement à son plug d'origine — lequel est
+ * justement l'emplacement vide (« armor_skins_empty »), que `isOrnamentPlug`
+ * écarte. Voir `buildColumns` : les ornements sont le seul cas où `enabled` ne
+ * dit rien de la possession.
+ */
+export function isOrnamentFamily(
+  def: InventoryItemDefinition | undefined,
+): boolean {
+  return Boolean(def?.plug?.plugCategoryIdentifier?.includes("skins"));
+}
+
 /** Index des sockets cosmétiques d'un objet, d'après sa définition. */
 export function cosmeticSocketIndexes(
   def: InventoryItemDefinition | undefined,

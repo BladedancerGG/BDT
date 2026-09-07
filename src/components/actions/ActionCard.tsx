@@ -22,6 +22,7 @@ import type {
 import { ItemThumb } from "../ItemThumb";
 import { ActionStatusIcon } from "./ActionStatusIcon";
 import { DestinationIcon } from "./DestinationIcon";
+import {isStackId} from "@/lib/destiny/moves";
 import {isEnhancedPlug} from "@/lib/destiny/sockets";
 import { EnhancedPerkIcon } from "../icons";
 
@@ -29,9 +30,16 @@ import { EnhancedPerkIcon } from "../icons";
 export function useTargetLabel(
   target: MoveTarget,
   names: ReadonlyMap<string, string>,
+  /**
+   * L'objet déplacé est une pile. Son rangement est commun aux personnages :
+   * nommer celui qui sert de porte d'entrée ferait croire qu'il le reçoit pour
+   * lui seul.
+   */
+  stack = false,
 ) {
   const t = useTranslations("actions.label");
   if (target.kind === "vault") return t("toVault");
+  if (stack && target.kind === "inventory") return t("toInventory");
   const character = names.get(target.characterId) ?? "";
   return target.kind === "equipped"
     ? t("equip", { character })
@@ -232,6 +240,7 @@ export function ActionCard({
   const moveLabel = useTargetLabel(
     action.kind === "move" ? action.target : { kind: "vault" },
     names,
+    action.kind !== "loadout" && isStackId(action.itemInstanceId),
   );
   const targetLabel = loadout
     ? t(`label.loadout.${loadout.action}`)

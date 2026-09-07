@@ -129,6 +129,16 @@
     }
   }
 
+  // Rangement partagé : deux grilles au lieu d'un équipement et d'une grille —
+  // ce qui est dans l'inventaire à gauche, ce qui dort au coffre à droite. À
+  // parts égales : aucune des deux n'a de largeur naturelle à respecter,
+  // contrairement aux colonnes d'emplacements.
+  &__body--shared {
+    @include m.from(v.$bp-lg) {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+  }
+
   // Mode « groupes » : une seule colonne, les cartes s'y alignent d'elles-mêmes.
   // Ni calque de dépôt ni second panneau, donc rien à accrocher — les lignes
   // explicites du mode inventaire ne servent pas ici.

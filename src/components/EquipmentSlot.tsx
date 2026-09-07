@@ -62,12 +62,22 @@ export function EquipmentSlot({
                                   inventory,
                                   details,
                                   side,
+                                  pad = true,
                               }: {
     bucketHash: number;
     equipped?: DestinyItemComponent;
     inventory: DestinyItemComponent[];
     details: Record<string, ItemDetail>;
     side: SlotSide;
+    /**
+     * Compléter la grille jusqu'à la capacité de l'emplacement.
+     *
+     * Vrai pour les armes et armures, dont la grille pleine est une information
+     * en soi — il reste tant de places. Faux pour la personnalisation : ces
+     * emplacements ont eux aussi une capacité de dix, mais on n'y range rien, et
+     * six rangées de cases vides sous l'équipement n'apprendraient rien.
+     */
+    pad?: boolean;
 }) {
     // Libellé et capacité de l'emplacement, fournis par le manifeste
     const bucket = useDefinition<BucketDefinition>(
@@ -77,10 +87,9 @@ export function EquipmentSlot({
     const label = bucket?.displayProperties?.name ?? "";
 
     // Capacité hors objet équipé
-    const capacity = Math.max(
-        inventory.length,
-        (bucket?.itemCount ?? DEFAULT_BUCKET_CAPACITY) - 1,
-    );
+    const capacity = pad
+        ? Math.max(inventory.length, (bucket?.itemCount ?? DEFAULT_BUCKET_CAPACITY) - 1)
+        : inventory.length;
 
     return (
         <div className={`equipment-slot equipment-slot--${side}`}>

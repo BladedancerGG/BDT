@@ -2,13 +2,29 @@
 
 import { useLiveQuery } from "dexie-react-hooks";
 import { manifestDb } from "@/lib/manifest/db";
-import { BUCKET, EQUIPMENT_BUCKETS } from "./buckets";
+import {
+  BUCKET,
+  CUSTOMIZATION_BUCKETS,
+  EQUIPMENT_BUCKETS,
+  STORAGE_BUCKETS,
+} from "./buckets";
 
 /**
- * Emplacements dont la capacité intéresse le planificateur : les dix
- * emplacements d'équipement, plus le coffre.
+ * Emplacements dont la capacité intéresse le planificateur : **tout ce qui peut
+ * recevoir un objet**, et pas seulement l'équipement.
+ *
+ * Piège déjà payé : les emplacements de personnalisation et le rangement
+ * partagé manquaient à cette liste. Le planificateur retombait alors sur la
+ * capacité par défaut — dix, celle d'une arme — et refusait tout transfert vers
+ * un rangement qui en contient cinquante, avec « l'emplacement de destination
+ * est plein » alors qu'il ne l'était pas.
  */
-const TRACKED: readonly number[] = [...EQUIPMENT_BUCKETS, BUCKET.Vault];
+const TRACKED: readonly number[] = [
+  ...EQUIPMENT_BUCKETS,
+  ...CUSTOMIZATION_BUCKETS,
+  ...STORAGE_BUCKETS,
+  BUCKET.Vault,
+];
 
 interface BucketDefinition {
   /** Capacité de l'emplacement, objet équipé compris */

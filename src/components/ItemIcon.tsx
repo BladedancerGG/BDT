@@ -16,6 +16,7 @@ import { useDraggable } from "@dnd-kit/core";
 import { useSharedDefinition } from "@/lib/destiny/item-defs";
 import { useSearchMiss } from "@/lib/search/provider";
 import { useItemBusy } from "@/lib/actions/store";
+import { stackSubject } from "@/lib/destiny/moves";
 import { subclassKind } from "@/lib/destiny/subclass";
 import {
   pickableBucket,
@@ -61,7 +62,17 @@ export function ItemIcon({
   versionNumber,
   gearTier,
   equipped,
-}: ItemThumbProps & { itemInstanceId?: string }) {
+  quantity,
+  bucketHash,
+}: ItemThumbProps & {
+  itemInstanceId?: string;
+  /**
+   * Emplacement où l'objet se trouve **en ce moment**. Il ne sert qu'aux objets
+   * non instanciés : c'est la seule chose qui distingue une pile de mods rangée
+   * d'une pile du même mod au coffre — voir `stackSubject`.
+   */
+  bucketHash?: number;
+}) {
   const def = useSharedDefinition(itemHash);
   const shape = subclassKind(def);
   const [open, setOpen] = useState(false);
@@ -71,16 +82,27 @@ export function ItemIcon({
   // les objets perdus peuvent être filtrés, et cela se décide plus haut.
   const searchMiss = useSearchMiss(itemHash, itemInstanceId);
 
+  // Seules les actions transitent par le contexte : l'objet en cours de
+  // déplacement en est volontairement absent, il re-rendrait toutes les
+  // vignettes montées à chaque saisie.
+  const { equipOnSelected, selectedCharacterId } = useMoveActions();
+
+  /**
+   * Ce qui identifie l'objet dans la file d'actions.
+   *
+   * Une instance a son identifiant ; une pile — mod, consommable, matériau —
+   * n'en a pas côté API et reçoit celui de synthèse, qui porte son hash et
+   * l'endroit où elle est. Sans lui, ni l'attente affichée sur la vignette ni le
+   * planificateur n'auraient de quoi la désigner.
+   */
+  const subject =
+    itemInstanceId ?? stackSubject(itemHash, bucketHash, selectedCharacterId);
+
   // Déplacement en attente de Bungie : la vignette est grisée le temps de la
   // réponse. Le cache local n'est rejoué qu'une fois l'étape acquittée, donc
   // l'objet reste visuellement à son ancienne place jusque-là — sans ce
   // retour, rien ne distinguerait un ordre parti d'un ordre ignoré.
-  const busy = useItemBusy(itemInstanceId);
-
-  // Seules les actions transitent par le contexte : l'objet en cours de
-  // déplacement en est volontairement absent, il re-rendrait toutes les
-  // vignettes montées à chaque saisie.
-  const { equipOnSelected } = useMoveActions();
+  const busy = useItemBusy(subject);
 
   // Sélection d'équipement en cours. Trois abonnements étroits plutôt qu'un sur
   // l'état entier : la vignette ne doit se redessiner que si SON objet est
@@ -111,8 +133,15 @@ export function ItemIcon({
   // double-clic. Les habillages en font partie : les vignettes du DragOverlay
   // et du panneau d'actions sont montées hors de la grille et ne peuvent pas
   // les retrouver seules.
-  const dragged: DraggedItem | undefined = itemInstanceId
-    ? { itemInstanceId, itemHash, state, versionNumber, gearTier }
+  const dragged: DraggedItem | undefined = subject
+    ? {
+        itemInstanceId: subject,
+        itemHash,
+        state,
+        versionNumber,
+        gearTier,
+        quantity,
+      }
     : undefined;
 
   // Un objet non instancié n'a pas d'identité côté API : il ne se déplace pas.
@@ -128,7 +157,7 @@ export function ItemIcon({
     setNodeRef: setDragRef,
     isDragging,
   } = useDraggable({
-    id: `${idPrefix}${itemInstanceId ?? `${itemHash}-static`}`,
+    id: `${idPrefix}${subject ?? `${itemHash}-static`}`,
     // Pendant une sélection, la vignette n'est plus une poignée : on y clique
     // pour retenir l'objet, et un seuil de déplacement suffirait à transformer
     // ce clic en glissement vers une zone de dépôt.
@@ -201,7 +230,8 @@ export function ItemIcon({
             // Équiper depuis une sélection ou depuis l'éditeur d'un groupe
             // n'aurait aucun sens : on désigne ce qu'un groupe portera, on ne
             // l'équipe pas maintenant.
-            if (!dragged || selecting || snapshot) return;
+            // Une pile ne s'équipe pas : le double-clic n'a rien à y faire.
+            if (!dragged || !itemInstanceId || selecting || snapshot) return;
             setOpen(false);
             equipOnSelected(dragged);
           },
@@ -228,6 +258,7 @@ export function ItemIcon({
           versionNumber={versionNumber}
           gearTier={gearTier}
           equipped={equipped}
+          quantity={quantity}
         />
         {busy && (
           // Même animation que le panneau d'actions : elle vit dans le SVG

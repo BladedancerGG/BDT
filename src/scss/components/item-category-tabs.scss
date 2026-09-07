@@ -1,0 +1,28 @@
+// Onglets de famille d'objets, en tête du mode inventaire.
+//
+// Ils reprennent la forme des onglets de mode d'affichage — même bouton, même
+// marquage de l'actif — sans en partager les règles : ceux-là vivent dans la
+// barre d'en-tête et s'alignent sur sa hauteur, ceux-ci ouvrent le corps de la
+// vue.
+
+.item-category-tabs {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem 0;
+
+  &__tab {
+    svg {
+      height: 20px;
+      width: 20px;
+    }
+
+    &--active {
+      border-color: var(--color-accent);
+      background-color: color-mix(
+        in srgb,
+        var(--color-accent) 18%,
+        var(--color-panel-alt)
+      );
+    }
+  }
+}

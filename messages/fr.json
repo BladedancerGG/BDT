@@ -1,6 +1,8 @@
 {
   "common": {
     "inventory": "Inventaire",
+    "equipment": "Équipement",
+    "customization": "Personnalisation",
     "loadouts": "Équipements",
     "settings": "Paramètres",
     "open": "Ouvrir",
@@ -175,6 +177,7 @@
     },
     "label": {
       "toVault": "Transfert vers le coffre",
+      "toInventory": "Transfert dans l’inventaire",
       "toCharacter": "Transfert vers {character}",
       "equip": "Équipement sur {character}",
       "pull": "Retrait des objets perdus vers {character}",
@@ -194,6 +197,10 @@
         "clear": "Vider l’emplacement n°{number}",
         "identifiers": "Changer l’apparence de l’emplacement n°{number}"
       }
+    },
+    "amount": {
+      "title": "Quantité à transférer",
+      "all": "Tout"
     },
     "move": {
       "equipOn": "Équiper sur {character}",
@@ -231,6 +238,7 @@
     "otherGroup": "Autres",
     "currentEquipment": "Objets équipés",
     "viewMode": "Mode d’affichage",
+    "itemCategory": "Famille d’objets",
     "cycleHint": "pour alterner",
     "ammo": {
       "primary": "Munitions principales",

@@ -1,6 +1,8 @@
 {
   "common": {
     "inventory": "Inventory",
+    "equipment": "Equipment",
+    "customization": "Customization",
     "loadouts": "Loadouts",
     "settings": "Settings",
     "open": "Open",
@@ -175,6 +177,7 @@
     },
     "label": {
       "toVault": "Transfer to the vault",
+      "toInventory": "Move to inventory",
       "toCharacter": "Transfer to {character}",
       "equip": "Equip on {character}",
       "pull": "Pull from the postmaster to {character}",
@@ -194,6 +197,10 @@
         "clear": "Clear slot #{number}",
         "identifiers": "Change the appearance of slot #{number}"
       }
+    },
+    "amount": {
+      "title": "Amount to transfer",
+      "all": "All"
     },
     "move": {
       "equipOn": "Equip on {character}",
@@ -231,6 +238,7 @@
     "otherGroup": "Other",
     "currentEquipment": "Currently equipped",
     "viewMode": "Display mode",
+    "itemCategory": "Item category",
     "cycleHint": "to cycle",
     "ammo": {
       "primary": "Primary ammo",

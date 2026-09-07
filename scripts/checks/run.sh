@@ -13,7 +13,7 @@ docker compose exec -T app npx tsc -p scripts/checks/tsconfig.json
 docker compose exec -T app ln -sfn /app/node_modules /tmp/checks/node_modules
 
 status=0
-for check in edit equip insert backup sync-merge; do
+for check in edit equip insert backup sync-merge subclass gear moves; do
   printf '\n═══ %s ═══\n' "$check"
   docker compose exec -T app node "/tmp/checks/scripts/checks/$check.check.js" || status=1
 done

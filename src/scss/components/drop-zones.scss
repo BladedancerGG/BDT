@@ -97,6 +97,12 @@ $duration: 250ms;
     min-height: 7rem;
   }
 
+  // Rangement partagé : une seule zone à gauche, en face de celle du coffre.
+  // Elle prend toute la largeur du calque — il n'y a pas d'équipement à côté.
+  &__row--single {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   // Le personnage affiché : ses deux zones épousent la hauteur des colonnes
   // d'équipement qu'elles recouvrent. La valeur est dérivée en CSS dans
   // layout/main.scss, jamais mesurée à l'exécution — elle suit donc le réglage

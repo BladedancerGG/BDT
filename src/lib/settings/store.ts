@@ -9,10 +9,13 @@ import {
     SEARCH_HISTORY_SIZE,
     clampIconSize,
     clampSearchHistorySize,
+    DEFAULT_ITEM_CATEGORY,
     DEFAULT_VIEW_MODE,
+    parseItemCategory,
     parseSearchMissMode,
     parseViewMode,
     VIEW_MODES,
+    type ItemCategory,
     type SearchMissMode,
     type ThemePreference,
     type ViewMode,
@@ -35,7 +38,7 @@ import {
 } from "@/lib/destiny/grouping";
 
 export {ICON_SIZE, SEARCH_HISTORY_SIZE, clampIconSize};
-export type {SearchMissMode, ThemePreference, ViewMode};
+export type {ItemCategory, SearchMissMode, ThemePreference, ViewMode};
 
 export interface SettingsState {
     theme: ThemePreference;
@@ -58,6 +61,12 @@ export interface SettingsState {
      * dans les paramètres, mais conservé tel quel pour le retour en arrière.
      */
     showOriginalOnHover: boolean;
+    /**
+     * Famille d'objets montrée par la vue d'inventaire — emplacements du
+     * personnage comme contenu du coffre. Persistée comme le mode d'affichage :
+     * on retrouve l'onglet quitté au rechargement.
+     */
+    itemCategory: ItemCategory;
     /** Critères de tri du coffre, du plus important au moins important */
     sortRules: SortRule[];
     /** Sous-groupe des sections d'armes du coffre — un seul critère à la fois */
@@ -95,6 +104,7 @@ export interface SettingsState {
     setLoadoutIconSize: (size: number) => void;
     setShowOrnaments: (show: boolean) => void;
     setShowOriginalOnHover: (show: boolean) => void;
+    setItemCategory: (category: ItemCategory) => void;
     setWeaponGrouping: (grouping: WeaponGrouping) => void;
     setArmorGrouping: (grouping: ArmorGrouping) => void;
     setSearchHistorySize: (size: number) => void;
@@ -129,6 +139,7 @@ export function persistedSettings(state: SettingsState) {
         loadoutIconSize: state.loadoutIconSize,
         showOrnaments: state.showOrnaments,
         showOriginalOnHover: state.showOriginalOnHover,
+        itemCategory: state.itemCategory,
         sorts: serializeSortRules(state.sortRules),
         weaponGrouping: state.weaponGrouping,
         armorGrouping: state.armorGrouping,
@@ -162,6 +173,7 @@ export function mergeSettings(
         searchHistorySize,
         searchMissMode,
         viewMode,
+        itemCategory,
         syncEnabled,
         ...rest
     } = (persisted ?? {}) as Partial<SettingsState> & {sorts?: unknown};
@@ -178,6 +190,7 @@ export function mergeSettings(
                 : current.searchHistorySize,
         searchMissMode: parseSearchMissMode(searchMissMode) ?? current.searchMissMode,
         viewMode: parseViewMode(viewMode) ?? current.viewMode,
+        itemCategory: parseItemCategory(itemCategory) ?? current.itemCategory,
         syncEnabled: syncEnabled === true,
     };
 }
@@ -191,6 +204,7 @@ export const useSettings = create<SettingsState>()(
             loadoutIconSize: ICON_SIZE.default,
             showOrnaments: true,
             showOriginalOnHover: true,
+            itemCategory: DEFAULT_ITEM_CATEGORY,
             sortRules: [...DEFAULT_SORT_RULES],
             weaponGrouping: DEFAULT_WEAPON_GROUPING,
             armorGrouping: DEFAULT_ARMOR_GROUPING,
@@ -207,6 +221,7 @@ export const useSettings = create<SettingsState>()(
             setShowOrnaments: (showOrnaments) => set({showOrnaments}),
             setShowOriginalOnHover: (showOriginalOnHover) =>
                 set({showOriginalOnHover}),
+            setItemCategory: (itemCategory) => set({itemCategory}),
             setWeaponGrouping: (weaponGrouping) => set({weaponGrouping}),
             setArmorGrouping: (armorGrouping) => set({armorGrouping}),
             setSearchHistorySize: (size) =>

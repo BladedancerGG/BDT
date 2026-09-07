@@ -71,6 +71,16 @@ export interface DestinyLoadoutItem {
   plugItemHashes: number[];
 }
 
+/**
+ * Un plug d'un plug set, tel que Bungie le renvoie. Les deux drapeaux ne disent
+ * pas la même chose — voir `trimPlugSets`.
+ */
+interface RawPlug {
+  plugItemHash: number;
+  canInsert: boolean;
+  enabled: boolean;
+}
+
 interface ProfileResponse {
   characters: { data: Record<string, DestinyCharacterComponent> };
   characterEquipment: { data: Record<string, { items: DestinyItemComponent[] }> };
@@ -86,14 +96,11 @@ interface ProfileResponse {
   itemComponents?: RawItemComponentSet;
   /** Plugs débloqués sur le compte — livrés avec le composant 305 */
   profilePlugSets?: {
-    data?: { plugs: Record<string, { plugItemHash: number; canInsert: boolean }[]> };
+    data?: { plugs: Record<string, RawPlug[]> };
   };
   /** Idem, par personnage */
   characterPlugSets?: {
-    data?: Record<
-      string,
-      { plugs: Record<string, { plugItemHash: number; canInsert: boolean }[]> }
-    >;
+    data?: Record<string, { plugs: Record<string, RawPlug[]> }>;
   };
 }
 

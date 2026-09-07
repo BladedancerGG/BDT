@@ -14,7 +14,7 @@
 
   // —— Fond de rareté ————————————————————————————————————————
   // Les icônes détourées (PNG) n'embarquent plus le fond de rareté, contrairement
-  // aux JPEG : on le rétablit ici. Sur les ~18 % d'objets sans PNG, le JPEG
+  // aux JPEG : on le rétablit ici. Sur les quelques objets sans PNG, le JPEG
   // recouvre entièrement la vignette, donc ce fond reste simplement invisible.
   // La palette vit dans layout/theme.scss (partagée avec tierColor()).
   &--tier-basic {
@@ -155,6 +155,22 @@
   // se pose en dernier calque. Celui-ci n'existe pas côté Bungie : c'est une
   // icône locale (`BorderIcon`), rendue en dernier enfant pour passer au-dessus
   // des calques du manifeste.
+  // Taille de la pile, en bas à droite comme en jeu. Posée au-dessus de tous
+  // les calques du manifeste, mais sous le cadre, qui ferme la pile.
+  &__quantity {
+    position: absolute;
+    right: 4%;
+    bottom: 2%;
+    padding: 0 0.2em;
+    font-size: calc(var(--item-size, 3rem) * 0.26);
+    line-height: 1.3;
+    font-weight: 600;
+    color: var(--color-text);
+    background: rgba(0, 0, 0, 0.65);
+    border-radius: 2px;
+    pointer-events: none;
+  }
+
   &__border {
     position: absolute;
     inset: 0;
