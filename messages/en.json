@@ -21,7 +21,6 @@
   "header": {
     "refresh": "Refresh",
     "refreshForce": "Force from the API",
-    "shiftKey": "Shift",
     "holdHint": "or press and hold (1 s)"
   },
   "menu": {
@@ -166,7 +165,7 @@
     "expand": "Show details",
     "collapse": "Hide details",
     "empty": "No action to show.",
-    "clear": "Clear finished actions",
+    "clear": "Clear finished and failed actions",
     "filterLabel": "Filter actions",
     "status": {
       "all": "Show all",

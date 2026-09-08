@@ -53,6 +53,7 @@ export function DestinySymbol({
               ? "destiny-symbol__layer--overlay"
               : null,
             index === def.accent ? "destiny-symbol__layer--accent" : null,
+            index === def.outline ? "destiny-symbol__layer--outline" : null,
           ]
             .filter(Boolean)
             .join(" ")}

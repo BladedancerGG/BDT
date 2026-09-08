@@ -21,7 +21,6 @@
   "header": {
     "refresh": "Rafraîchir",
     "refreshForce": "Forcer depuis l’API",
-    "shiftKey": "Maj",
     "holdHint": "ou appui long (1 s)"
   },
   "menu": {
@@ -166,7 +165,7 @@
     "expand": "Voir le détail",
     "collapse": "Masquer le détail",
     "empty": "Aucune action à afficher.",
-    "clear": "Effacer les actions terminées",
+    "clear": "Effacer les actions terminées et en échec",
     "filterLabel": "Filtrer les actions",
     "status": {
       "all": "Tout afficher",

@@ -42,4 +42,16 @@
   &__layer--accent {
     color: var(--destiny-symbol-accent, currentcolor);
   }
+
+  // Couche réduite à son contour : le fond d'une touche. La forme est pleine
+  // dans la police et masquerait la légende posée dessus.
+  //
+  // `-webkit-text-fill-color` plutôt que `color: transparent` : le contour est
+  // tracé en `currentcolor`, que `color` emporterait avec lui — l'un ne vide
+  // que le remplissage, l'autre effacerait tout le glyphe. Le préfixe est ici
+  // le nom normal de la propriété, tous les navigateurs l'implémentent ainsi.
+  &__layer--outline {
+    -webkit-text-fill-color: transparent;
+    -webkit-text-stroke: var(--destiny-symbol-outline-width, 0.05em) currentcolor;
+  }
 }
