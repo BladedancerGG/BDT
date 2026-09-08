@@ -263,7 +263,8 @@
     "weaponLevel": "Weapon Lv. {level}",
     "browsePlugs": "Browse similar items",
     "fragmentSlots": "{count, plural, one {# fragment slot} other {# fragment slots}}",
-    "searchPlugs": "Search…"
+    "searchPlugs": "Search…",
+    "tunedStat": "Tuned stat"
   },
   "search": {
     "label": "Search items",

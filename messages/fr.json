@@ -263,7 +263,8 @@
     "weaponLevel": "Niv. d’arme {level}",
     "browsePlugs": "Voir les objets similaires",
     "fragmentSlots": "{count, plural, one {# emplacement de fragment} other {# emplacements de fragments}}",
-    "searchPlugs": "Rechercher…"
+    "searchPlugs": "Rechercher…",
+    "tunedStat": "Statistique ajustée"
   },
   "search": {
     "label": "Rechercher des objets",

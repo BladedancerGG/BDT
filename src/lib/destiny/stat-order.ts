@@ -57,6 +57,15 @@ export const SWORD_STAT_ORDER: readonly number[] = [
     925767036, // Munitions
 ];
 
+/**
+ * Plafond des barres de statistiques d'armure : vide à 0, pleine à 45.
+ *
+ * Une échelle fixe, et non le maximum de la pièce affichée : c'est ce qui rend
+ * deux infobulles comparables, une barre courte disant alors « stat faible » et
+ * non « la plus faible des six ».
+ */
+export const ARMOR_STAT_MAX = 45;
+
 /** Armures. */
 export const ARMOR_STAT_ORDER: readonly number[] = [
     392767087, // Santé

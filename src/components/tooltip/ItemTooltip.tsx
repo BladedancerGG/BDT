@@ -30,6 +30,7 @@ import type {
 } from "@/lib/destiny/types";
 import type {ItemDetail} from "@/lib/bungie/item";
 import {
+    TIER,
     tierColor,
     damageColor,
     BUCKET,
@@ -40,6 +41,7 @@ import {
 } from "@/lib/destiny/display";
 import {
     orderStats,
+    ARMOR_STAT_MAX,
     WEAPON_STAT_ORDER,
     SWORD_STAT_ORDER,
     ARMOR_STAT_ORDER,
@@ -77,6 +79,12 @@ import {
     useSocketPicker,
     type PickerTarget,
 } from "./SocketPicker";
+
+/**
+ * Palier d'équipement qui ouvre le socket d'ajustement, et donc le repère de
+ * statistique ajustée.
+ */
+const TUNED_GEAR_TIER = 5;
 
 // Rangées d'emplacements de l'infobulle. Les constantes vivent hors du rendu :
 // elles servent de dépendance à un `useMemo`, un tableau recréé à chaque rendu
@@ -658,15 +666,28 @@ export function ItemTooltip({
     // Tout est affiché d'emblée : l'infobulle ne s'ouvre plus qu'au clic, donc
     // elle est toujours volontaire — plus de version « survol » abrégée.
     const showStats = isArmor || isSubclassItem || isWeapon;
-    // Les stats d'arme sont sur 100 ; celles d'armure varient → échelle relative.
-    // Les valeurs sans barre (cadence, chargeur…) sont exclues du maximum, sinon
-    // une cadence de 900 écraserait toutes les autres barres.
+    // Les stats d'arme sont sur 100, celles d'armure sur ARMOR_STAT_MAX : une
+    // échelle fixe, pour que deux pièces se comparent d'une infobulle à l'autre.
+    // Pour le reste (doctrines), échelle relative — les valeurs sans barre
+    // (cadence, chargeur…) en sont exclues, sinon une cadence de 900 écraserait
+    // toutes les autres barres.
     const statMax = isWeapon
         ? 100
-        : statEntries.reduce(
-            (max, stat) => (stat.withBar ? Math.max(max, stat.value) : max),
-            1,
-        );
+        : isArmor
+            ? ARMOR_STAT_MAX
+            : statEntries.reduce(
+                (max, stat) => (stat.withBar ? Math.max(max, stat.value) : max),
+                1,
+            );
+
+    // Le repère de statistique ajustée ne concerne que les armures légendaires
+    // de palier 5 : ailleurs il n'y a pas de socket d'ajustement, et la colonne
+    // ne doit pas être réservée pour rien.
+    const showTuned =
+        isArmor &&
+        def.inventory?.tierType === TIER.Legendary &&
+        gearTier === TUNED_GEAR_TIER &&
+        armorPerks.tunedStatHash !== undefined;
 
     const rpm = detail?.stats?.[WEAPON_STAT.RPM];
     const impact = detail?.stats?.[WEAPON_STAT.IMPACT];
@@ -778,6 +799,11 @@ export function ItemTooltip({
                                         signed={isSubclassItem}
                                         max={statMax}
                                         bonus={statBonuses[stat.statHash]}
+                                        tuned={
+                                            showTuned
+                                                ? stat.statHash === armorPerks.tunedStatHash
+                                                : undefined
+                                        }
                                     />
                                 ))}
                             </div>
