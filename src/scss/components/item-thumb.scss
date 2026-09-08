@@ -171,6 +171,22 @@
     pointer-events: none;
   }
 
+  // Coût en énergie d'armure / de coque de spectre des mods : coin haut droit,
+  // comme en jeu. Pas de fond — c'est le chiffre seul qui se pose sur l'icône,
+  // décollé par une ombre comme le glyphe de munitions, les icônes de mods
+  // étant claires par endroits.
+  &__energy {
+    position: absolute;
+    top: 2%;
+    right: 6%;
+    font-size: calc(var(--item-size, 3rem) * 0.26);
+    line-height: 1.3;
+    font-weight: 600;
+    color: #fff;
+    text-shadow: 0 0 3px rgba(0, 0, 0, 0.9);
+    pointer-events: none;
+  }
+
   &__border {
     position: absolute;
     inset: 0;

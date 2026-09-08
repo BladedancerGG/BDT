@@ -7,8 +7,13 @@ import type {
   StatDefinition,
 } from "@/lib/destiny/types";
 import { plugStatModifiers } from "@/lib/destiny/plug-stats";
-import { usePlugDescription } from "@/lib/destiny/use-plug-description";
+import {
+  usePlugDescription,
+  usePlugPerks,
+} from "@/lib/destiny/use-plug-description";
+import { isExoticCatalystPlug } from "@/lib/destiny/sockets";
 import { fragmentSlots } from "@/lib/destiny/subclass";
+import { BUNGIE_ROOT } from "@/lib/destiny/display";
 import { DestinySymbol } from "@/components/DestinySymbol";
 
 /** Une ligne « +10 Stabilité » / « -5 Maniement ». */
@@ -45,6 +50,12 @@ function StatLine({ statHash, value }: { statHash: number; value: number }) {
  * quitte l'icône, elle n'est pas atteignable à la souris. Le clic se fait sur
  * l'icône.
  *
+ * Les perks d'un **catalyseur d'exotique** sont détaillés sous sa description :
+ * celle-ci ne dit que « passe l'arme en pièce maîtresse », l'effet réel vivant
+ * dans ses perks. Le catalyseur n'a pas à être achevé pour cela — c'est
+ * justement avant de l'appliquer qu'on veut savoir ce qu'il apporte, que
+ * l'infobulle soit celle de l'emplacement ou d'une option du sélecteur.
+ *
  * `browseLabel` remplace ce pied lorsque le clic n'équipe pas mais **ouvre le
  * sélecteur** du socket — les mods, revêtements et ornements sont trop nombreux
  * pour être proposés dans l'infobulle elle-même.
@@ -73,6 +84,9 @@ export function PlugTooltip({
   // Aspects, fragments et attributs d'artéfact ont une description vide :
   // le hook va la chercher dans leurs perks associés.
   const description = usePlugDescription(def);
+  // La définition n'est passée que pour un catalyseur : sans ce filtre, chaque
+  // infobulle de mod ouvrirait une lecture Dexie de plus pour rien.
+  const plugPerks = usePlugPerks(isExoticCatalystPlug(def) ? def : undefined);
 
   if (!def) return null;
 
@@ -86,10 +100,35 @@ export function PlugTooltip({
         {type && <span className="plug-tooltip__type">{type}</span>}
       </div>
 
-      {(description || slots > 0 || modifiers.length > 0) && (
+      {(description ||
+        slots > 0 ||
+        modifiers.length > 0 ||
+        plugPerks.length > 0) && (
         <div className="plug-tooltip__body">
           {description && (
             <p className="plug-tooltip__description">{description}</p>
+          )}
+          {plugPerks.length > 0 && (
+            <ul className="plug-tooltip__perks">
+              {plugPerks.map((perk) => (
+                <li key={perk.perkHash} className="plug-tooltip__perk">
+                  {perk.icon && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={`${BUNGIE_ROOT}${perk.icon}`}
+                      alt=""
+                      className="plug-tooltip__perk-icon"
+                    />
+                  )}
+                  <div className="plug-tooltip__perk-text">
+                    <span className="plug-tooltip__perk-name">{perk.name}</span>
+                    <p className="plug-tooltip__perk-description">
+                      {perk.description}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ul>
           )}
           {slots > 0 && (
             <p className="plug-tooltip__slots">

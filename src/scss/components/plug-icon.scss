@@ -46,6 +46,34 @@
     pointer-events: none;
   }
 
+  // Cadre de pièce maîtresse d'un catalyseur terminé : l'image du manifeste
+  // (variante exotique), posée par-dessus tous les autres calques comme sur une
+  // vignette d'objet. Elle porte son propre halo et son propre calage : elle se
+  // pose telle quelle, comme le filigrane.
+  &__masterwork {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+
+  // Coût en énergie d'armure / de coque de spectre des mods, coin haut droit.
+  // Même habillage que sur les vignettes d'objets : chiffre blanc sans fond,
+  // décollé par une ombre. Taille fixe : les deux formats de plug (rond 42px,
+  // mod carré 30px) sont trop proches pour justifier deux valeurs.
+  &__energy {
+    position: absolute;
+    top: 3px;
+    right: 6px;
+    font-size: 0.75rem;
+    line-height: 1.2;
+    font-weight: 600;
+    color: #fff;
+    text-shadow: 0 0 3px rgba(0, 0, 0, 0.9);
+    pointer-events: none;
+  }
+
   &--circle {
     width: v.$plug-size;
     height: v.$plug-size;

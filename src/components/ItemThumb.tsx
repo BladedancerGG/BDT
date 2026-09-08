@@ -14,6 +14,7 @@ import {
   ornamentBackgroundPath,
 } from "@/lib/destiny/overlays";
 import { bestIconPath, tierClassName } from "@/lib/destiny/icons";
+import { displayedEnergyCost } from "@/lib/destiny/sockets";
 import { isSubclass } from "@/lib/destiny/subclass";
 import { AmmoIcon, BorderIcon, hasAmmoIcon } from "@/components/icons";
 import { BUNGIE_ROOT, ITEM_TYPE } from "@/lib/destiny/display";
@@ -125,6 +126,11 @@ export function ItemThumb({
   const ammo = hasAmmoIcon(ammoType);
   const marker = overlays.some((overlay) => overlay.kind === "marker");
 
+  // Coût en énergie d'armure ou de coque de spectre : coin haut droit, comme en
+  // jeu. Il ne concerne que les piles de mods du rangement « Modifications » —
+  // partout ailleurs, la définition n'a pas de `plug` et rien ne s'affiche.
+  const energyCost = displayedEnergyCost(def);
+
   // Une pièce maîtresse reçoit son cadre doré depuis le manifeste (dernier
   // calque de `overlays`) ; les autres objets prennent le cadre blanc local.
   // Les doctrines en sont exemptées : leur vignette est un losange ou un
@@ -207,6 +213,9 @@ export function ItemThumb({
         // Icône locale, contrairement à tous les calques ci-dessus : le
         // manifeste n'en porte aucune pour les types de munitions.
         <AmmoIcon ammoType={ammoType} className="item-thumb__ammo" />
+      )}
+      {energyCost !== undefined && (
+        <span className="item-thumb__energy">{energyCost}</span>
       )}
       {quantity !== undefined && quantity > 1 && (
         <span className="item-thumb__quantity">{quantity}</span>

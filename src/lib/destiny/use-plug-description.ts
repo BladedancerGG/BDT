@@ -121,3 +121,70 @@ export function usePlugSummary(
     [def],
   );
 }
+
+/** Un perk conféré par un plug, tel qu'on l'affiche : icône, nom, description. */
+export interface PlugPerk {
+  perkHash: number;
+  name: string;
+  description: string;
+  icon?: string;
+}
+
+/**
+ * Perks **détaillés** d'un plug : ceux d'un catalyseur d'exotique.
+ *
+ * Là où `usePlugDescription` ne veut que du texte, il faut ici les trois
+ * champs : la description du catalyseur annonce « le fait passer en pièce
+ * maîtresse » sans dire un mot de ce qu'il ajoute — l'effet vit uniquement dans
+ * les `DestinySandboxPerkDefinition` de `perks[]`.
+ *
+ * Le tri des perks ne peut pas passer par `perkVisibility` : sur les 160
+ * catalyseurs du manifeste, 34 portent leur perk réel en `Disabled` (le
+ * catalyseur d'Épidémie Parfaite, par exemple) et les techniques sont en
+ * `Visible`. Seuls `isDisplayable` et la présence d'un nom **et** d'une
+ * description les séparent — les 174 perks affichables ainsi retenus ont tous
+ * les trois champs, icône comprise.
+ */
+export function usePlugPerks(
+  def: InventoryItemDefinition | undefined,
+): PlugPerk[] {
+  return (
+    useLiveQuery(
+      async () => {
+        if (!def?.perks?.length) return [];
+
+        const rows = await manifestDb.definitions.bulkGet(
+          def.perks.map(
+            (perk) =>
+              ["DestinySandboxPerkDefinition", perk.perkHash] as [
+                string,
+                number,
+              ],
+          ),
+        );
+
+        const out: PlugPerk[] = [];
+        def.perks.forEach((perk, i) => {
+          const perkDef = rows[i]?.data as SandboxPerkDefinition | undefined;
+          if (!perkDef || perkDef.isDisplayable === false) return;
+          // La visibilité `Hidden` porte les conditions de déblocage, jamais
+          // l'effet — voir `usePlugDescription`.
+          if (perk.perkVisibility === VISIBILITY.hidden) return;
+          const name = perkDef.displayProperties?.name?.trim();
+          const description =
+            perkDef.displayProperties?.description?.trim();
+          if (!name || !description) return;
+          out.push({
+            perkHash: perk.perkHash,
+            name,
+            description,
+            icon: perkDef.displayProperties?.icon,
+          });
+        });
+        return out;
+      },
+      [def],
+      [],
+    ) ?? []
+  );
+}
