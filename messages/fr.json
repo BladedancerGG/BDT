@@ -108,8 +108,10 @@
       "vaultIconSizeHint": "Coffre et objets perdus",
       "loadoutIconSize": "Taille des emplacements d’équipement",
       "loadoutIconSizeHint": "Vignettes des vues « équipements » et « groupes »",
+      "plugSize": "Taille des attributs et mods",
+      "plugSizeHint": "Icônes de plugs : attributs, mods, aspects et fragments",
       "preview": "Aperçu",
-      "previewHint": "Objets tirés au hasard dans l’inventaire, à chacune des trois tailles",
+      "previewHint": "Objets tirés au hasard dans l’inventaire, à chacune des tailles réglables",
       "previewEmpty": "L’aperçu attend le chargement de l’inventaire"
     },
     "inventory": {

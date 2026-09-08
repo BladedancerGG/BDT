@@ -108,8 +108,10 @@
       "vaultIconSizeHint": "Vault and postmaster",
       "loadoutIconSize": "Loadout slot size",
       "loadoutIconSizeHint": "Tiles of the loadouts and groups views",
+      "plugSize": "Perk and mod size",
+      "plugSizeHint": "Plug icons: perks, mods, aspects and fragments",
       "preview": "Preview",
-      "previewHint": "Items picked at random from the inventory, at each of the three sizes",
+      "previewHint": "Items picked at random from the inventory, at each of the adjustable sizes",
       "previewEmpty": "The preview is waiting for the inventory to load"
     },
     "inventory": {

@@ -9,6 +9,8 @@ $bp-lg: 1024px;
 
 // Tailles récurrentes
 $item-size: 75px; // icône d'objet dans les grilles
-$plug-size: 50px; // icône de perk (rond)
-$plug-size-sm: 1.875rem; // icône de mod (carré)
-$tooltip-width: 350px;
+// Repli des icônes de plugs (perk rond comme mod carré) : la valeur qui
+// s'applique est `--plug-size`, réglable dans les paramètres et posée sur
+// <html>. Elle n'est absente qu'avant le premier rendu d'un client sans cookie.
+$plug-size: 45px;
+$tooltip-width: 365px;

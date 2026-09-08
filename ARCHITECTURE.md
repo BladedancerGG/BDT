@@ -1638,24 +1638,36 @@ In "system" mode no `data-theme` attribute is set, and the CSS
 > constant exported from a `"use client"` module arrives `undefined` on the
 > server, which silently broke the cookie read.
 
-### Three icon sizes
+### Four icon sizes
 
-Three independent sizes, all bounded to `ICON_SIZE` and each carried by its own
-CSS variable on `<html>`:
+Four independent sizes, each carried by its own CSS variable on `<html>`. The
+first three are bounded to `ICON_SIZE`, the plug one to `PLUG_SIZE`:
 
 | Variable | Setting | Where it applies |
 | --- | --- | --- |
 | `--item-size` | *Icon size* | equipped items and character inventory |
 | `--vault-item-size` | *Vault icon size* | vault and postmaster — `.inventory-view__storage` redefines `--item-size` from it for its whole subtree |
 | `--loadout-item-size` | *Loadout slot size* | loadout slot tiles (`.loadout-slot`, the group grids), i.e. the *loadouts* and *groups* views |
+| `--plug-size` | *Perk and mod size* | every `PlugIcon`, round or square, plus what is measured against it: the socket picker grid and the tooltip skeletons |
+
+Plugs have their own bounds because they are not items: they live in the perk
+columns and in the socket picker, whose six-column grid is computed from
+`--plug-size`. The SCSS keeps `$plug-size` only as the `var()` fallback, for the
+first paint of a client with no cookie. `.loadout-identifiers` deliberately
+resets `--plug-size` to that fallback: it borrows the picker's chrome but its
+choices are manifest images, not plugs, and letting them drift would break the
+grid they sit in.
 
 Loadout slots used to follow the vault size, which conflated two different
 things: a slot shows a game slot (background + glyph), not an item, and its
 legibility has nothing to do with a vault grid's density.
 
-The *Appearance* tab shows a preview row (`SizePreview`) under the three
-sliders, with items drawn at random from the profile and a real loadout slot, so
-each size is judged on what it actually renders. The profile is read from the
+The *Appearance* tab shows a preview row (`SizePreview`) under the sliders, with
+items drawn at random from the profile, a real loadout slot, and one round plus
+one square plug, so each size is judged on what it actually renders. The two plug
+shapes come from the character's equipped gear through `useEquippedPlugs` — it is
+the plug definition that decides the shape (`PlugChip.square`), and hard-coded
+hashes would have gone stale in silence. The profile is read from the
 React Query cache (`getQueryData(["profile"])`), never through `useProfile`: a
 preview must not trigger a Bungie call. The draw is frozen on mount — renewing it
 on every keystroke in a size field would make the row flicker.
@@ -3500,25 +3512,40 @@ En mode « système », aucun attribut `data-theme` n'est posé et la règle CSS
 > constante exportée depuis un module `"use client"` arrive `undefined` côté
 > serveur, ce qui rendait la lecture du cookie silencieusement inopérante.
 
-### Trois tailles d'icônes
+### Quatre tailles d'icônes
 
-Trois tailles indépendantes, toutes bornées par `ICON_SIZE`, chacune portée par
-sa propre variable CSS sur `<html>` :
+Quatre tailles indépendantes, chacune portée par sa propre variable CSS sur
+`<html>`. Les trois premières sont bornées par `ICON_SIZE`, celle des plugs par
+`PLUG_SIZE` :
 
 | Variable | Réglage | Où elle s'applique |
 | --- | --- | --- |
 | `--item-size` | « Taille des icônes » | objets équipés et inventaire du personnage |
 | `--vault-item-size` | « Taille des icônes du coffre » | coffre et objets perdus — `.inventory-view__storage` en redéfinit `--item-size` pour tout son sous-arbre |
 | `--loadout-item-size` | « Taille des emplacements d'équipement » | vignettes d'emplacement (`.loadout-slot`, les grilles de groupes), soit les vues « équipements » et « groupes » |
+| `--plug-size` | « Taille des attributs et mods » | toutes les `PlugIcon`, rondes comme carrées, et ce qui se mesure sur elles : la grille du sélecteur de sockets et les squelettes d'infobulle |
+
+Les plugs ont leurs propres bornes parce que ce ne sont pas des objets : ils
+vivent dans les colonnes d'attributs et dans le sélecteur de sockets, dont la
+grille à six colonnes se calcule sur `--plug-size`. Le SCSS ne garde `$plug-size`
+que comme repli du `var()`, pour le premier rendu d'un client sans cookie.
+`.loadout-identifiers` rétablit délibérément `--plug-size` à ce repli : il
+emprunte l'habillage du sélecteur, mais ses choix sont des images du manifeste et
+non des plugs — les laisser suivre le réglage désaccorderait la grille qui les
+contient.
 
 Les emplacements suivaient auparavant la taille du coffre, ce qui confondait deux
 choses différentes : un emplacement montre un emplacement du jeu (fond + glyphe)
 et non un objet, et sa lisibilité n'a rien à voir avec la densité d'une grille de
 coffre.
 
-L'onglet « Apparence » affiche une ligne d'aperçu (`SizePreview`) sous les trois
-curseurs, avec des objets tirés au hasard dans le profil et un véritable
-emplacement : chaque taille se juge ainsi sur ce qu'elle dessine vraiment. Le
+L'onglet « Apparence » affiche une ligne d'aperçu (`SizePreview`) sous les
+curseurs, avec des objets tirés au hasard dans le profil, un véritable
+emplacement, et un plug rond et un plug carré : chaque taille se juge ainsi sur
+ce qu'elle dessine vraiment. Les deux formes de plug viennent de l'équipement
+porté, via `useEquippedPlugs` — c'est la définition du plug qui décide de sa
+forme (`PlugChip.square`), et des hashes écrits en dur se seraient tus le jour où
+ils changent. Le
 profil est lu dans le cache de React Query (`getQueryData(["profile"])`) et jamais
 par `useProfile` — un aperçu ne doit pas déclencher d'appel à Bungie. Le tirage
 est figé au montage : le renouveler à chaque frappe dans un champ de taille

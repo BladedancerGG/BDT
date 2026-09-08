@@ -36,6 +36,13 @@
     gap: var(--item-gap);
   }
 
+  // Les plugs ne sont pas des vignettes de grille : leur gouttière ne suit pas
+  // celle des objets, mais celle des colonnes d'attributs.
+  &__items--plugs {
+    gap: 0.32rem;
+    align-items: center;
+  }
+
   // Les vignettes sont dessinées pour les grilles, où elles s'attrapent et
   // s'ouvrent. Ici elles ne sont qu'un échantillon : annoncer un clic qui ne
   // fait rien tromperait sur ce qui est réglable.

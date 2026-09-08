@@ -34,14 +34,14 @@
 
   // Icône de perk / mod
   &--circle {
-    width: v.$plug-size;
-    height: v.$plug-size;
+    width: var(--plug-size, #{v.$plug-size});
+    height: var(--plug-size, #{v.$plug-size});
     border-radius: var(--radius-full);
   }
 
   &--square {
-    width: v.$plug-size-sm;
-    height: v.$plug-size-sm;
+    width: var(--plug-size, #{v.$plug-size});
+    height: var(--plug-size, #{v.$plug-size});
   }
 
   // Titre de section

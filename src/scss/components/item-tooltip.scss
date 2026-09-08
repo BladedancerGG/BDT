@@ -70,7 +70,7 @@
     // Marge du corps, exposée en variable : les sections en bandeau (puissance,
     // niveau d'arme, compte-frags, archétype) la reprennent en négatif pour
     // aller d'un bord à l'autre, comme en jeu.
-    --tooltip-pad: 0.65rem;
+    --tooltip-pad: 0.6rem;
 
     display: flex;
     flex-direction: column;
@@ -160,7 +160,7 @@
   &__row {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.32rem;
+    gap: 0.3rem;
   }
 
   // Refus renvoyé par Bungie après un clic sur un attribut

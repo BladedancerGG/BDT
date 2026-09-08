@@ -7,7 +7,12 @@
 import {cookies} from "next/headers";
 import {prisma} from "@/lib/db/prisma";
 import {getSessionUserId} from "@/lib/auth/session";
-import {ICON_SIZE, PREFS_COOKIE, type ThemePreference} from "./constants";
+import {
+    ICON_SIZE,
+    PLUG_SIZE,
+    PREFS_COOKIE,
+    type ThemePreference,
+} from "./constants";
 
 /** Sous-ensemble des préférences persistées que le serveur sait exploiter. */
 interface PersistedShape {
@@ -15,6 +20,7 @@ interface PersistedShape {
     iconSize?: number;
     vaultIconSize?: number;
     loadoutIconSize?: number;
+    plugSize?: number;
 }
 
 export interface ServerPreferences {
@@ -27,6 +33,7 @@ export interface ServerPreferences {
     iconSize?: number;
     vaultIconSize?: number;
     loadoutIconSize?: number;
+    plugSize?: number;
     /**
      * État déposé en base, quand la synchronisation est active. C'est lui qui
      * a servi à rendre le HTML ci-dessus : le client doit s'y ranger, son
@@ -53,6 +60,14 @@ function readIconSize(value: unknown): number | undefined {
         : undefined;
 }
 
+/** Idem pour la taille des plugs, qui a ses propres bornes. */
+function readPlugSize(value: unknown): number | undefined {
+    const size = Number(value);
+    return Number.isFinite(size) && size >= PLUG_SIZE.min && size <= PLUG_SIZE.max
+        ? size
+        : undefined;
+}
+
 /** Ce que le serveur retient d'un état persisté, cookie ou base. */
 function pick(state: PersistedShape): Omit<ServerPreferences, "synced"> {
     return {
@@ -60,6 +75,7 @@ function pick(state: PersistedShape): Omit<ServerPreferences, "synced"> {
         iconSize: readIconSize(state.iconSize),
         vaultIconSize: readIconSize(state.vaultIconSize),
         loadoutIconSize: readIconSize(state.loadoutIconSize),
+        plugSize: readPlugSize(state.plugSize),
     };
 }
 

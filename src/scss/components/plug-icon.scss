@@ -3,8 +3,8 @@
 // Icône d'un plug : perk (rond) ou mod / cosmétique (carré).
 
 .plug-icon {
-  width: v.$plug-size;
-  height: v.$plug-size;
+  width: var(--plug-size, #{v.$plug-size});
+  height: var(--plug-size, #{v.$plug-size});
 
   --enhanced-perk-padding: 30px;
 
@@ -64,9 +64,9 @@
   // mod carré 30px) sont trop proches pour justifier deux valeurs.
   &__energy {
     position: absolute;
-    top: 3px;
-    right: 6px;
-    font-size: 0.75rem;
+    top: calc(var(--plug-size) * 0.06);
+    right: calc(var(--plug-size) * 0.12);
+    font-size: calc(var(--plug-size) * 0.2);
     line-height: 1.2;
     font-weight: 600;
     color: #fff;
@@ -75,15 +75,15 @@
   }
 
   &--circle {
-    width: v.$plug-size;
-    height: v.$plug-size;
+    width: var(--plug-size, #{v.$plug-size});
+    height: var(--plug-size, #{v.$plug-size});
     padding: 4px;
   }
 
   // Mods / cosmétiques : forme carrée
   &--square {
-    width: v.$plug-size;
-    height: v.$plug-size;
+    width: var(--plug-size, #{v.$plug-size});
+    height: var(--plug-size, #{v.$plug-size});
     border-radius: 0;
     padding: 0;
     border: none;

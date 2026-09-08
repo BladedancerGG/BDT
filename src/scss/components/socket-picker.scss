@@ -14,7 +14,7 @@
   // Le `1rem` final est la gouttière d'ascenseur réservée par la grille : sans
   // elle, six colonnes de 42 px ne tiennent plus dès que le contenu défile, et
   // c'est un ascenseur horizontal qui apparaît.
-  max-width: calc(v.$plug-size * 6 + 0.33rem * 6 + 1.3rem + 1rem);
+  max-width: calc(var(--plug-size, #{v.$plug-size}) * 6 + 0.33rem * 6 + 1.3rem + 1rem);
   // Posée en ligne par Floating UI (middleware `size`) sur le calque flottant,
   // donc héritée d'ici. Le panneau, lui, ne déborde pas : c'est sa grille qui
   // défile, pour que la recherche et le message d'erreur restent visibles.
@@ -46,7 +46,7 @@
 
   &__grid {
     display: grid;
-    grid-template-columns: repeat(6, v.$plug-size);
+    grid-template-columns: repeat(6, var(--plug-size, #{v.$plug-size}));
     gap: 0.32rem;
     // `min-height: 0` : sans lui, une grille en contexte flex refuse de
     // rétrécir sous sa hauteur de contenu et ne défile jamais.

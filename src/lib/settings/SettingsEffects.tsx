@@ -16,6 +16,7 @@ export function SettingsEffects() {
     const iconSize = useSettings((s) => s.iconSize);
     const vaultIconSize = useSettings((s) => s.vaultIconSize);
     const loadoutIconSize = useSettings((s) => s.loadoutIconSize);
+    const plugSize = useSettings((s) => s.plugSize);
 
     useEffect(() => {
         const root = document.documentElement;
@@ -45,6 +46,10 @@ export function SettingsEffects() {
             `${loadoutIconSize}px`,
         );
     }, [loadoutIconSize]);
+
+    useEffect(() => {
+        document.documentElement.style.setProperty("--plug-size", `${plugSize}px`);
+    }, [plugSize]);
 
     return null;
 }

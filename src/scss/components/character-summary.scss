@@ -46,14 +46,11 @@
     font-variant-numeric: tabular-nums;
   }
 
+  // Les icônes de bonus sont des plugs : elles suivent `--plug-size` comme les
+  // colonnes d'attributs, et non la taille des vignettes d'objets.
   &__bonuses {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-
-    .plug-icon {
-      width: calc(var(--item-size) * (2/3));
-      height: calc(var(--item-size) * (2/3));
-    }
   }
 }

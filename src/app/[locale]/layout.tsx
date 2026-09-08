@@ -28,6 +28,7 @@ function rootSizeStyle(prefs: ServerPreferences): CSSProperties | undefined {
     if (prefs.loadoutIconSize) {
         style["--loadout-item-size"] = `${prefs.loadoutIconSize}px`;
     }
+    if (prefs.plugSize) style["--plug-size"] = `${prefs.plugSize}px`;
     return Object.keys(style).length ? (style as CSSProperties) : undefined;
 }
 

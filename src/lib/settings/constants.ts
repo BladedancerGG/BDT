@@ -19,6 +19,20 @@ export function clampIconSize(size: number): number {
     return Math.min(ICON_SIZE.max, Math.max(ICON_SIZE.min, Math.round(size)));
 }
 
+/**
+ * Bornes de la taille des icônes de plugs (attributs, mods, aspects…), en
+ * pixels. Elles ne suivent pas celles des objets : un plug est dessiné dans un
+ * disque ou un carré bien plus petit, et le rendre aussi grand qu'une vignette
+ * ferait déborder les colonnes d'attributs comme la grille du sélecteur.
+ */
+export const PLUG_SIZE = {min: 40, max: 70, default: 45} as const;
+
+/** Ramène une taille de plug dans les bornes autorisées (entier). */
+export function clampPlugSize(size: number): number {
+    if (!Number.isFinite(size)) return PLUG_SIZE.default;
+    return Math.min(PLUG_SIZE.max, Math.max(PLUG_SIZE.min, Math.round(size)));
+}
+
 /** Bornes du nombre de recherches conservées dans l'historique. */
 export const SEARCH_HISTORY_SIZE = {min: 0, max: 30, default: 10} as const;
 

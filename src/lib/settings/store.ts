@@ -5,9 +5,11 @@ import {createJSONStorage, persist} from "zustand/middleware";
 import {cookieStorage} from "./cookie-storage";
 import {
     ICON_SIZE,
+    PLUG_SIZE,
     PREFS_COOKIE,
     SEARCH_HISTORY_SIZE,
     clampIconSize,
+    clampPlugSize,
     clampSearchHistorySize,
     DEFAULT_ITEM_CATEGORY,
     DEFAULT_VIEW_MODE,
@@ -37,7 +39,7 @@ import {
     type WeaponGrouping,
 } from "@/lib/destiny/grouping";
 
-export {ICON_SIZE, SEARCH_HISTORY_SIZE, clampIconSize};
+export {ICON_SIZE, PLUG_SIZE, SEARCH_HISTORY_SIZE, clampIconSize, clampPlugSize};
 export type {ItemCategory, SearchMissMode, ThemePreference, ViewMode};
 
 export interface SettingsState {
@@ -53,6 +55,13 @@ export interface SettingsState {
      * se règle pas avec celle du coffre, où elles vivaient auparavant.
      */
     loadoutIconSize: number;
+    /**
+     * Taille des icônes de plugs — attributs, mods, aspects, fragments — en px,
+     * bornée à [24, 80]. Un plug n'est pas un objet : il vit dans les colonnes
+     * d'attributs et le sélecteur de socket, dont il commande la largeur, d'où
+     * son propre réglage et ses propres bornes.
+     */
+    plugSize: number;
     /** Afficher l'ornement équipé plutôt que l'icône de base */
     showOrnaments: boolean;
     /**
@@ -102,6 +111,7 @@ export interface SettingsState {
     setIconSize: (size: number) => void;
     setVaultIconSize: (size: number) => void;
     setLoadoutIconSize: (size: number) => void;
+    setPlugSize: (size: number) => void;
     setShowOrnaments: (show: boolean) => void;
     setShowOriginalOnHover: (show: boolean) => void;
     setItemCategory: (category: ItemCategory) => void;
@@ -137,6 +147,7 @@ export function persistedSettings(state: SettingsState) {
         iconSize: state.iconSize,
         vaultIconSize: state.vaultIconSize,
         loadoutIconSize: state.loadoutIconSize,
+        plugSize: state.plugSize,
         showOrnaments: state.showOrnaments,
         showOriginalOnHover: state.showOriginalOnHover,
         itemCategory: state.itemCategory,
@@ -202,6 +213,7 @@ export const useSettings = create<SettingsState>()(
             iconSize: ICON_SIZE.default,
             vaultIconSize: ICON_SIZE.default,
             loadoutIconSize: ICON_SIZE.default,
+            plugSize: PLUG_SIZE.default,
             showOrnaments: true,
             showOriginalOnHover: true,
             itemCategory: DEFAULT_ITEM_CATEGORY,
@@ -218,6 +230,7 @@ export const useSettings = create<SettingsState>()(
             setVaultIconSize: (size) => set({vaultIconSize: clampIconSize(size)}),
             setLoadoutIconSize: (size) =>
                 set({loadoutIconSize: clampIconSize(size)}),
+            setPlugSize: (size) => set({plugSize: clampPlugSize(size)}),
             setShowOrnaments: (showOrnaments) => set({showOrnaments}),
             setShowOriginalOnHover: (showOriginalOnHover) =>
                 set({showOriginalOnHover}),
