@@ -20,8 +20,16 @@ Les deux premiers sont bilingues : **anglais d'abord, puis français**. Conserve
 
 ## Tout tourne dans Docker
 
-C'est la contrainte à connaître avant toute autre : `node_modules` vit dans un **volume anonyme**
-du conteneur, pas sur l'hôte. `npm`, `npx` et `tsc` lancés depuis l'hôte échouent.
+C'est la contrainte à connaître avant toute autre : `npm`, `npx` et `tsc` lancés depuis l'hôte
+échouent. `node_modules` est bien dans le dossier du projet — pour que l'IDE y résolve types,
+imports et règles ESLint — mais ses binaires natifs (`@next/swc`, `lightningcss`, `sass`, moteurs
+Prisma) sont compilés pour la **musl** du conteneur, pas pour la glibc de l'hôte. Seul le
+JavaScript pur y tourne des deux côtés.
+
+L'entrypoint (`scripts/docker/dev-entrypoint.sh`) l'installe au démarrage s'il manque ou si
+`package-lock.json` a bougé — l'image ne le livre plus, le bind mount le masquerait. Le conteneur
+tourne sous l'UID de l'hôte (`DOCKER_UID`/`DOCKER_GID`, 1000 par défaut) pour que ce qu'il écrit
+dans le projet appartienne à l'utilisateur ; seul `.next` reste dans un volume anonyme.
 
 ```bash
 docker compose exec app npx tsc --noEmit     # vérification de types

@@ -16,17 +16,26 @@ RUN npm install
 # ---- Étape développement ----
 FROM base AS dev
 ENV NODE_ENV=development
-COPY --from=deps /app/node_modules ./node_modules
+# Pas de `COPY --from=deps` ici : `node_modules` vient du bind mount du projet
+# (voir docker-compose.yml), qui masquerait de toute façon ce que l'image livre.
+# C'est l'entrypoint qui l'installe au démarrage.
 COPY . .
+
+# Le conteneur tourne sous l'UID de l'hôte (docker-compose.yml) afin que les
+# fichiers écrits dans le bind mount — node_modules, src/generated — lui
+# appartiennent. Cet UID n'a pas forcément de home dans l'image : on sort donc
+# de $HOME tout ce que les outils veulent écrire, sans quoi npm échoue sur un
+# cache introuvable.
+ENV npm_config_cache=/tmp/npm-cache
+ENV NEXT_TELEMETRY_DISABLED=1
+
+# `.next` reste dans un volume anonyme : le build de Next y écrit sans cesse et
+# n'a rien à faire dans l'arborescence de l'hôte. Le volume hérite des droits du
+# dossier de l'image — d'où le 777, l'UID qui montera n'étant pas connu ici.
+RUN mkdir -p /app/.next && chmod 777 /app/.next
+
 EXPOSE 3000
-# Génère le client Prisma au démarrage (le schéma est monté en volume, donc
-# absent au moment du "npm install" de l'étape deps) puis lance le serveur.
-# `--no-install` est indispensable : sans lui, un node_modules incomplet fait
-# télécharger prisma@latest à npx, qui réécrit package-lock.json au passage.
-# C'est ainsi que le lock s'est retrouvé commité avec prisma 7 face à un
-# package.json en ^5 — et npm ci refusait alors de tourner. Mieux vaut un
-# échec net qu'une version choisie dans notre dos.
-CMD ["sh", "-c", "npx --no-install prisma generate && npm run dev"]
+CMD ["sh", "scripts/docker/dev-entrypoint.sh"]
 
 # ---- Étape build (production) ----
 FROM base AS builder

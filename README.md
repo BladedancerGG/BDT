@@ -75,6 +75,16 @@ make start
 
 You can now access the application at: https://localhost/
 
+The first start installs `node_modules` **into the project directory** on the host,
+so your editor resolves types, imports and ESLint rules. It is reinstalled
+automatically whenever `package-lock.json` changes. The native binaries inside it
+are built for the container's libc, though: keep running `npm`, `npx` and `tsc`
+inside the container (`make shell`).
+
+The container runs under UID 1000, so files it writes belong to you. If your host
+user is not `1000:1000` (`id -u`, `id -g`), set `DOCKER_UID` and `DOCKER_GID` in
+`.env`.
+
 #### Everyday commands
 
 ```bash
@@ -229,6 +239,16 @@ make start
 ```
 
 Vous pouvez maintenant accéder à l'application sur : https://localhost/
+
+Le premier démarrage installe `node_modules` **dans le dossier du projet**, sur
+l'hôte : votre éditeur y résout types, imports et règles ESLint. Il est réinstallé
+automatiquement dès que `package-lock.json` change. Les binaires natifs qu'il
+contient sont en revanche compilés pour la libc du conteneur : `npm`, `npx` et
+`tsc` restent à lancer dedans (`make shell`).
+
+Le conteneur tourne sous l'UID 1000, afin que les fichiers qu'il écrit vous
+appartiennent. Si votre utilisateur n'est pas en `1000:1000` (`id -u`, `id -g`),
+renseignez `DOCKER_UID` et `DOCKER_GID` dans `.env`.
 
 #### Commandes du quotidien
 

@@ -1,8 +1,8 @@
 #!/bin/sh
 # Compile et exécute les vérifications des moteurs purs, dans le conteneur.
 #
-# Tout s'y passe : `node_modules` vit dans un volume anonyme du conteneur, et
-# `npx tsc` lancé depuis l'hôte échouerait (voir CLAUDE.md).
+# Tout s'y passe : les binaires natifs de `node_modules` sont compilés pour la
+# musl du conteneur, et `npx tsc` lancé depuis l'hôte échouerait (voir CLAUDE.md).
 set -e
 cd "$(dirname "$0")/../.."
 

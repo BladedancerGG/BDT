@@ -46,6 +46,7 @@ import {VirtualItemGrid, type LeadSection} from "./VirtualItemGrid";
 import {ActionsPanel} from "./actions/ActionsPanel";
 import {DropZones} from "./dnd/DropZones";
 import {DragScopeProvider, MoveDnd, type DragScope} from "./dnd/MoveDnd";
+import {LoadingIcon} from "@/components/icons";
 
 /**
  * Vide l'unique file d'actions.
@@ -577,7 +578,13 @@ export function InventoryView() {
     }, [data]);
 
     if (isLoading) {
-        return <p className="inventory-view__message">{t("loading")}</p>;
+        return (
+            <div className="profile-loader">
+                <p className="inventory-view__message">{t("loading")}</p>
+
+                <LoadingIcon />
+            </div>
+        );
     }
     if (isError || !data) {
         return (
