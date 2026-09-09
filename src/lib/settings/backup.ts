@@ -77,7 +77,7 @@ export function backupFileName(now: Date): string {
     // fichier n'a pas à dépendre du fuseau de celui qui l'ouvre, et les deux
     // points de l'heure ISO ne passent pas sur tous les systèmes.
     const [date, time] = now.toISOString().split("T");
-    return `bdt-sauvegarde-${date}-${time.slice(0, 8).replace(/:/g, "")}.json`;
+    return `bdt-backup-${date}-${time.slice(0, 8).replace(/:/g, "")}.json`;
 }
 
 /**
