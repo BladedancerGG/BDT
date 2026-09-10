@@ -11,6 +11,7 @@
     "delete": "Delete",
     "groups": "Groups",
     "edit": "Edit",
+    "duplicate": "Duplicate",
     "cancel": "Cancel",
     "confirm": "Confirm",
     "join": "Join"
@@ -303,6 +304,7 @@
     "defaultName": "Group {number}",
     "nameLabel": "Group name",
     "currentLoadouts": "Current loadouts",
+    "copyName": "{name} (copy)",
     "deleteConfirm": "Delete the group “{name}”?",
     "noSlots": "The API returned no loadout slots for this character: there is nowhere to put a group.",
     "dragHint": "Drag a card’s handle to change its rank",
@@ -310,6 +312,7 @@
     "back": "Back",
     "groupSlots": "Group slots",
     "characterSlots": "Character slots",
+    "slotsSource": "Slots shown",
     "slotTitle": "Group slot #{number}",
     "editing": "Editing",
     "previewing": "Previewing",

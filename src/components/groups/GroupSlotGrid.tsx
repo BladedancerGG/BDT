@@ -1,5 +1,6 @@
 "use client";
 
+import type {ReactNode} from "react";
 import {useTranslations} from "next-intl";
 import {
     DndContext,
@@ -43,7 +44,11 @@ export function GroupSlotGrid({
                                   onMove,
                                   emptyHint,
                               }: {
-    title: string;
+    /**
+     * Un nœud et non une chaîne : la grille du bas porte à cette place un
+     * sélecteur de source, et non un titre figé.
+     */
+    title: ReactNode;
     loadouts: readonly DestinyLoadout[];
     slotCount: number;
     identifiers: LoadoutIdentifiers;

@@ -11,6 +11,7 @@
     "delete": "Supprimer",
     "groups": "Groupes",
     "edit": "Modifier",
+    "duplicate": "Dupliquer",
     "cancel": "Annuler",
     "confirm": "Confirmer",
     "join": "Rejoindre"
@@ -303,6 +304,7 @@
     "defaultName": "Groupe {number}",
     "nameLabel": "Nom du groupe",
     "currentLoadouts": "Équipements actuels",
+    "copyName": "{name} (copie)",
     "deleteConfirm": "Supprimer le groupe « {name} » ?",
     "noSlots": "Aucun emplacement d’équipement renvoyé par l’API pour ce personnage : il n’y a pas de place où poser un groupe.",
     "dragHint": "Glissez la poignée d’une carte pour changer son rang",
@@ -310,6 +312,7 @@
     "back": "Retour",
     "groupSlots": "Emplacements du groupe",
     "characterSlots": "Emplacements du personnage",
+    "slotsSource": "Emplacements affichés",
     "slotTitle": "Emplacement n°{number} du groupe",
     "editing": "Modification de",
     "previewing": "Prévisualisation de",

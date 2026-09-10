@@ -15,10 +15,12 @@ interface GroupCardProps {
     identifiers: LoadoutIdentifiers;
     /**
      * Absentes sur la carte des équipements du jeu : elle montre l'état courant
-     * du personnage, il n'y a rien à y équiper, modifier ni supprimer.
+     * du personnage, il n'y a rien à y équiper, modifier, dupliquer ni
+     * supprimer.
      */
     onEquip?: () => void;
     onEdit?: () => void;
+    onDuplicate?: () => void;
     onDelete?: () => void;
 }
 
@@ -42,6 +44,7 @@ export function GroupCard({
                               identifiers,
                               onEquip,
                               onEdit,
+                              onDuplicate,
                               onDelete,
                               handle,
                           }: GroupCardProps & {
@@ -51,7 +54,7 @@ export function GroupCard({
     const tLoadouts = useTranslations("loadouts");
     const tCommon = useTranslations("common");
 
-    const hasActions = Boolean(onEquip || onEdit || onDelete);
+    const hasActions = Boolean(onEquip || onEdit || onDuplicate || onDelete);
 
     return (
         <>
@@ -112,6 +115,14 @@ export function GroupCard({
                             onClick={onEdit}
                         >
                             {tCommon("edit")}
+                        </button>
+                        <button
+                            type="button"
+                            className="btn btn--small group-card__action"
+                            disabled={!onDuplicate}
+                            onClick={onDuplicate}
+                        >
+                            {tCommon("duplicate")}
                         </button>
                         <button
                             type="button"

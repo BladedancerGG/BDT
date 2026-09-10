@@ -20,6 +20,7 @@ import type {DestinyLoadout} from "@/lib/bungie/profile";
 import type {ProfileData} from "@/lib/bungie/use-profile";
 import type {InventoryItemDefinition} from "@/lib/destiny/types";
 import {useCharacterGroups, useLoadoutGroups} from "@/lib/loadouts/groups/store";
+import {copyGroupLoadouts} from "@/lib/loadouts/groups/types";
 import {useConfirmEquipGroup} from "@/lib/loadouts/groups/use-confirm-equip";
 import {useLoadoutIdentifiers} from "@/lib/loadouts/use-loadout-identifiers";
 import {useSettings} from "@/lib/settings/store";
@@ -62,6 +63,7 @@ export function GroupsModeView({
 }) {
     const t = useTranslations("groups");
     const groups = useCharacterGroups(characterId);
+    const createGroup = useLoadoutGroups((s) => s.createGroup);
     const deleteGroup = useLoadoutGroups((s) => s.deleteGroup);
     const moveGroup = useLoadoutGroups((s) => s.moveGroup);
     const confirmEquip = useConfirmEquipGroup(characterId);
@@ -164,6 +166,25 @@ export function GroupsModeView({
                                 identifiers={identifiers}
                                 onEquip={() => confirmEquip(group)}
                                 onEdit={() => setEditingId(group.id)}
+                                onDuplicate={
+                                    characterId
+                                        ? () =>
+                                            createGroup({
+                                                characterId,
+                                                name: t("copyName", {
+                                                    name: group.name,
+                                                }),
+                                                color: group.color,
+                                                // Copie PROFONDE : partagées,
+                                                // les listes d'objets feraient
+                                                // du double un alias — modifier
+                                                // l'un changerait l'autre.
+                                                loadouts: copyGroupLoadouts(
+                                                    group.loadouts,
+                                                ),
+                                            })
+                                        : undefined
+                                }
                                 onDelete={() => {
                                     if (
                                         window.confirm(
