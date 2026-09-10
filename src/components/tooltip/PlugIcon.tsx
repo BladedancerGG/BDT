@@ -43,6 +43,9 @@ import {EnhancedPerkIcon, LoadingIcon} from "@/components/icons";
  *                 (mods, revêtements, ornements, aspects…), là où les options
  *                 sont trop nombreuses pour tenir en colonne
  * - `browseLabel` : ce que le sélecteur contiendra, annoncé dans l'infobulle
+ * - `surface`   : pose un support sous l'icône. Réservé aux plugs dessinés en
+ *                 simple tracé clair sans fond (armatures, mods d'artéfact,
+ *                 bonus d'ensemble inactifs) : le thème clair seul en pose un.
  * - `selected`  : ce socket est celui dont le sélecteur est ouvert
  * - `busy`      : requête en cours sur ce socket
  *
@@ -58,6 +61,7 @@ export function PlugIcon({
                              def: preloadedDef,
                              markEnhanced = false,
                              masterwork = false,
+                             surface = false,
                              onEquip,
                              onBrowse,
                              browseLabel,
@@ -73,6 +77,7 @@ export function PlugIcon({
     def?: InventoryItemDefinition;
     markEnhanced?: boolean;
     masterwork?: boolean;
+    surface?: boolean;
     onEquip?: () => void;
     onBrowse?: () => void;
     browseLabel?: string;
@@ -145,6 +150,7 @@ export function PlugIcon({
         state ? `plug-icon--${state}` : null,
         enhanced ? "plug-icon--enhanced" : null,
         masterwork ? "plug-icon--masterwork" : null,
+        surface ? "plug-icon--surface" : null,
         clickable ? "plug-icon--equippable" : null,
         selected ? "plug-icon--selected" : null,
         busy ? "plug-icon--busy" : null,

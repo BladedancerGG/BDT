@@ -231,6 +231,7 @@ export function EquipmentPlugs({
                                         square={chip.square}
                                         state={chip.square ? undefined : "equipped"}
                                         markEnhanced={chip.markEnhanced}
+                                        surface={chip.surface}
                                     />
                                 );
                             }
@@ -242,6 +243,7 @@ export function EquipmentPlugs({
                                     square={chip.square}
                                     table={chip.table}
                                     markEnhanced={chip.markEnhanced}
+                                    surface={chip.surface}
                                     // Le fond bleu d'« équipé » ne vaut que pour les
                                     // icônes rondes : posé sous un mod, il ressortirait
                                     // par les coins transparents de son PNG. Seuls les

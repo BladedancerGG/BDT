@@ -26,6 +26,8 @@
   background-color: var(--color-panel);
   color: var(--color-text);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
+  // Même surface translucide que l'infobulle à laquelle il s'ancre
+  backdrop-filter: var(--blur-sm);
 
   // Recherche par nom et description parmi les options du socket
   &__search {

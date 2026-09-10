@@ -11,7 +11,7 @@
 @mixin dark-palette {
   // Palette inspirée des menus du jeu (fonds sombres, accent doré)
   --color-bg: #16181d;
-  --color-panel: #1c1f26;
+  --color-panel: rgb(28 31 38 / var(--surface-alpha, 0.85));
   --color-panel-alt: #22262e;
   --color-panel-alt-semi-transparent: #22262eaa;
   --color-border: #33373f;
@@ -49,6 +49,11 @@
 :root {
   --color-icon-surface: #22262e;
   --color-icon-border: #4a4f59;
+  // Fond des bandeaux qui portent ces mêmes icônes sans les découper en
+  // vignettes (statistiques du personnage). Il ne peut plus venir de
+  // --color-icon-surface : le thème clair éclaircit celui-ci pour la grille du
+  // coffre, où le contraste comptait davantage que ces PNG-là.
+  --color-dark-panel: #22262e;
   // Encre des symboles teintés (masques) posés sur ces surfaces. Elle ne peut
   // pas suivre --color-text : le support reste sombre dans les deux thèmes, un
   // texte sombre y disparaîtrait.
@@ -57,9 +62,12 @@
 
 @mixin light-palette {
   --color-bg: #f4f5f7;
-  --color-panel: #ffffff;
-  --color-panel-alt: #e9ebef;
-  --color-panel-alt-semi-transparent: #e9ebefaa;
+  // L'opacité est celle du réglage « effets de transparence » : coupé, il
+  // pose --surface-alpha à 1 et le panneau redevient plein, sans qu'aucune
+  // règle n'ait à écraser celle-ci (voir plus bas).
+  --color-panel: rgb(204 204 204 / var(--surface-alpha, 0.85));
+  --color-panel-alt: #fff;
+  --color-panel-alt-semi-transparent: rgba(20, 22, 26, 0.50);
   --color-border: #d3d7de;
   --color-border-strong: #a8aeb8;
   --color-text: #1b1d22;
@@ -70,11 +78,88 @@
   --color-danger: #b3312f;
   --color-success: #2c7a45;
   --color-energy: #1f6fb0;
-  --color-overlay: rgba(20, 22, 26, 0.45);
+  --color-overlay: rgba(20, 22, 26, 0.65);
   --color-overlay-semi-transparent: rgba(20, 22, 26, 0.15);
   --shadow-panel: 0 12px 32px rgba(20, 22, 26, 0.22);
 
+  // Le support des icônes reste sombre (voir --color-icon-surface) mais il est
+  // éclairci ici : sur le fond blanc du coffre, le noir du thème sombre
+  // découpait la grille en un damier trop contrasté.
+  --color-icon-surface: #c8c8c8;
+  // Support des icônes de plugs en simple tracé : sans lui, une armature ou un
+  // mod d'artéfact — dessin blanc sur fond transparent — disparaît sur le clair.
+  --color-plug-surface: var(--color-dark-panel);
+  --color-icon-border: #5b616c;
+
   color-scheme: light;
+}
+
+// Effets de transparence et de flou — réglage « apparence ».
+//
+// Allumés par défaut : l'attribut n'est posé sur <html> que pour les couper
+// (serveur, puis SettingsEffects), si bien qu'un cookie muet ou une page sans
+// JavaScript garde le rendu d'origine.
+//
+// Tout passe par des variables héritées plutôt que par des règles qui
+// écraseraient les palettes : l'interrupteur n'a alors aucune bataille de
+// spécificité à gagner contre `[data-theme]` ni contre le repli
+// `:root:not([data-theme])` de prefers-color-scheme.
+//
+// `none` et non `blur(0)` : le minificateur réduit ce dernier à `blur()`
+// (voir le commentaire de modal.scss).
+:root {
+  --blur-sm: blur(3px);
+  --blur-md: blur(5px);
+}
+
+:root[data-effects="off"] {
+  --surface-alpha: 1;
+  --blur-sm: none;
+  --blur-md: none;
+}
+
+// Infobulles d'objet et d'attribut, et sélecteur de socket.
+//
+// Elles gardent une surface sombre dans les DEUX thèmes, pour la même raison
+// que --color-icon-surface : elles sont surtout faites d'icônes Bungie claires
+// sur fond transparent. Le thème clair y rebascule donc toute l'encre, sinon un
+// texte sombre se poserait sur un fond sombre.
+//
+// La surface est semi-transparente : le coffre reste devinable derrière, comme
+// en jeu. L'en-tête n'est pas concerné — son dégradé de rareté est opaque et
+// se peint par-dessus.
+.item-tooltip,
+.plug-tooltip,
+.socket-picker {
+  --color-panel: rgb(28 31 38 / var(--surface-alpha, 0.85));
+  // Les fonds secondaires (pistes de statistiques, bandeau de niveau d'arme)
+  // restent opaques : à travers deux calques translucides, la barre ne se
+  // détacherait plus de sa piste.
+  --color-panel-alt: #ffffff20;
+  --color-panel-alt-semi-transparent: #22262eaa;
+  --color-border: #33373f;
+  --color-border-strong: #4a4f59;
+  --color-text: #f2f2f2;
+  --color-text-muted: #9aa0a8;
+  // Les accents du thème clair sont assombris pour un fond blanc : ils
+  // s'éteindraient ici.
+  --color-accent: #f5b820;
+  --color-accent-contrast: #1a1a1a;
+  --color-danger: #e06c6c;
+  --color-success: #6ddc8b;
+  --color-energy: #5ea9e8;
+}
+
+// Zones de dépôt.
+//
+// Elles se posent sur le voile de --color-overlay, sombre dans les deux thèmes :
+// l'encre du thème clair y disparaîtrait. Libellé, symbole de classe et sigil du
+// coffre lisent tous ce --color-text (les deux derniers en `currentColor`).
+.drop-zone {
+  --color-text: #f2f2f2;
+  // Le motif de refus est écrit en rouge : celui du thème clair est trop
+  // sombre pour ce fond.
+  --color-danger: #e06c6c;
 }
 
 // Sombre par défaut

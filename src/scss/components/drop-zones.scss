@@ -182,8 +182,8 @@ $duration: 250ms;
     min-height: 0;
     overflow: hidden;
     aspect-ratio: 1/1;
-    width: 70px;
-    height: 70px;
+    width: 50px;
+    height: 50px;
     // Emblème et symbole de classe se superposent. `> *` et non `img` : le
     // symbole est un masque porté par un span, plus une image.
     > * {

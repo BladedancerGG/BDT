@@ -34,7 +34,7 @@
 
     width: 8.5rem;
     text-align: right;
-    color: var(--color-text-muted);
+    color: var(--color-text);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -102,7 +102,7 @@
       width: auto;
       text-align: left;
       padding-left: 0.25rem;
-      color: var(--color-text-muted);
+      color: var(--color-text);
       max-width: calc(200px + 1.5rem + 0.5rem);
     }
   }

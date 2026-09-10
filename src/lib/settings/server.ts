@@ -17,6 +17,7 @@ import {
 /** Sous-ensemble des préférences persistées que le serveur sait exploiter. */
 interface PersistedShape {
     theme?: ThemePreference;
+    visualEffects?: boolean;
     iconSize?: number;
     vaultIconSize?: number;
     loadoutIconSize?: number;
@@ -30,6 +31,12 @@ export interface ServerPreferences {
      * prend le relais — le serveur n'a pas à connaître la préférence de l'OS.
      */
     theme?: "light" | "dark";
+    /**
+     * Effets de transparence et de flou. Rendu depuis le serveur comme le
+     * thème : posés après coup, les panneaux flottants seraient d'abord peints
+     * avec l'effet avant de le perdre.
+     */
+    visualEffects: boolean;
     iconSize?: number;
     vaultIconSize?: number;
     loadoutIconSize?: number;
@@ -72,6 +79,9 @@ function readPlugSize(value: unknown): number | undefined {
 function pick(state: PersistedShape): Omit<ServerPreferences, "synced"> {
     return {
         theme: state.theme === "light" || state.theme === "dark" ? state.theme : undefined,
+        // Actifs par défaut : un cookie écrit avant ce réglage n'a pas la clé,
+        // et l'application se comportait alors comme s'ils étaient allumés.
+        visualEffects: state.visualEffects !== false,
         iconSize: readIconSize(state.iconSize),
         vaultIconSize: readIconSize(state.vaultIconSize),
         loadoutIconSize: readIconSize(state.loadoutIconSize),

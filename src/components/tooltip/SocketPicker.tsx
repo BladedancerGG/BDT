@@ -166,6 +166,7 @@ export function PlugSlot({
                              label,
                              state,
                              markEnhanced = false,
+                             surface = false,
                          }: {
     column: SocketColumn;
     square?: boolean;
@@ -178,6 +179,8 @@ export function PlugSlot({
     state?: "equipped" | "available";
     /** Voir `PlugIcon` — réservé aux attributs d'arme */
     markEnhanced?: boolean;
+    /** Voir `PlugIcon` — support sous les icônes en simple tracé */
+    surface?: boolean;
 }) {
     const {item, target, toggle, disabled, pending} = useSocketPicker();
     // L'attribut en file prend la place de celui rendu par l'API : l'emplacement
@@ -233,6 +236,7 @@ export function PlugSlot({
             square={square}
             state={state}
             markEnhanced={markEnhanced}
+            surface={surface}
             masterwork={masterwork}
             onBrowse={
                 browsable

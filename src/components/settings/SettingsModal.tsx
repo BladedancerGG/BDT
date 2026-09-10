@@ -267,6 +267,8 @@ function AppearancePanel() {
     const setLoadoutIconSize = useSettings((s) => s.setLoadoutIconSize);
     const plugSize = useSettings((s) => s.plugSize);
     const setPlugSize = useSettings((s) => s.setPlugSize);
+    const visualEffects = useSettings((s) => s.visualEffects);
+    const setVisualEffects = useSettings((s) => s.setVisualEffects);
     const showOrnaments = useSettings((s) => s.showOrnaments);
     const setShowOrnaments = useSettings((s) => s.setShowOrnaments);
     const showOriginalOnHover = useSettings((s) => s.showOriginalOnHover);
@@ -289,6 +291,19 @@ function AppearancePanel() {
                         {value: "dark", label: t("themes.dark")},
                         {value: "system", label: t("themes.system")},
                     ]}
+                />
+            </SettingRow>
+
+            <SettingRow
+                label={t("effects")}
+                hint={t("effectsHint")}
+                htmlFor="setting-effects"
+            >
+                <Toggle
+                    id="setting-effects"
+                    checked={visualEffects}
+                    onChange={setVisualEffects}
+                    label={t("effects")}
                 />
             </SettingRow>
 

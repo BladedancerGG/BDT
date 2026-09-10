@@ -11,6 +11,7 @@
   background-color: var(--color-panel);
   color: var(--color-text);
   box-shadow: var(--shadow-panel);
+  backdrop-filter: var(--blur-sm);
 
   &__header {
     display: flex;

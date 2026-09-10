@@ -96,6 +96,8 @@
         "dark": "Dark",
         "system": "System"
       },
+      "effects": "Transparency effects",
+      "effectsHint": "Translucent backgrounds and blur on tooltips and the perk picker",
       "language": "Language",
       "languageHint": "Changing language will completely reload the application",
       "ornaments": "Show ornaments",

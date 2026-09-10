@@ -89,6 +89,13 @@
     border: none;
   }
 
+  // Support des plugs dessinés en simple tracé clair — armatures, mods
+  // d'artéfact, bonus d'ensemble hors palier. Transparent par défaut : seul le
+  // thème clair pose --color-plug-surface, les autres fonds étant déjà sombres.
+  &--surface {
+    background-color: var(--color-plug-surface, transparent);
+  }
+
   // Perk actuellement équipé : mis en avant
   &--equipped {
     background-color: #4887ba;

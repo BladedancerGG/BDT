@@ -62,6 +62,13 @@ export interface SettingsState {
      * son propre réglage et ses propres bornes.
      */
     plugSize: number;
+    /**
+     * Effets de transparence et de flou des surfaces flottantes (infobulles,
+     * sélecteur d'attributs). Coupés, ces surfaces redeviennent opaques et
+     * aucun `backdrop-filter` n'est posé : c'est un filtre par pixel de la zone
+     * recouverte, que les machines modestes paient à chaque survol.
+     */
+    visualEffects: boolean;
     /** Afficher l'ornement équipé plutôt que l'icône de base */
     showOrnaments: boolean;
     /**
@@ -112,6 +119,7 @@ export interface SettingsState {
     setVaultIconSize: (size: number) => void;
     setLoadoutIconSize: (size: number) => void;
     setPlugSize: (size: number) => void;
+    setVisualEffects: (enabled: boolean) => void;
     setShowOrnaments: (show: boolean) => void;
     setShowOriginalOnHover: (show: boolean) => void;
     setItemCategory: (category: ItemCategory) => void;
@@ -144,6 +152,7 @@ export interface SettingsState {
 export function persistedSettings(state: SettingsState) {
     return {
         theme: state.theme,
+        visualEffects: state.visualEffects,
         iconSize: state.iconSize,
         vaultIconSize: state.vaultIconSize,
         loadoutIconSize: state.loadoutIconSize,
@@ -210,6 +219,7 @@ export const useSettings = create<SettingsState>()(
     persist(
         (set) => ({
             theme: "system",
+            visualEffects: true,
             iconSize: ICON_SIZE.default,
             vaultIconSize: ICON_SIZE.default,
             loadoutIconSize: ICON_SIZE.default,
@@ -226,6 +236,7 @@ export const useSettings = create<SettingsState>()(
             syncEnabled: true,
 
             setTheme: (theme) => set({theme}),
+            setVisualEffects: (visualEffects) => set({visualEffects}),
             setIconSize: (size) => set({iconSize: clampIconSize(size)}),
             setVaultIconSize: (size) => set({vaultIconSize: clampIconSize(size)}),
             setLoadoutIconSize: (size) =>

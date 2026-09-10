@@ -96,6 +96,8 @@
         "dark": "Sombre",
         "system": "Système"
       },
+      "effects": "Effets de transparence",
+      "effectsHint": "Fonds translucides et flou des infobulles et du sélecteur d’attributs",
       "language": "Langue",
       "languageHint": "Changer la langue d’affichage rechargera complètement l’application",
       "ornaments": "Afficher les ornements",

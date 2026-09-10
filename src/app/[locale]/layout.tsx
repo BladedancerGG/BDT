@@ -55,6 +55,7 @@ export default async function RootLayout(
         <html
             lang={locale}
             data-theme={prefs.theme}
+            {...(prefs.visualEffects ? {} : {"data-effects": "off"})}
             style={rootSizeStyle(prefs)}
         >
             <body>

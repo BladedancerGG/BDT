@@ -53,6 +53,13 @@ export interface PlugChip {
      * d'attributs d'arme, seules à en contenir — voir `isEnhancedPlug`.
      */
     markEnhanced?: boolean;
+    /**
+     * Plug dessiné en simple tracé clair, sans fond incrusté : armature,
+     * mod d'artéfact, bonus d'ensemble hors palier. Il lui faut un support là
+     * où l'arrière-plan est clair (voir `plug-icon--surface`). Les mods
+     * d'arme et d'armure, eux, portent déjà le leur.
+     */
+    surface?: boolean;
     active: boolean;
 }
 
@@ -203,6 +210,7 @@ export function useEquippedPlugs(
                             /** Ne garder que les emplacements réellement remplis */
                             appliedOnly?: boolean;
                             markEnhanced?: boolean;
+                            surface?: boolean;
                         } = {},
                     ): PlugChip[] =>
                         categoryIndexes(def, categoryHashes).flatMap((index) => {
@@ -218,6 +226,7 @@ export function useEquippedPlugs(
                                     socketIndex: index,
                                     square,
                                     markEnhanced: options.markEnhanced,
+                                    surface: options.surface,
                                     active: true,
                                 } satisfies PlugChip,
                             ];
@@ -292,7 +301,9 @@ export function useEquippedPlugs(
                                 markEnhanced: true,
                             }),
                             ...fromCategories([SOCKET_CATEGORY.WEAPON_MODS], true, "mod"),
-                            ...fromCategories([SOCKET_CATEGORY.INTRINSIC], true, "intrinsic"),
+                            ...fromCategories([SOCKET_CATEGORY.INTRINSIC], true, "intrinsic", {
+                                surface: true,
+                            }),
                         ];
                         if (line.length > 0) rows.push(line);
                     } else if (def.itemType === ITEM_TYPE.Armor) {
@@ -311,6 +322,9 @@ export function useEquippedPlugs(
                                     hash: perk.sandboxPerkHash,
                                     square: false,
                                     table: "DestinySandboxPerkDefinition",
+                                    // Hors palier, l'icône perd son fond bleu
+                                    // d'« équipé » : il lui faut un support.
+                                    surface: equippedCount < perk.requiredSetCount,
                                     active: equippedCount >= perk.requiredSetCount,
                                 });
                             }
@@ -336,6 +350,7 @@ export function useEquippedPlugs(
                                     // le même rôle — l'attribut qui définit
                                     // l'objet — et le jeu le présente de même.
                                     square: true,
+                                    surface: true,
                                     active: true,
                                 });
                                 break;
@@ -354,7 +369,7 @@ export function useEquippedPlugs(
                             ARTIFACT_SOCKET_CATEGORIES,
                             true,
                             "artifact",
-                            {appliedOnly: true},
+                            {appliedOnly: true, surface: true},
                         );
                         if (line.length > 0) rows.push(line);
                     }
