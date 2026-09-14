@@ -2,8 +2,7 @@
 
 ## https://destinytools.bladedancer.net/
 
-butter dog the dog with the butter on em
-![Butter dog](public/images/butter-dog.gif "Butter dog")
+![Bladedancer destiny tools :3](public/images/BDT.png "Bladedancer destiny tools :3")
 
 
 ### [English](#english) |  [Français](#français)

@@ -4,6 +4,7 @@ import {useRef} from "react";
 import {useTranslations} from "next-intl";
 import {Bars3Icon} from "@heroicons/react/24/solid";
 import {useUi} from "@/lib/ui/store";
+import Image from "next/image";
 
 /**
  * Bouton d'ouverture du menu latéral, à gauche du titre.
@@ -33,7 +34,13 @@ export function MainMenuButton() {
             title={t("open")}
         >
             <Bars3Icon/>
-            <h1 className="app-header__title">BDT</h1>
+            <h1 className="app-header__title">
+                <Image
+                    src="/images/BDT.png"
+                    width={40}
+                    height={40}
+                />
+            </h1>
         </button>
     );
 }
