@@ -10,27 +10,36 @@ import {LoadoutGroupsSync} from "@/lib/loadouts/groups/LoadoutGroupsSync";
 import {readPreferences, type ServerPreferences} from "@/lib/settings/server";
 import "@/scss/style.scss";
 
+
+const name = "Bladedancer's Destiny Tools";
+const description = "Personal tools used to manage stuff using the bungie.net Destiny 2 API";
+
 export const metadata: Metadata = {
-    title: "Bladedancer's Destiny Tools",
-    description: "Personal tools used to manage stuff using the bungie.net Destiny 2 API",
+    title: name,
+    description: description,
     openGraph: {
+        title: name,
+        description: description,
+        siteName: name,
         type: "website",
-        title: "Bladedancer's Destiny Tools",
-        description: "Personal tools used to manage stuff using the bungie.net Destiny 2 API",
         url: "https://destinytools.bladedancer.net",
         images: [
             {
                 url: "https://destinytools.bladedancer.net/images/BDT.png",
                 width: 300,
-                height: 300
+                height: 300,
+                alt: name
             }
         ],
     },
     twitter: {
+        title: name,
+        description: description,
         card: "summary_large_image",
-        title: "Bladedancer's Destiny Tools",
-        description: "Personal tools used to manage stuff using the bungie.net Destiny 2 API",
-        images: ["https://destinytools.bladedancer.net/images/BDT.png"]
+        creator: "@BladedancerGG",
+        images: [
+            "https://destinytools.bladedancer.net/images/BDT.png"
+        ]
     }
 };
 
