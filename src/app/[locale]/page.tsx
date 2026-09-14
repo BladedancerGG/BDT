@@ -6,6 +6,7 @@ import {SearchBar} from "@/components/search/SearchBar";
 import {MainMenuButton} from "@/components/nav/MainMenuButton";
 import {MainMenu} from "@/components/nav/MainMenu";
 import {APP_TITLE} from "@/lib/app-info";
+import Image from "next/image";
 
 export default async function Home() {
     const user = await getCurrentUser();
@@ -31,6 +32,12 @@ export default async function Home() {
             ) : (
                 <div className="login-screen">
                     <h1>{APP_TITLE}</h1>
+                    <Image
+                        src="/images/BDT.png"
+                        width={300}
+                        height={300}
+                        alt={APP_TITLE}
+                    />
                     <h2>Personal tools used to manage stuff using the bungie.net Destiny 2 API</h2>
                     <p>I'll put more things here in the future</p>
                     {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
