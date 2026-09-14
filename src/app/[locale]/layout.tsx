@@ -13,6 +13,25 @@ import "@/scss/style.scss";
 export const metadata: Metadata = {
     title: "Bladedancer's Destiny Tools",
     description: "Personal tools used to manage stuff using the bungie.net Destiny 2 API",
+    openGraph: {
+        type: "website",
+        title: "Bladedancer's Destiny Tools",
+        description: "Personal tools used to manage stuff using the bungie.net Destiny 2 API",
+        url: "https://destinytools.bladedancer.net",
+        images: [
+            {
+                url: "https://destinytools.bladedancer.net/images/BDT.png",
+                width: 300,
+                height: 300
+            }
+        ],
+    },
+    twitter: {
+        card: "summary_large_image",
+        title: "Bladedancer's Destiny Tools",
+        description: "Personal tools used to manage stuff using the bungie.net Destiny 2 API",
+        images: ["https://destinytools.bladedancer.net/images/BDT.png"]
+    }
 };
 
 /**
@@ -58,22 +77,22 @@ export default async function RootLayout(
             {...(prefs.visualEffects ? {} : {"data-effects": "off"})}
             style={rootSizeStyle(prefs)}
         >
-            <body>
-                {/* Avant SettingsEffects : c'est lui qui impose au store l'état
+        <body>
+        {/* Avant SettingsEffects : c'est lui qui impose au store l'état
                     lu en base, celui-là même qui a servi à rendre ce HTML. */}
-                <SettingsSync serverState={prefs.synced} serverSync={prefs.syncEnabled}/>
-                <SettingsEffects/>
-                {/* Après SettingsSync : c'est lui qui fixe `syncEnabled`, dont
+        <SettingsSync serverState={prefs.synced} serverSync={prefs.syncEnabled}/>
+        <SettingsEffects/>
+        {/* Après SettingsSync : c'est lui qui fixe `syncEnabled`, dont
                     dépend la relecture des groupes. Ceux-là ne descendent pas
                     avec le HTML — le serveur n'en a rien à faire au rendu, et
                     ils pèsent des dizaines de Ko. */}
-                <LoadoutGroupsSync/>
-                {/* NextIntlClientProvider récupère messages/locale depuis le contexte
+        <LoadoutGroupsSync/>
+        {/* NextIntlClientProvider récupère messages/locale depuis le contexte
                     serveur fourni par le plugin next-intl */}
-                <NextIntlClientProvider>
-                    <Providers>{children}</Providers>
-                </NextIntlClientProvider>
-            </body>
+        <NextIntlClientProvider>
+            <Providers>{children}</Providers>
+        </NextIntlClientProvider>
+        </body>
         </html>
     );
 }
