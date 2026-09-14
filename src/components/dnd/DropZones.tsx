@@ -6,6 +6,7 @@ import type { Character } from "@/lib/bungie/use-profile";
 import { useMovePlanner } from "@/lib/actions/use-move-planner";
 import { BUNGIE_ROOT } from "@/lib/destiny/display";
 import type { MovePlan, MoveTarget } from "@/lib/destiny/moves";
+import type { ItemCategory } from "@/lib/settings/constants";
 import { useCharacterNames } from "@/lib/destiny/use-character-names";
 import { ClassIcon } from "../ClassIcon";
 import { VaultIcon } from "../icons";
@@ -109,9 +110,12 @@ function DropZone({
 export function DropZones({
   characters,
   selectedCharacterId,
+  category,
 }: {
   characters: readonly Character[];
   selectedCharacterId: string | null;
+  /** Famille affichée : elle décide du découpage — voir plus bas */
+  category: ItemCategory;
 }) {
   const t = useTranslations("actions.move");
   const tCommon = useTranslations("common");
@@ -138,11 +142,29 @@ export function DropZones({
     [characters, selectedCharacterId],
   );
 
+  /**
+   * L'onglet du rangement partagé n'a que deux zones : l'inventaire à gauche,
+   * le coffre à droite — le découpage de la vue qu'elles recouvrent.
+   *
+   * Modificateurs et objets à usage unique sont de portée compte : ils ne sont
+   * posés sur personne, et désigner un personnage n'aurait aucun sens. L'API en
+   * réclame pourtant un pour tout transfert — c'est le personnage affiché qui
+   * sert de porte d'entrée.
+   */
+  const shared = category === "inventory";
+  const holder = ordered[0]?.characterId;
+  const sharedTarget: MoveTarget | null = useMemo(
+    () => (shared && holder ? { kind: "inventory", characterId: holder } : null),
+    [shared, holder],
+  );
+
   // Les sept plans en une passe, à la saisie : ~0,13 ms sur un coffre de mille
   // objets. Rien ne les recalcule ensuite, le survol ne coûte plus rien.
   const plans = useMemo(() => {
     if (!subject) return null;
-    const targets: MoveTarget[] = [
+    const targets: MoveTarget[] = sharedTarget
+      ? [{ kind: "vault" }, sharedTarget]
+      : [
       { kind: "vault" },
       ...ordered.flatMap((c): MoveTarget[] => [
         { kind: "equipped", characterId: c.characterId },
@@ -155,7 +177,7 @@ export function DropZones({
         plan(subject.itemInstanceId, target),
       ]),
     );
-  }, [subject, ordered, plan]);
+  }, [subject, ordered, sharedTarget, plan]);
 
   const planOf = (target: MoveTarget) => plans?.get(zoneId(target)) ?? null;
 
@@ -171,51 +193,64 @@ export function DropZones({
       <div className={layer("scrim")} aria-hidden />
 
       <div className={layer("characters")}>
-        {ordered.map((character, index) => {
-          const name = names.get(character.characterId) ?? "";
-          const current =
-            index === 0 && character.characterId === selectedCharacterId;
-          const equip: MoveTarget = {
-            kind: "equipped",
-            characterId: character.characterId,
-          };
-          const inventory: MoveTarget = {
-            kind: "inventory",
-            characterId: character.characterId,
-          };
+        {/* Rangement partagé : une seule zone, en face de celle du coffre. */}
+        {sharedTarget && (
+          <div className="drop-zones__row drop-zones__row--single">
+            <DropZone
+              variant="inventory"
+              target={sharedTarget}
+              plan={planOf(sharedTarget)}
+              label={t("inventoryHere")}
+            />
+          </div>
+        )}
 
-          return (
-            <div
-              key={character.characterId}
-              className={`drop-zones__row${
-                current ? " drop-zones__row--current" : ""
-              }`}
-            >
-              <DropZone
-                variant="equip"
-                target={equip}
-                plan={planOf(equip)}
-                label={
-                  current ? tCommon("equip") : t("equipOn", { character: name })
-                }
+        {!shared &&
+          ordered.map((character, index) => {
+            const name = names.get(character.characterId) ?? "";
+            const current =
+              index === 0 && character.characterId === selectedCharacterId;
+            const equip: MoveTarget = {
+              kind: "equipped",
+              characterId: character.characterId,
+            };
+            const inventory: MoveTarget = {
+              kind: "inventory",
+              characterId: character.characterId,
+            };
+
+            return (
+              <div
+                key={character.characterId}
+                className={`drop-zones__row${
+                  current ? " drop-zones__row--current" : ""
+                }`}
               >
-                <CharacterMark character={character} />
-              </DropZone>
-              <DropZone
-                variant="inventory"
-                target={inventory}
-                plan={planOf(inventory)}
-                label={
-                  current
-                    ? t("inventoryHere")
-                    : t("inventoryOf", { character: name })
-                }
-              >
-                <CharacterMark character={character} />
-              </DropZone>
-            </div>
-          );
-        })}
+                <DropZone
+                  variant="equip"
+                  target={equip}
+                  plan={planOf(equip)}
+                  label={
+                    current ? tCommon("equip") : t("equipOn", { character: name })
+                  }
+                >
+                  <CharacterMark character={character} />
+                </DropZone>
+                <DropZone
+                  variant="inventory"
+                  target={inventory}
+                  plan={planOf(inventory)}
+                  label={
+                    current
+                      ? t("inventoryHere")
+                      : t("inventoryOf", { character: name })
+                  }
+                >
+                  <CharacterMark character={character} />
+                </DropZone>
+              </div>
+            );
+          })}
       </div>
 
       <div className={layer("vault")}>

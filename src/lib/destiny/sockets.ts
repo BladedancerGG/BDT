@@ -2,6 +2,7 @@
 
 import type {InventoryItemDefinition} from "./types";
 import {SOCKET_CATEGORY, TIER} from "./display";
+import {isSubclass} from "./subclass";
 
 /**
  * Catégories de sockets des artéfacts. Elles n'ont **aucun nom** dans le
@@ -158,6 +159,38 @@ export const PLUG_SOURCE = {
 } as const;
 
 /**
+ * Ce socket lit-il les plugs **débloqués du compte** (`profilePlugSets` /
+ * `characterPlugSets`) ?
+ *
+ * Les drapeaux le disent — sauf pour les doctrines, où la donnée elle-même est
+ * fausse : Bungie déclare leurs plug sets de portée compte à tort et les renvoie
+ * du point de vue d'**un seul personnage**, toujours le même et pas forcément
+ * celui qu'on regarde (Bungie-net/api#1572). `canInsert` comme `enabled` y
+ * décrivent alors quelqu'un d'autre, et des aspects pourtant débloqués
+ * disparaissent du sélecteur — le symptôme changeant d'un personnage à l'autre,
+ * ce qui donnait l'illusion que la stase et le prismatique fonctionnaient.
+ *
+ * Aucune lecture ne rattrape cela. Les doctrines prennent donc le pool du
+ * manifeste tel quel, comme DIM, qui a tranché de la même façon et pour la même
+ * raison (`SubclassPlugDrawer` : « there's no kind of unlock check here »). Le
+ * prix est connu et assumé : un aspect non débloqué peut être proposé, et
+ * Bungie refusera l'insertion en le disant.
+ *
+ * Ce que l'instance porte elle-même (`reusablePlugs`, composant 310) n'est pas
+ * concerné : c'est la donnée de CET objet, sur CE personnage, et le bug ne la
+ * touche pas.
+ */
+export function usesAccountPlugs(
+    def: InventoryItemDefinition | undefined,
+    plugSources: number,
+): boolean {
+    if (isSubclass(def)) return false;
+    return Boolean(
+        plugSources & (PLUG_SOURCE.ProfilePlugSet | PLUG_SOURCE.CharacterPlugSet),
+    );
+}
+
+/**
  * Un plug a-t-il réellement été inséré dans ce socket ?
  *
  * Faux quand le plug équipé est encore le plug initial du socket : c'est le
@@ -304,3 +337,102 @@ export function isEnhancedPlug(
 /** Familles de plugs purement cosmétiques — voir isEnhancedPlug. */
 const COSMETIC_PLUG_CATEGORY =
     /^(?:armor_skins|v\d+_plugs_armor_skins|shader|emote|events\.)/;
+
+/**
+ * Types d'énergie de `plug.energyCost.energyType` (DestinyEnergyType).
+ *
+ * Seuls ces trois-là existent aujourd'hui sur le manifeste, tous les autres
+ * mods n'ayant aucun `energyCost` : `Any` (l'énergie d'armure — les éléments
+ * d'antan ont disparu), `Ghost` et `Subclass`.
+ */
+const ENERGY_TYPE = {
+    Any: 0,
+    Ghost: 4,
+    Subclass: 5,
+} as const;
+
+/**
+ * Coût à afficher sur l'icône d'un mod, ou `undefined` s'il n'y a rien à
+ * montrer.
+ *
+ * Ce que le manifeste impose, et qui ne se devine pas :
+ *
+ *  - **les fragments de doctrine portent eux aussi un `energyCost`** (valant 1),
+ *    et sous la même forme que les mods d'armure. Un test sur la seule présence
+ *    du champ collerait donc un « 1 » sur les 99 fragments du jeu, alors que
+ *    leur coût est déjà dit par le compteur d'emplacements de l'infobulle. Seul
+ *    `energyType` les sépare (5, contre 0 pour l'armure).
+ *  - **`plugCategoryIdentifier` ne suffit pas** : armure et spectre partagent la
+ *    famille `enhancements` (`enhancements.v2_head`, `enhancements.ghosts_*`).
+ *  - un coût de **zéro est réel** — 25 mods d'armure en ont un, dont les
+ *    générateurs de munitions — et n'a rien à afficher : le jeu ne montre rien
+ *    sur un mod gratuit.
+ */
+export function displayedEnergyCost(
+    def: InventoryItemDefinition | undefined,
+): number | undefined {
+    const energy = def?.plug?.energyCost;
+    if (!energy || energy.energyCost <= 0) return undefined;
+    const type = energy.energyType ?? ENERGY_TYPE.Any;
+    if (type !== ENERGY_TYPE.Any && type !== ENERGY_TYPE.Ghost) return undefined;
+    return energy.energyCost;
+}
+
+/** Voir `isExoticCatalystPlug` : le trait ne couvre plus les catalyseurs récents. */
+const EXOTIC_CATALYST_TRAIT = "item.exotic_catalyst";
+
+/**
+ * Ce plug est-il un catalyseur d'exotique ?
+ *
+ * Aucun champ ne le dit à lui seul, et chacun des candidats évidents laisse
+ * passer une famille entière. Relevé sur le manifeste, où 423 plugs portent une
+ * étiquette de pièce maîtresse :
+ *
+ *  - `plugCategoryIdentifier` mêle catalyseurs et pièces maîtresses ordinaires
+ *    dans les mêmes familles `v###.….masterwork` — voir `isMasterworkPlug` ;
+ *  - `uiPlugLabel: "masterwork"` seul ramasse les 180 pièces maîtresses
+ *    légendaires (armes, armures, coques de Spectre), toutes de rareté
+ *    légendaire ;
+ *  - la **rareté exotique** seule laisse de côté les « refontes » de Révision
+ *    Zéro et d'Osteo Striga, de rareté commune (31 plugs) ;
+ *  - le **trait** `item.exotic_catalyst` seul laisse de côté les catalyseurs
+ *    récents : Bungie a cessé de le renseigner vers la v800, et 16 plugs en sont
+ *    dépourvus (Brise-Glace, Aléthonyme, Turncoat, Fafnir, les lames et fusils
+ *    à choix multiple…). C'est ce qui les privait de leur cadre doré et du
+ *    détail de leurs perks.
+ *
+ * D'où l'étiquette **plus** l'une des deux marques d'exotique. Tombent d'
+ * eux-mêmes l'emplacement de catalyseur vide (étiquette à blanc) et le plug
+ * « à compléter » d'un catalyseur de l'an 1, étiqueté
+ * `masterwork_interactable`.
+ */
+export function isExoticCatalystPlug(
+    def: InventoryItemDefinition | undefined,
+): boolean {
+    if (def?.plug?.uiPlugLabel !== "masterwork") return false;
+    return (
+        def.inventory?.tierType === TIER.Exotic ||
+        Boolean(def.traitIds?.includes(EXOTIC_CATALYST_TRAIT))
+    );
+}
+
+/**
+ * Ce plug est-il un catalyseur **terminé** ?
+ *
+ * La présence du catalyseur dans le socket ne suffit pas, et c'est toute la
+ * difficulté : les catalyseurs de l'**an 1** s'insèrent d'abord et se complètent
+ * ensuite, l'objectif vivant dans un second plug (« Améliorer la pièce
+ * maîtresse »). Ceux de l'an 2 et des suivants font l'inverse — l'insertion est
+ * refusée tant que l'objectif de déblocage n'est pas rempli.
+ *
+ * C'est donc l'état de l'**arme** qui tranche, et lui seul : l'API la marque
+ * pièce maîtresse dès qu'un catalyseur terminé et débloqué occupe
+ * l'emplacement. Un seul test couvre ainsi les deux générations, sans lire les
+ * objectifs.
+ */
+export function isCompletedCatalystPlug(
+    def: InventoryItemDefinition | undefined,
+    masterwork: boolean,
+): boolean {
+    return masterwork && isExoticCatalystPlug(def);
+}

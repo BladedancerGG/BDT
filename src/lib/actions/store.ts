@@ -58,6 +58,10 @@ export type ActionStep = MoveActionStep | InsertActionStep | LoadoutActionStep;
  */
 export interface QueuedItem {
   itemHash: number;
+  /**
+   * L'objet : son `itemInstanceId`, ou l'identifiant de synthèse de sa pile
+   * pour un objet non instancié — voir `stackId` dans `lib/destiny/moves.ts`.
+   */
   itemInstanceId: string;
   /** Masque ItemState (pièce maîtresse, façonné, amélioré…) */
   state?: number;
@@ -94,6 +98,12 @@ export interface QueuedMoveAction extends QueuedActionBase {
   kind: "move";
   target: MoveTarget;
   steps: MoveActionStep[];
+  /**
+   * Quantité demandée, pour une pile. Elle est conservée sur l'action et non
+   * seulement sur ses étapes : le plan est **rejoué juste avant l'envoi**, et
+   * sans elle la pile serait alors reprise entière.
+   */
+  stackSize?: number;
   /** Refus détecté à la planification, avant tout envoi */
   failure?: MoveFailure;
 }
@@ -168,6 +178,8 @@ interface ActionQueueState {
     action: QueuedItem & {
       target: MoveTarget;
       steps: PlannedStep[];
+      /** Quantité demandée, pour une pile — voir `QueuedMoveAction` */
+      stackSize?: number;
       failure?: MoveFailure;
       batchId?: string;
     },
@@ -265,6 +277,7 @@ export const useActionQueue = create<ActionQueueState>()((set) => ({
     gearTier,
     target,
     steps,
+    stackSize,
     failure,
     batchId,
   }) => {
@@ -281,6 +294,7 @@ export const useActionQueue = create<ActionQueueState>()((set) => ({
           versionNumber,
           gearTier,
           target,
+          stackSize,
           steps: toSteps(steps),
           // Un refus connu dès la planification n'a pas à occuper la file
           status: failure ? "error" : "pending",

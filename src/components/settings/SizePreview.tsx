@@ -3,15 +3,22 @@
 import {useState} from "react";
 import {useTranslations} from "next-intl";
 import {useQueryClient} from "@tanstack/react-query";
-import {ItemDefsProvider, type ItemRef} from "@/lib/destiny/item-defs";
+import {
+    ItemDefsProvider,
+    useItemDefs,
+    type ItemRef,
+} from "@/lib/destiny/item-defs";
+import {useEquippedPlugs} from "@/lib/destiny/use-equipped-plugs";
 import {useDisplayableItems} from "@/lib/destiny/use-displayable-items";
 import {useLoadoutIdentifiers} from "@/lib/loadouts/use-loadout-identifiers";
 import {isEmptyLoadout} from "@/lib/loadouts/loadout";
 import {useSettings} from "@/lib/settings/store";
 import {ItemThumb} from "@/components/ItemThumb";
+import {PlugIcon} from "@/components/tooltip/PlugIcon";
 import {LoadoutSlotTile} from "@/components/loadouts/LoadoutSlotTile";
 import type {ProfileData} from "@/lib/bungie/use-profile";
-import type {DestinyLoadout} from "@/lib/bungie/profile";
+import type {DestinyItemComponent, DestinyLoadout} from "@/lib/bungie/profile";
+import type {EquippedSetCounts} from "@/lib/destiny/set-bonus";
 
 /**
  * Aperçu des trois tailles réglables, sur de vrais objets du compte.
@@ -37,6 +44,13 @@ const POOL_SIZE = 24;
 
 /** Vignettes montrées par taille. Trois suffisent à voir la mesure changer. */
 const SHOWN = 1;
+
+/**
+ * Aucun bonus d'ensemble dans l'aperçu : on n'y montre pas la panoplie, juste
+ * deux icônes. Référence stable — une Map neuve à chaque rendu relancerait la
+ * lecture Dexie sans fin.
+ */
+const NO_SET_COUNTS: EquippedSetCounts = new Map();
 
 /**
  * Tire quelques objets du profil, sans remise.
@@ -87,6 +101,20 @@ function sampleLoadout(
     return filled[Math.floor(Math.random() * filled.length)];
 }
 
+/**
+ * L'équipement porté d'un personnage, d'où l'aperçu tire ses plugs.
+ *
+ * Tout l'équipement et non un objet : les attributs ronds viennent des armes,
+ * les mods carrés des armures, et il faut donc les deux côtés pour espérer un
+ * exemplaire de chaque forme.
+ */
+function sampleEquipped(profile: ProfileData | undefined): DestinyItemComponent[] {
+    const sets = Object.values(profile?.equipment ?? {}).filter(
+        (list) => list.length > 0,
+    );
+    return sets[0] ?? [];
+}
+
 export function SizePreview() {
     const t = useTranslations("settings.appearance");
     const queryClient = useQueryClient();
@@ -99,6 +127,7 @@ export function SizePreview() {
     // taille ferait clignoter la ligne, alors qu'on y regarde une dimension.
     const [pool] = useState(() => samplePool(profile));
     const [loadout] = useState(() => sampleLoadout(profile));
+    const [equipped] = useState(() => sampleEquipped(profile));
 
     if (pool.length === 0) {
         return <p className="size-preview__empty">{t("previewEmpty")}</p>;
@@ -106,7 +135,10 @@ export function SizePreview() {
 
     return (
         <ItemDefsProvider
-            items={pool}
+            // L'équipement porté rejoint le lot : `useEquippedPlugs` lit les
+            // définitions d'objets ici, et sans elles il ne rendrait aucune
+            // icône de plug.
+            items={[...pool, ...equipped]}
             details={profile?.items ?? {}}
             withOrnaments={showOrnaments}
             withOriginalOnHover={showOriginalOnHover}
@@ -114,10 +146,13 @@ export function SizePreview() {
             <PreviewRow
                 pool={pool}
                 loadout={loadout}
+                equipped={equipped}
+                details={profile?.items ?? {}}
                 labels={{
                     icons: t("iconSize"),
                     vault: t("vaultIconSize"),
                     loadouts: t("loadoutIconSize"),
+                    plugs: t("plugSize"),
                 }}
             />
         </ItemDefsProvider>
@@ -131,11 +166,15 @@ export function SizePreview() {
 function PreviewRow({
                         pool,
                         loadout,
+                        equipped,
+                        details,
                         labels,
                     }: {
     pool: PreviewRef[];
     loadout: DestinyLoadout | undefined;
-    labels: {icons: string; vault: string; loadouts: string};
+    equipped: DestinyItemComponent[];
+    details: ProfileData["items"];
+    labels: {icons: string; vault: string; loadouts: string; plugs: string};
 }) {
     // Le tirage ramène aussi ce que les grilles n'affichent pas (matériaux,
     // consommables, modules) : l'aperçu montre exactement ce qu'elles montrent.
@@ -151,6 +190,15 @@ function PreviewRow({
     // même mesure apparente — le vide n'a que ses marques d'angle — et c'est
     // justement ce qu'on vient juger.
     const identifiers = useLoadoutIdentifiers(loadout ? [loadout] : []);
+    // Les deux formes de plug, prises sur l'équipement porté plutôt que sur des
+    // hashes écrits en dur : c'est la définition du plug qui décide de sa forme
+    // (`PlugChip.square`), et un hash deviné se serait tu le jour où il change.
+    const {defs} = useItemDefs();
+    const chips = [
+        ...useEquippedPlugs(equipped, details, defs, NO_SET_COUNTS).values(),
+    ].flat(2);
+    const circle = chips.find((chip) => !chip.square);
+    const square = chips.find((chip) => chip.square);
 
     return (
         <div className="size-preview">
@@ -193,6 +241,25 @@ function PreviewRow({
                     </span>
                 </div>
             </div>
+
+            {/* Attributs et mods : une icône ronde et une carrée, les deux
+                formes que le réglage commande. */}
+            {(circle || square) && (
+                <div className="size-preview__group">
+                    <span className="size-preview__caption">{labels.plugs}</span>
+                    <div className="size-preview__items size-preview__items--plugs">
+                        {circle && (
+                            <PlugIcon
+                                hash={circle.hash}
+                                table={circle.table}
+                                markEnhanced={circle.markEnhanced}
+                                state={"equipped"}
+                            />
+                        )}
+                        {square && <PlugIcon hash={square.hash} square/>}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

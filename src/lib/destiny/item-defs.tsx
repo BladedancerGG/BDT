@@ -23,7 +23,7 @@ import { loadSortTraits, type ItemSortTraits } from "./sort-traits";
  */
 interface ItemDefsValue {
   defs: Map<number, InventoryItemDefinition>;
-  /** Icônes détourées (PNG) par hash d'objet — absentes pour ~18 % des objets */
+  /** Icônes détourées (PNG) par hash d'objet — 94 % du manifeste en a une */
   iconDefs: Map<number, IconDefinition>;
   constants?: ItemConstantsDefinition;
   /** Icône de l'ornement équipé, par itemInstanceId (si l'option est active) */
@@ -61,6 +61,46 @@ export interface ItemRef {
   itemInstanceId?: string;
 }
 
+/**
+ * Icônes détourées d'un lot de définitions, **indexées par hash d'objet**.
+ *
+ * Deux lectures et non une : `DestinyIconDefinition` a ses propres hashes, et
+ * c'est `displayProperties.iconHash` qui y renvoie. Chercher au hash de l'objet
+ * — ce que faisait cette lecture — trouvait la bonne ligne par coïncidence dans
+ * 62 % des cas et rien du tout dans les autres, qui retombaient silencieusement
+ * sur le JPEG à fond de rareté incrusté. Voir `lib/destiny/icons.ts`.
+ *
+ * L'indexation de sortie reste le hash de l'objet : c'est ce que les appelants
+ * connaissent (`useSharedIconDefinition`).
+ */
+async function loadIconDefs(
+  defs: ReadonlyMap<number, InventoryItemDefinition>,
+): Promise<Map<number, IconDefinition>> {
+  const iconHashes = new Map<number, number>(); // hash d'objet → hash d'icône
+  for (const [hash, def] of defs) {
+    const iconHash = def.displayProperties?.iconHash;
+    if (iconHash) iconHashes.set(hash, iconHash);
+  }
+
+  const list = [...new Set(iconHashes.values())];
+  if (list.length === 0) return new Map();
+
+  const rows = await manifestDb.definitions.bulkGet(
+    list.map((hash) => ["DestinyIconDefinition", hash] as [string, number]),
+  );
+  const byIconHash = new Map<number, IconDefinition>();
+  rows.forEach((row, i) => {
+    if (row) byIconHash.set(list[i], row.data as IconDefinition);
+  });
+
+  const out = new Map<number, IconDefinition>();
+  for (const [hash, iconHash] of iconHashes) {
+    const iconDef = byIconHash.get(iconHash);
+    if (iconDef) out.set(hash, iconDef);
+  }
+  return out;
+}
+
 export function ItemDefsProvider({
   items,
   details,
@@ -80,18 +120,15 @@ export function ItemDefsProvider({
 }) {
   const value = useLiveQuery(
     async () => {
-      // 1. Définitions des objets + leurs icônes détourées
+      // 1. Définitions des objets, puis leurs icônes détourées — dans cet
+      //    ordre : c'est la définition qui porte le renvoi vers la table des
+      //    icônes (voir `loadIconDefs`).
       const hashes = [...new Set(items.map((item) => item.itemHash))];
-      const [rows, iconRows, constantsRow] = await Promise.all([
+      const [rows, constantsRow] = await Promise.all([
         manifestDb.definitions.bulkGet(
           hashes.map(
             (hash) =>
               ["DestinyInventoryItemDefinition", hash] as [string, number],
-          ),
-        ),
-        manifestDb.definitions.bulkGet(
-          hashes.map(
-            (hash) => ["DestinyIconDefinition", hash] as [string, number],
           ),
         ),
         manifestDb.definitions.get([
@@ -105,10 +142,7 @@ export function ItemDefsProvider({
         if (row) defs.set(hashes[i], row.data as InventoryItemDefinition);
       });
 
-      const iconDefs = new Map<number, IconDefinition>();
-      iconRows.forEach((row, i) => {
-        if (row) iconDefs.set(hashes[i], row.data as IconDefinition);
-      });
+      const iconDefs = await loadIconDefs(defs);
 
       const constants = constantsRow?.data as
         | ItemConstantsDefinition
@@ -161,31 +195,24 @@ export function ItemDefsProvider({
         }
       }
 
-      // 3. Une seconde lecture groupée : définitions ET icônes de ces plugs
+      // 3. Une seconde lecture groupée : définitions de ces plugs, puis leurs
+      //    icônes détourées. Les ornements en profitent autant que les objets :
+      //    4 828 d'entre eux ont un PNG détouré, dont 2 385 introuvables au
+      //    hash du plug.
       const plugList = [...plugHashes];
-      const [plugRows, plugIconRows] = await Promise.all([
-        manifestDb.definitions.bulkGet(
-          plugList.map(
-            (hash) =>
-              ["DestinyInventoryItemDefinition", hash] as [string, number],
-          ),
+      const plugRows = await manifestDb.definitions.bulkGet(
+        plugList.map(
+          (hash) =>
+            ["DestinyInventoryItemDefinition", hash] as [string, number],
         ),
-        manifestDb.definitions.bulkGet(
-          plugList.map(
-            (hash) => ["DestinyIconDefinition", hash] as [string, number],
-          ),
-        ),
-      ]);
+      );
       const plugDefs = new Map<number, InventoryItemDefinition>();
-      const plugIcons = new Map<number, IconDefinition>();
       plugList.forEach((hash, i) => {
         if (plugRows[i]) {
           plugDefs.set(hash, plugRows[i]!.data as InventoryItemDefinition);
         }
-        if (plugIconRows[i]) {
-          plugIcons.set(hash, plugIconRows[i]!.data as IconDefinition);
-        }
       });
+      const plugIcons = await loadIconDefs(plugDefs);
 
       const ornamentIcons = new Map<string, string>();
       for (const [instanceId, plugList2] of candidates) {

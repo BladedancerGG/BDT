@@ -13,7 +13,9 @@ import {
     isHiddenSocketPlug,
     isTrackerPlug,
     PLUG_SOURCE,
+    usesAccountPlugs,
 } from "@/lib/destiny/sockets";
+import {isOrnamentFamily} from "@/lib/destiny/ornaments";
 import type {PlugAvailability} from "@/lib/destiny/use-plug-availability";
 
 /** Une colonne de perks : le plug équipé + toutes les options possibles. */
@@ -254,17 +256,36 @@ async function buildColumns(
         if (sources === 0 || sources & PLUG_SOURCE.Reusable) {
             options.push(...(detail?.reusablePlugs?.[String(socketIndex)] ?? []));
         }
-        if (setHash && available) {
+        // Les deux niveaux sont réunis, sans regarder lequel des deux drapeaux
+        // est levé : un plug set a un contenu qui lui est propre, et le même
+        // hash peut être servi par l'un ou l'autre. DIM ne fait pas la
+        // distinction non plus (`gatherUnlockedPlugSetItems`). Les doctrines,
+        // elles, ne lisent rien de tout cela — voir `usesAccountPlugs`, et le
+        // pool du manifeste juste en dessous.
+        if (setHash && available && usesAccountPlugs(def, sources)) {
             const key = String(setHash);
-            if (sources & PLUG_SOURCE.ProfilePlugSet) {
-                options.push(...(available.profile[key] ?? []));
-            }
-            if (sources & PLUG_SOURCE.CharacterPlugSet) {
-                options.push(...(available.character[key] ?? []));
+            // Les plugs possédés mais pas insérables à l'instant (`held`) sont
+            // proposés partout, SAUF sur un socket d'ornement.
+            //
+            // C'est ce qui rend les aspects de doctrine complets : celui qui est
+            // déjà équipé sur l'autre emplacement reste débloqué (`enabled`)
+            // mais n'est plus `canInsert`, et manquait donc à la liste. Les
+            // ornements universels d'armure font exception, et c'est la seule :
+            // `enabled` y vaut vrai pour tout le pool, possédé ou non — on y
+            // retombe donc sur `canInsert`, comme DIM (`filterUnlockedPlugs` et
+            // sa liste `universalOrnamentPlugSetHashes`). Le socket se reconnaît
+            // à la famille de son plug d'origine, sans liste de hashes à tenir.
+            const ornament = isOrnamentFamily(initials.get(entry.singleInitialItemHash));
+            for (const snapshot of [available.profile, available.character]) {
+                const set = snapshot[key];
+                if (!set) continue;
+                options.push(...set.ready);
+                if (!ornament) options.push(...(set.held ?? []));
             }
         }
 
-        // 2. Repli : pool théorique du manifeste
+        // 2. Le pool du manifeste — repli général, mais **seule** source pour
+        //    une doctrine (voir `fromManifest`).
         if (options.length === 0) {
             const plugSet = setHash ? plugSets.get(setHash) : undefined;
             if (plugSet) {

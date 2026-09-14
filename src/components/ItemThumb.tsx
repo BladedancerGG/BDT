@@ -14,6 +14,7 @@ import {
   ornamentBackgroundPath,
 } from "@/lib/destiny/overlays";
 import { bestIconPath, tierClassName } from "@/lib/destiny/icons";
+import { displayedEnergyCost } from "@/lib/destiny/sockets";
 import { isSubclass } from "@/lib/destiny/subclass";
 import { AmmoIcon, BorderIcon, hasAmmoIcon } from "@/components/icons";
 import { BUNGIE_ROOT, ITEM_TYPE } from "@/lib/destiny/display";
@@ -34,6 +35,14 @@ export interface ItemThumbProps {
    * glyphe n'apprendrait rien (un emplacement n'accueille qu'un type).
    */
   equipped?: boolean;
+  /**
+   * Taille de la pile, affichée à partir de deux.
+   *
+   * Seuls les consommables et les mods en portent une : armes et armures sont
+   * des instances uniques, dont la quantité vaut toujours 1. Sans elle, une
+   * pile de vingt éclats ressemble à un éclat.
+   */
+  quantity?: number;
 }
 
 /**
@@ -50,6 +59,7 @@ export function ItemThumb({
   versionNumber,
   gearTier,
   equipped,
+  quantity,
   className,
 }: ItemThumbProps & { className?: string }) {
   // Servies par ItemDefsProvider : une seule requête groupée pour tout
@@ -115,6 +125,11 @@ export function ItemThumb({
       : undefined;
   const ammo = hasAmmoIcon(ammoType);
   const marker = overlays.some((overlay) => overlay.kind === "marker");
+
+  // Coût en énergie d'armure ou de coque de spectre : coin haut droit, comme en
+  // jeu. Il ne concerne que les piles de mods du rangement « Modifications » —
+  // partout ailleurs, la définition n'a pas de `plug` et rien ne s'affiche.
+  const energyCost = displayedEnergyCost(def);
 
   // Une pièce maîtresse reçoit son cadre doré depuis le manifeste (dernier
   // calque de `overlays`) ; les autres objets prennent le cadre blanc local.
@@ -198,6 +213,12 @@ export function ItemThumb({
         // Icône locale, contrairement à tous les calques ci-dessus : le
         // manifeste n'en porte aucune pour les types de munitions.
         <AmmoIcon ammoType={ammoType} className="item-thumb__ammo" />
+      )}
+      {energyCost !== undefined && (
+        <span className="item-thumb__energy">{energyCost}</span>
+      )}
+      {quantity !== undefined && quantity > 1 && (
+        <span className="item-thumb__quantity">{quantity}</span>
       )}
       {regularBorder && (
         // Cadre des objets ordinaires, pendant du cadre doré des pièces

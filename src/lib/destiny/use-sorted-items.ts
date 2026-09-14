@@ -3,6 +3,7 @@
 import {useMemo} from "react";
 import type {DestinyItemComponent} from "@/lib/bungie/profile";
 import type {ItemDetail} from "@/lib/bungie/item-components";
+import type {ItemCategory} from "@/lib/settings/constants";
 import {useSettings} from "@/lib/settings/store";
 import {useItemDefs} from "./item-defs";
 import {useDisplayableItems} from "./use-displayable-items";
@@ -17,8 +18,9 @@ import {sortItems} from "./sort";
 export function useSortedItems<T extends DestinyItemComponent>(
     items: T[],
     details: Record<string, ItemDetail>,
+    category?: ItemCategory,
 ): T[] {
-    const displayed = useDisplayableItems(items);
+    const displayed = useDisplayableItems(items, category);
     const {defs, traits} = useItemDefs();
     const sortRules = useSettings((s) => s.sortRules);
 

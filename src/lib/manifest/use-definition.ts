@@ -8,6 +8,12 @@ export interface DisplayProperties {
     name: string;
     description: string;
     icon?: string;
+    /**
+     * Renvoi vers `DestinyIconDefinition`, qui a ses **propres** hashes : c'est
+     * la seule façon d'y retrouver l'icône détourée d'un objet. Voir
+     * `lib/destiny/icons.ts`.
+     */
+    iconHash?: number;
     hasIcon: boolean;
 }
 

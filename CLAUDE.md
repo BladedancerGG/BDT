@@ -20,8 +20,16 @@ Les deux premiers sont bilingues : **anglais d'abord, puis français**. Conserve
 
 ## Tout tourne dans Docker
 
-C'est la contrainte à connaître avant toute autre : `node_modules` vit dans un **volume anonyme**
-du conteneur, pas sur l'hôte. `npm`, `npx` et `tsc` lancés depuis l'hôte échouent.
+C'est la contrainte à connaître avant toute autre : `npm`, `npx` et `tsc` lancés depuis l'hôte
+échouent. `node_modules` est bien dans le dossier du projet — pour que l'IDE y résolve types,
+imports et règles ESLint — mais ses binaires natifs (`@next/swc`, `lightningcss`, `sass`, moteurs
+Prisma) sont compilés pour la **musl** du conteneur, pas pour la glibc de l'hôte. Seul le
+JavaScript pur y tourne des deux côtés.
+
+L'entrypoint (`scripts/docker/dev-entrypoint.sh`) l'installe au démarrage s'il manque ou si
+`package-lock.json` a bougé — l'image ne le livre plus, le bind mount le masquerait. Le conteneur
+tourne sous l'UID de l'hôte (`DOCKER_UID`/`DOCKER_GID`, 1000 par défaut) pour que ce qu'il écrit
+dans le projet appartienne à l'utilisateur ; seul `.next` reste dans un volume anonyme.
 
 ```bash
 docker compose exec app npx tsc --noEmit     # vérification de types
@@ -51,10 +59,12 @@ scripts/checks/run.sh    # compile et exécute les vérifications, dans le conte
 ```
 
 Elles couvrent aujourd'hui `lib/loadouts/groups/edit.ts`, `lib/loadouts/groups/equip.ts`,
-`lib/loadouts/groups/sync-merge.ts`, `lib/destiny/insert-plan.ts` et `lib/settings/backup.ts`,
-et contrôlent au passage les règles CSS qui se recouvrent. **Les lancer après toute modification de ces modules**, et y
-ajouter un cas quand un piège Destiny est écarté : c'est là que la logique se casse en
-silence. Voir `scripts/checks/README.md` pour en écrire une.
+`lib/loadouts/groups/sync-merge.ts`, `lib/destiny/insert-plan.ts`, `lib/settings/backup.ts`,
+`lib/destiny/subclass.ts`, `lib/destiny/gear.ts` et `lib/destiny/moves.ts` (les piles),
+et contrôlent au passage les règles CSS qui se recouvrent.
+**Les lancer après toute modification de ces modules**, et y ajouter un cas quand un piège
+Destiny est écarté : c'est là que la logique se casse en silence. Voir
+`scripts/checks/README.md` pour en écrire une.
 
 Pour un module pur qui n'en a pas encore, la voie praticable reste de le compiler puis de
 l'exécuter dans le conteneur :
@@ -131,12 +141,23 @@ ne pas être rognées par le conteneur de défilement.
   d'armure exotique partagent la famille `intrinsics` des armatures d'armes ; un identifiant non
   renseigné vaut la sentinelle `2166136261` (base FNV-1a) et non zéro, si bien qu'un test de
   vérité le prend pour un vrai hash.
+- **Les plug sets d'une doctrine sont faux, et aucune lecture ne les rattrape.** Bungie les
+  déclare de portée compte à tort et les renvoie du point de vue d'un seul personnage —
+  toujours le même, pas forcément celui qu'on regarde (Bungie-net/api#1572). `canInsert`
+  comme `enabled` y décrivent alors quelqu'un d'autre, et des aspects pourtant débloqués
+  disparaissent du sélecteur, avec un symptôme qui change d'un personnage à l'autre. Les
+  doctrines prennent donc le pool du manifeste tel quel (`usesAccountPlugs`), comme DIM.
 - **Après une migration Prisma, redémarrer le conteneur `app`.** Le client est un
   singleton posé sur `globalThis` (`lib/db/prisma.ts`) : le rechargement à chaud
   garde l'instance construite avec l'*ancien* modèle, et toute requête touchant
   un champ neuf lève une `PrismaClientValidationError`. Là où l'appel est
   enveloppé d'un `try`, le symptôme est muet — un réglage lu en base paraît
   simplement absent.
+- **Un emplacement absent de `TRACKED` (`use-bucket-capacities.ts`) invente des refus.**
+  Le planificateur retombe alors sur la capacité par défaut — dix, celle d'une arme — et
+  refuse tout transfert vers un rangement qui en contient cinquante, avec « l'emplacement de
+  destination est plein » alors qu'il ne l'est pas. Toute nouvelle famille d'emplacements
+  affichée doit y entrer.
 - **`docker compose down -v` détruit le volume de la base.** En production il emporte aussi les
   certificats et le compte ACME de Caddy, soumis à des quotas Let's Encrypt. `make clean` fait
   exactement ça — ne pas le lancer sur un serveur.

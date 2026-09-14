@@ -55,6 +55,30 @@ export const SOCKET_CATEGORY = {
   ARMOR_PERKS: 3154740035,
   ARMOR_MODS: 590099826,
   ARMOR_COSMETICS: 1926152773,
+
+  // —— Objets de personnalisation ————————————————————————————
+  //
+  // Coques de Spectre, vaisseaux et passereaux portent eux aussi des plugs :
+  // revêtement, projection, mods, klaxon, effets d'apparition, palier. Chaque
+  // famille a ses propres catégories, relevées sur le manifeste (les deux
+  // véhicules n'ont même pas le même hash pour « MODS DE VÉHICULES »).
+
+  /** Revêtement et projection d'une coque de Spectre */
+  GHOST_COSMETICS: 2549160099,
+  /** Expérience, guidage, économie, activité */
+  GHOST_MODS: 3886482628,
+  /** Amélioration de Spectre (pièce maîtresse) */
+  GHOST_TIER: 446880883,
+  /** Attributs intrinsèques, sur deux coques seulement */
+  GHOST_PERKS: 3301318876,
+  /** Revêtement et effets d'apparition d'un vaisseau */
+  SHIP_MODS: 4265082475,
+  /** Revêtement et klaxon d'un passereau */
+  SPARROW_MODS: 4243480345,
+  /** Vitesse et attribut d'un passereau, intrinsèques à l'objet */
+  VEHICLE_PERKS: 2278110604,
+  /** Les quatre emplacements de la collection d'interactions */
+  EMOTES: 1093090108,
 } as const;
 
 // Type d'objet (DestinyItemType enum)

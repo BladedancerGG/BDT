@@ -16,8 +16,10 @@ export const MANIFEST_TABLES = [
     "DestinySocketCategoryDefinition", // regroupement des sockets (perks, mods…)
     "DestinyPlugSetDefinition", // pools de perks possibles (rolls aléatoires)
     "DestinyInventoryItemConstantsDefinition", // overlays : palier, façonné, amélioré
-    // Icônes détourées (PNG transparent) + fonds, indexées par hash d'objet.
-    // ~8,5 Mo, mais c'est la seule source des icônes sans fond de rareté incrusté.
+    // Icônes détourées (PNG transparent) + fonds. Indexées par leurs PROPRES
+    // hashes, où `displayProperties.iconHash` renvoie — surtout pas par le hash
+    // de l'objet (voir lib/destiny/icons.ts). ~8,5 Mo, mais c'est la seule
+    // source des icônes sans fond de rareté incrusté.
     "DestinyIconDefinition",
     "DestinyEquipableItemSetDefinition", // bonus d'ensemble des armures (2 / 4 pièces)
     // Libellés et icônes des objectifs de plugs : compte-frags (« Ennemis

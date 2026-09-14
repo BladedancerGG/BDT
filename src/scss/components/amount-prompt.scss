@@ -1,0 +1,55 @@
+// Sélecteur de quantité, à la remise d'une pile.
+//
+// Il vit dans la modale commune : seule sa mise en page lui appartient.
+
+.amount-prompt {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: min(22rem, 80vw);
+
+  &__item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+
+    // La vignette n'a pas de taille propre : c'est .item qui la porte, comme
+    // dans les grilles.
+    .item {
+      width: var(--item-size);
+      height: var(--item-size);
+      flex-shrink: 0;
+    }
+  }
+
+  &__name {
+    font-weight: 600;
+  }
+
+  &__controls {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  &__slider {
+    flex: 1;
+    min-width: 0;
+    accent-color: var(--color-accent);
+  }
+
+  &__value {
+    width: 5rem;
+    padding: 0.25rem 0.5rem;
+    color: var(--color-text);
+    background-color: var(--color-panel-alt);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+  }
+
+  &__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+  }
+}

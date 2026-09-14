@@ -1,6 +1,8 @@
 {
   "common": {
     "inventory": "Inventaire",
+    "equipment": "Équipement",
+    "customization": "Personnalisation",
     "loadouts": "Équipements",
     "settings": "Paramètres",
     "open": "Ouvrir",
@@ -9,6 +11,7 @@
     "delete": "Supprimer",
     "groups": "Groupes",
     "edit": "Modifier",
+    "duplicate": "Dupliquer",
     "cancel": "Annuler",
     "confirm": "Confirmer",
     "join": "Rejoindre"
@@ -19,7 +22,6 @@
   "header": {
     "refresh": "Rafraîchir",
     "refreshForce": "Forcer depuis l’API",
-    "shiftKey": "Maj",
     "holdHint": "ou appui long (1 s)"
   },
   "menu": {
@@ -95,6 +97,8 @@
         "dark": "Sombre",
         "system": "Système"
       },
+      "effects": "Effets de transparence",
+      "effectsHint": "Fonds translucides et flou des infobulles et du sélecteur d’attributs",
       "language": "Langue",
       "languageHint": "Changer la langue d’affichage rechargera complètement l’application",
       "ornaments": "Afficher les ornements",
@@ -107,8 +111,10 @@
       "vaultIconSizeHint": "Coffre et objets perdus",
       "loadoutIconSize": "Taille des emplacements d’équipement",
       "loadoutIconSizeHint": "Vignettes des vues « équipements » et « groupes »",
+      "plugSize": "Taille des attributs et mods",
+      "plugSizeHint": "Icônes de plugs : attributs, mods, aspects et fragments",
       "preview": "Aperçu",
-      "previewHint": "Objets tirés au hasard dans l’inventaire, à chacune des trois tailles",
+      "previewHint": "Objets tirés au hasard dans l’inventaire, à chacune des tailles réglables",
       "previewEmpty": "L’aperçu attend le chargement de l’inventaire"
     },
     "inventory": {
@@ -164,7 +170,7 @@
     "expand": "Voir le détail",
     "collapse": "Masquer le détail",
     "empty": "Aucune action à afficher.",
-    "clear": "Effacer les actions terminées",
+    "clear": "Effacer les actions terminées et en échec",
     "filterLabel": "Filtrer les actions",
     "status": {
       "all": "Tout afficher",
@@ -175,6 +181,7 @@
     },
     "label": {
       "toVault": "Transfert vers le coffre",
+      "toInventory": "Transfert dans l’inventaire",
       "toCharacter": "Transfert vers {character}",
       "equip": "Équipement sur {character}",
       "pull": "Retrait des objets perdus vers {character}",
@@ -194,6 +201,10 @@
         "clear": "Vider l’emplacement n°{number}",
         "identifiers": "Changer l’apparence de l’emplacement n°{number}"
       }
+    },
+    "amount": {
+      "title": "Quantité à transférer",
+      "all": "Tout"
     },
     "move": {
       "equipOn": "Équiper sur {character}",
@@ -231,6 +242,7 @@
     "otherGroup": "Autres",
     "currentEquipment": "Objets équipés",
     "viewMode": "Mode d’affichage",
+    "itemCategory": "Famille d’objets",
     "cycleHint": "pour alterner",
     "ammo": {
       "primary": "Munitions principales",
@@ -255,7 +267,9 @@
     "setPieces": "{count} pièces",
     "weaponLevel": "Niv. d’arme {level}",
     "browsePlugs": "Voir les objets similaires",
-    "searchPlugs": "Rechercher…"
+    "fragmentSlots": "{count, plural, one {# emplacement de fragment} other {# emplacements de fragments}}",
+    "searchPlugs": "Rechercher…",
+    "tunedStat": "Statistique ajustée"
   },
   "search": {
     "label": "Rechercher des objets",
@@ -290,6 +304,7 @@
     "defaultName": "Groupe {number}",
     "nameLabel": "Nom du groupe",
     "currentLoadouts": "Équipements actuels",
+    "copyName": "{name} (copie)",
     "deleteConfirm": "Supprimer le groupe « {name} » ?",
     "noSlots": "Aucun emplacement d’équipement renvoyé par l’API pour ce personnage : il n’y a pas de place où poser un groupe.",
     "dragHint": "Glissez la poignée d’une carte pour changer son rang",
@@ -297,6 +312,7 @@
     "back": "Retour",
     "groupSlots": "Emplacements du groupe",
     "characterSlots": "Emplacements du personnage",
+    "slotsSource": "Emplacements affichés",
     "slotTitle": "Emplacement n°{number} du groupe",
     "editing": "Modification de",
     "previewing": "Prévisualisation de",

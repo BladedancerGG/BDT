@@ -16,7 +16,13 @@ import {
     isPlugApplied,
     isTrackerPlug,
 } from "./sockets";
-import {ABILITY_ORDER, isSubclass, subclassSocketKind} from "./subclass";
+import {
+    ABILITY_ORDER,
+    fragmentSlots,
+    isSubclass,
+    lockedFragmentSockets,
+    subclassSocketKind,
+} from "./subclass";
 import {itemSetHash, type EquippedSetCounts} from "./set-bonus";
 import {ARMOR_INTRINSIC_PLUG_CATEGORY} from "./use-armor-perks";
 
@@ -47,6 +53,13 @@ export interface PlugChip {
      * d'attributs d'arme, seules à en contenir — voir `isEnhancedPlug`.
      */
     markEnhanced?: boolean;
+    /**
+     * Plug dessiné en simple tracé clair, sans fond incrusté : armature,
+     * mod d'artéfact, bonus d'ensemble hors palier. Il lui faut un support là
+     * où l'arrière-plan est clair (voir `plug-icon--surface`). Les mods
+     * d'arme et d'armure, eux, portent déjà le leur.
+     */
+    surface?: boolean;
     active: boolean;
 }
 
@@ -168,7 +181,6 @@ export function useEquippedPlugs(
                         detail?.sockets ??
                         [];
                     const hidden = new Set(detail?.hiddenSockets ?? []);
-                    const disabled = new Set(detail?.disabledSockets ?? []);
 
                     /** Plug équipé d'un socket, une fois les exclusions appliquées. */
                     const plugAt = (index: number): number | undefined => {
@@ -198,6 +210,7 @@ export function useEquippedPlugs(
                             /** Ne garder que les emplacements réellement remplis */
                             appliedOnly?: boolean;
                             markEnhanced?: boolean;
+                            surface?: boolean;
                         } = {},
                     ): PlugChip[] =>
                         categoryIndexes(def, categoryHashes).flatMap((index) => {
@@ -213,6 +226,7 @@ export function useEquippedPlugs(
                                     socketIndex: index,
                                     square,
                                     markEnhanced: options.markEnhanced,
+                                    surface: options.surface,
                                     active: true,
                                 } satisfies PlugChip,
                             ];
@@ -249,15 +263,29 @@ export function useEquippedPlugs(
                         const first = [...ABILITY_ORDER, "aspect" as const].flatMap(
                             (kind) => classified.filter((s) => s.kind === kind).map(chip),
                         );
-                        // Ligne 2 : les fragments. Un emplacement verrouillé (aspects
-                        // insuffisants) ou resté sur son placeholder n'a rien à montrer.
+                        // Ligne 2 : les fragments, **emplacements libres compris**.
+                        // Ils se remplissent d'ici, comme dans l'infobulle : les
+                        // masquer obligeait à ouvrir l'objet pour poser un
+                        // fragment sur un emplacement qu'un aspect venait
+                        // d'ouvrir.
+                        //
+                        // Les emplacements verrouillés, eux, restent hors de la
+                        // ligne, et leur nombre se déduit des aspects **montrés**
+                        // plutôt que de `detail.disabledSockets` : celui-ci
+                        // décrit le dernier profil rendu par Bungie, quand cette
+                        // ligne peut afficher un équipement sauvegardé — une
+                        // autre configuration — ou un aspect changé à l'instant.
+                        // Même règle que l'infobulle, même moteur pur.
+                        const kinds = new Map(
+                            classified.flatMap((s) =>
+                                s.kind ? [[s.index, s.kind] as const] : [],
+                            ),
+                        );
+                        const locked = lockedFragmentSockets(kinds, sockets, (hash) =>
+                            fragmentSlots(plugDefs.get(hash)),
+                        );
                         const fragments = classified
-                            .filter(
-                                (s) =>
-                                    s.kind === "fragment" &&
-                                    !disabled.has(s.index) &&
-                                    isPlugApplied(def, s.index, s.hash),
-                            )
+                            .filter((s) => s.kind === "fragment" && !locked.has(s.index))
                             .map(chip);
 
                         if (first.length > 0) rows.push(first);
@@ -273,7 +301,9 @@ export function useEquippedPlugs(
                                 markEnhanced: true,
                             }),
                             ...fromCategories([SOCKET_CATEGORY.WEAPON_MODS], true, "mod"),
-                            ...fromCategories([SOCKET_CATEGORY.INTRINSIC], true, "intrinsic"),
+                            ...fromCategories([SOCKET_CATEGORY.INTRINSIC], true, "intrinsic", {
+                                surface: true,
+                            }),
                         ];
                         if (line.length > 0) rows.push(line);
                     } else if (def.itemType === ITEM_TYPE.Armor) {
@@ -292,6 +322,9 @@ export function useEquippedPlugs(
                                     hash: perk.sandboxPerkHash,
                                     square: false,
                                     table: "DestinySandboxPerkDefinition",
+                                    // Hors palier, l'icône perd son fond bleu
+                                    // d'« équipé » : il lui faut un support.
+                                    surface: equippedCount < perk.requiredSetCount,
                                     active: equippedCount >= perk.requiredSetCount,
                                 });
                             }
@@ -317,6 +350,7 @@ export function useEquippedPlugs(
                                     // le même rôle — l'attribut qui définit
                                     // l'objet — et le jeu le présente de même.
                                     square: true,
+                                    surface: true,
                                     active: true,
                                 });
                                 break;
@@ -335,7 +369,7 @@ export function useEquippedPlugs(
                             ARTIFACT_SOCKET_CATEGORIES,
                             true,
                             "artifact",
-                            {appliedOnly: true},
+                            {appliedOnly: true, surface: true},
                         );
                         if (line.length > 0) rows.push(line);
                     }

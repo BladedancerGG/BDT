@@ -10,6 +10,7 @@ import {clearLocalWrites} from "@/lib/bungie/profile-freshness";
 import {useGlobalShortcut} from "@/lib/ui/use-global-shortcut";
 import {useUi} from "@/lib/ui/store";
 import {Hint} from "./ui/Hint";
+import {keySymbol} from "@/lib/destiny/symbols";
 
 /**
  * Durée de l'appui long qui force le rafraîchissement, en millisecondes.
@@ -118,10 +119,10 @@ export function HeaderActions({
 
                 <Hint
                     actions={[
-                        {label: t("refresh"), keys: ["R"]},
+                        {label: t("refresh"), keys: [keySymbol("R")]},
                         {
                             label: t("refreshForce"),
-                            keys: [t("shiftKey"), "R"],
+                            keys: ["shift_left", keySymbol("R")],
                             note: t("holdHint"),
                         },
                     ]}

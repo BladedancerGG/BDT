@@ -1,6 +1,8 @@
 "use client";
 
 import {useState, type ReactNode} from "react";
+import {DestinySymbol} from "@/components/DestinySymbol";
+import type {DestinySymbolDef, DestinySymbolRef} from "@/lib/destiny/symbols";
 import {
     useFloating,
     useHover,
@@ -18,8 +20,8 @@ import {
 /** Une action annoncée dans l'infobulle, et la touche qui la déclenche. */
 export interface HintAction {
     label: string;
-    /** Raccourcis équivalents, affichés en `<kbd>` */
-    keys?: readonly string[];
+    /** Raccourcis équivalents, dessinés avec les symboles du jeu */
+    keys?: readonly (DestinySymbolRef | DestinySymbolDef)[];
     /** Second moyen de la déclencher, en une ligne (« appui long ») */
     note?: string;
 }
@@ -90,8 +92,14 @@ export function Hint({
                                     <span className="hint-tooltip__label">{action.label}</span>
                                     {action.keys && action.keys.length > 0 && (
                                         <span className="hint-tooltip__keys">
-                                            {action.keys.map((key) => (
-                                                <kbd key={key}>{key}</kbd>
+                                            {action.keys.map((key, index) => (
+                                                <DestinySymbol
+                                                    // Un symbole composé n'est pas une chaîne :
+                                                    // seule la position l'identifie.
+                                                    key={index}
+                                                    name={key}
+                                                    className="hint-tooltip__key"
+                                                />
                                             ))}
                                         </span>
                                     )}

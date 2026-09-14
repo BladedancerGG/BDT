@@ -179,9 +179,15 @@
 // son contenu n'est pas fait de plugs mais de simples images du manifeste.
 
 .loadout-identifiers {
+  // Le sélecteur de sockets calibre sa grille sur `--plug-size` ; ces choix-ci
+  // ne sont pas des plugs et ne suivent pas le réglage. On rétablit donc la
+  // valeur de repli sur ce sous-arbre, sans quoi la grille et ses cases
+  // cesseraient de s'accorder dès que la taille des plugs change.
+  --plug-size: #{v.$plug-size};
+
   &__choice {
-    width: v.$plug-size;
-    height: v.$plug-size;
+    width: var(--plug-size, #{v.$plug-size});
+    height: var(--plug-size, #{v.$plug-size});
     padding: 0;
     border: 1px solid var(--color-border-strong);
     background: none;

@@ -1,10 +1,38 @@
 "use client";
 
 import {useState} from "react";
-import {ICON_SIZE, clampIconSize} from "@/lib/settings/store";
+import {
+    ICON_SIZE,
+    PLUG_SIZE,
+    clampIconSize,
+    clampPlugSize,
+} from "@/lib/settings/store";
+
+/** Bornes d'un curseur, avec le rabot qui va avec. */
+export interface SizeBounds {
+    min: number;
+    max: number;
+    clamp: (size: number) => number;
+}
+
+const ICON_BOUNDS: SizeBounds = {
+    min: ICON_SIZE.min,
+    max: ICON_SIZE.max,
+    clamp: clampIconSize,
+};
+
+/** Bornes des icônes de plugs, à passer en prop pour ce réglage-là. */
+export const PLUG_BOUNDS: SizeBounds = {
+    min: PLUG_SIZE.min,
+    max: PLUG_SIZE.max,
+    clamp: clampPlugSize,
+};
 
 /**
- * Taille des icônes : curseur + saisie clavier, bornés à [40, 96] px.
+ * Une taille en pixels : curseur + saisie clavier, bornés par `bounds`.
+ *
+ * Les bornes sont une prop et non une constante du module : les plugs ont les
+ * leurs, bien plus basses que celles des vignettes d'objets.
  *
  * La saisie garde son propre état le temps de la frappe : borner à chaque
  * caractère empêcherait d'effacer le champ pour taper une nouvelle valeur
@@ -16,12 +44,14 @@ export function IconSizeControl({
                                     value,
                                     onChange,
                                     unitLabel,
+                                    bounds = ICON_BOUNDS,
                                 }: {
     /** Identifiant du champ, pour le lier au libellé de sa ligne */
     id: string;
     value: number;
     onChange: (size: number) => void;
     unitLabel: string;
+    bounds?: SizeBounds;
 }) {
     const [draft, setDraft] = useState(String(value));
     const [synced, setSynced] = useState(value);
@@ -36,7 +66,7 @@ export function IconSizeControl({
 
     const commit = () => {
         const parsed = Number(draft);
-        const next = Number.isFinite(parsed) ? clampIconSize(parsed) : value;
+        const next = Number.isFinite(parsed) ? bounds.clamp(parsed) : value;
         onChange(next);
         setDraft(String(next));
     };
@@ -46,8 +76,8 @@ export function IconSizeControl({
             <input
                 type="range"
                 className="icon-size__slider"
-                min={ICON_SIZE.min}
-                max={ICON_SIZE.max}
+                min={bounds.min}
+                max={bounds.max}
                 step={1}
                 value={value}
                 onChange={(e) => onChange(Number(e.target.value))}
@@ -58,8 +88,8 @@ export function IconSizeControl({
                     id={id}
                     type="number"
                     className="icon-size__input"
-                    min={ICON_SIZE.min}
-                    max={ICON_SIZE.max}
+                    min={bounds.min}
+                    max={bounds.max}
                     value={draft}
                     // Ne borne rien pendant la frappe : le premier chiffre
                     // d'une valeur à deux chiffres est toujours hors bornes

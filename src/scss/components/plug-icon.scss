@@ -3,8 +3,8 @@
 // Icône d'un plug : perk (rond) ou mod / cosmétique (carré).
 
 .plug-icon {
-  width: v.$plug-size;
-  height: v.$plug-size;
+  width: var(--plug-size, #{v.$plug-size});
+  height: var(--plug-size, #{v.$plug-size});
 
   --enhanced-perk-padding: 30px;
 
@@ -46,19 +46,54 @@
     pointer-events: none;
   }
 
+  // Cadre de pièce maîtresse d'un catalyseur terminé : l'image du manifeste
+  // (variante exotique), posée par-dessus tous les autres calques comme sur une
+  // vignette d'objet. Elle porte son propre halo et son propre calage : elle se
+  // pose telle quelle, comme le filigrane.
+  &__masterwork {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+
+  // Coût en énergie d'armure / de coque de spectre des mods, coin haut droit.
+  // Même habillage que sur les vignettes d'objets : chiffre blanc sans fond,
+  // décollé par une ombre. Taille fixe : les deux formats de plug (rond 42px,
+  // mod carré 30px) sont trop proches pour justifier deux valeurs.
+  &__energy {
+    position: absolute;
+    top: calc(var(--plug-size) * 0.06);
+    right: calc(var(--plug-size) * 0.12);
+    font-size: calc(var(--plug-size) * 0.2);
+    line-height: 1.2;
+    font-weight: 600;
+    color: #fff;
+    text-shadow: 0 0 3px rgba(0, 0, 0, 0.9);
+    pointer-events: none;
+  }
+
   &--circle {
-    width: v.$plug-size;
-    height: v.$plug-size;
+    width: var(--plug-size, #{v.$plug-size});
+    height: var(--plug-size, #{v.$plug-size});
     padding: 4px;
   }
 
   // Mods / cosmétiques : forme carrée
   &--square {
-    width: v.$plug-size;
-    height: v.$plug-size;
+    width: var(--plug-size, #{v.$plug-size});
+    height: var(--plug-size, #{v.$plug-size});
     border-radius: 0;
     padding: 0;
     border: none;
+  }
+
+  // Support des plugs dessinés en simple tracé clair — armatures, mods
+  // d'artéfact, bonus d'ensemble hors palier. Transparent par défaut : seul le
+  // thème clair pose --color-plug-surface, les autres fonds étant déjà sombres.
+  &--surface {
+    background-color: var(--color-plug-surface, transparent);
   }
 
   // Perk actuellement équipé : mis en avant

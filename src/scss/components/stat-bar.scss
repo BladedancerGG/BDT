@@ -1,4 +1,4 @@
-// Ligne de statistique : nom, barre proportionnelle, puis valeur.
+// Ligne de statistique : repère d'ajustement, nom, icône, barre puis valeur.
 //
 // L'ordre suit celui du jeu : la valeur est APRÈS la barre, ce qui aligne les
 // nombres en une colonne à droite quelle que soit la longueur de la barre.
@@ -9,10 +9,32 @@
   gap: 0.5rem;
   font-size: 0.75rem;
 
+  // Repère de statistique ajustée (armures légendaires de palier 5). La colonne
+  // est réservée sur toutes les lignes de l'infobulle, même vides : sans elle,
+  // la seule ligne ajustée décalerait son nom par rapport aux cinq autres.
+  &__tuned {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 0.75rem;
+    color: var(--color-accent);
+
+    svg {
+      width: 100%;
+      height: auto;
+    }
+  }
+
   &__name {
-    width: 8rem;
+    display: flex;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+
+    width: 8.5rem;
     text-align: right;
-    color: var(--color-text-muted);
+    color: var(--color-text);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -25,6 +47,27 @@
     font-variant-numeric: tabular-nums;
   }
 
+  // Glyphe de la statistique, entre son nom et sa barre. Il vient de
+  // bungie.net — blanc sur fond transparent, donc invisible sur le thème clair
+  // tel quel : posé en masque, la couleur du texte lui sert d'encre. Même
+  // mécanisme que l'icône d'archétype.
+  &__icon {
+    flex-shrink: 0;
+    width: 1rem;
+    height: 1rem;
+    background-color: var(--color-text-muted);
+
+    mask-image: var(--stat-icon);
+    mask-repeat: no-repeat;
+    mask-position: center;
+    mask-size: contain;
+
+    -webkit-mask-image: var(--stat-icon);
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    -webkit-mask-size: contain;
+  }
+
   // Les deux segments (base puis pièce maîtresse) s'enchaînent dans le sens de
   // lecture : la piste est un conteneur flex, pas un simple fond.
   &__track {
@@ -33,6 +76,7 @@
     height: 12px;
     overflow: hidden;
     background-color: var(--color-panel-alt);
+    max-width: 200px;
   }
 
   // Largeur fournie en inline via une variable CSS. La barre est claire et la
@@ -58,7 +102,8 @@
       width: auto;
       text-align: left;
       padding-left: 0.25rem;
-      color: var(--color-text-muted);
+      color: var(--color-text);
+      max-width: calc(200px + 1.5rem + 0.5rem);
     }
   }
 }

@@ -160,13 +160,12 @@
     justify-content: flex-start;
   }
 
-  // Taille pleine, celle des infobulles : à trente pixels les glyphes de mods
-  // et d'aspects n'étaient plus lisibles. Sept icônes par côté tiennent
-  // largement dans la moitié de ligne à partir de 1024 px, et la ligne se
-  // replie en dessous.
+  // Les icônes gardent la taille réglée pour les plugs (`--plug-size`) et ne se
+  // déduisent plus de celle des objets : à trente pixels les glyphes de mods et
+  // d'aspects n'étaient plus lisibles, et c'est ce réglage-là qui en décide
+  // désormais. Sept icônes par côté tiennent largement dans la moitié de ligne
+  // à partir de 1024 px, et la ligne se replie en dessous.
   .plug-icon {
-    width: calc(var(--item-size) / 1.5);
-    height: calc(var(--item-size) / 1.5);
     flex-shrink: 0;
   }
 }

@@ -1,8 +1,8 @@
 #!/bin/sh
 # Compile et exécute les vérifications des moteurs purs, dans le conteneur.
 #
-# Tout s'y passe : `node_modules` vit dans un volume anonyme du conteneur, et
-# `npx tsc` lancé depuis l'hôte échouerait (voir CLAUDE.md).
+# Tout s'y passe : les binaires natifs de `node_modules` sont compilés pour la
+# musl du conteneur, et `npx tsc` lancé depuis l'hôte échouerait (voir CLAUDE.md).
 set -e
 cd "$(dirname "$0")/../.."
 
@@ -13,7 +13,7 @@ docker compose exec -T app npx tsc -p scripts/checks/tsconfig.json
 docker compose exec -T app ln -sfn /app/node_modules /tmp/checks/node_modules
 
 status=0
-for check in edit equip insert backup sync-merge; do
+for check in edit equip insert backup sync-merge subclass gear moves sockets; do
   printf '\n═══ %s ═══\n' "$check"
   docker compose exec -T app node "/tmp/checks/scripts/checks/$check.check.js" || status=1
 done

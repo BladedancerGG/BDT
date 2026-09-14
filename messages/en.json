@@ -1,6 +1,8 @@
 {
   "common": {
     "inventory": "Inventory",
+    "equipment": "Equipment",
+    "customization": "Customization",
     "loadouts": "Loadouts",
     "settings": "Settings",
     "open": "Open",
@@ -9,6 +11,7 @@
     "delete": "Delete",
     "groups": "Groups",
     "edit": "Edit",
+    "duplicate": "Duplicate",
     "cancel": "Cancel",
     "confirm": "Confirm",
     "join": "Join"
@@ -19,7 +22,6 @@
   "header": {
     "refresh": "Refresh",
     "refreshForce": "Force from the API",
-    "shiftKey": "Shift",
     "holdHint": "or press and hold (1 s)"
   },
   "menu": {
@@ -95,6 +97,8 @@
         "dark": "Dark",
         "system": "System"
       },
+      "effects": "Transparency effects",
+      "effectsHint": "Translucent backgrounds and blur on tooltips and the perk picker",
       "language": "Language",
       "languageHint": "Changing language will completely reload the application",
       "ornaments": "Show ornaments",
@@ -107,8 +111,10 @@
       "vaultIconSizeHint": "Vault and postmaster",
       "loadoutIconSize": "Loadout slot size",
       "loadoutIconSizeHint": "Tiles of the loadouts and groups views",
+      "plugSize": "Perk and mod size",
+      "plugSizeHint": "Plug icons: perks, mods, aspects and fragments",
       "preview": "Preview",
-      "previewHint": "Items picked at random from the inventory, at each of the three sizes",
+      "previewHint": "Items picked at random from the inventory, at each of the adjustable sizes",
       "previewEmpty": "The preview is waiting for the inventory to load"
     },
     "inventory": {
@@ -164,7 +170,7 @@
     "expand": "Show details",
     "collapse": "Hide details",
     "empty": "No action to show.",
-    "clear": "Clear finished actions",
+    "clear": "Clear finished and failed actions",
     "filterLabel": "Filter actions",
     "status": {
       "all": "Show all",
@@ -175,6 +181,7 @@
     },
     "label": {
       "toVault": "Transfer to the vault",
+      "toInventory": "Move to inventory",
       "toCharacter": "Transfer to {character}",
       "equip": "Equip on {character}",
       "pull": "Pull from the postmaster to {character}",
@@ -194,6 +201,10 @@
         "clear": "Clear slot #{number}",
         "identifiers": "Change the appearance of slot #{number}"
       }
+    },
+    "amount": {
+      "title": "Amount to transfer",
+      "all": "All"
     },
     "move": {
       "equipOn": "Equip on {character}",
@@ -231,6 +242,7 @@
     "otherGroup": "Other",
     "currentEquipment": "Currently equipped",
     "viewMode": "Display mode",
+    "itemCategory": "Item category",
     "cycleHint": "to cycle",
     "ammo": {
       "primary": "Primary ammo",
@@ -255,7 +267,9 @@
     "setPieces": "{count} pieces",
     "weaponLevel": "Weapon Lv. {level}",
     "browsePlugs": "Browse similar items",
-    "searchPlugs": "Search…"
+    "fragmentSlots": "{count, plural, one {# fragment slot} other {# fragment slots}}",
+    "searchPlugs": "Search…",
+    "tunedStat": "Tuned stat"
   },
   "search": {
     "label": "Search items",
@@ -290,6 +304,7 @@
     "defaultName": "Group {number}",
     "nameLabel": "Group name",
     "currentLoadouts": "Current loadouts",
+    "copyName": "{name} (copy)",
     "deleteConfirm": "Delete the group “{name}”?",
     "noSlots": "The API returned no loadout slots for this character: there is nowhere to put a group.",
     "dragHint": "Drag a card’s handle to change its rank",
@@ -297,6 +312,7 @@
     "back": "Back",
     "groupSlots": "Group slots",
     "characterSlots": "Character slots",
+    "slotsSource": "Slots shown",
     "slotTitle": "Group slot #{number}",
     "editing": "Editing",
     "previewing": "Previewing",

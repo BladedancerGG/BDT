@@ -29,11 +29,26 @@ export type { DestinyGlyphName };
  *
  * `accent` désigne celle qui porte la couleur d'accent (le bouton pressé d'une
  * souris) ; les autres prennent la couleur du texte.
+ *
+ * `outline` désigne celle qui n'est dessinée qu'en **contour**, l'intérieur
+ * laissé transparent : le fond d'une touche est une forme pleine, qui noierait
+ * sinon la légende posée dessus.
  */
 export interface DestinySymbolDef {
-  layers: readonly DestinyGlyphName[];
+  layers: readonly DestinyGlyphLayer[];
   accent?: number;
+  outline?: number;
 }
+
+/**
+ * Une couche à dessiner : un glyphe **nommé**, ou le caractère lui-même.
+ *
+ * Les légendes de touches n'ont pas d'autre désignation : la police redouble
+ * l'ASCII imprimable en U+EE21–EE7E, mais ces doublons portent les noms
+ * *standard* du format CFF (« R », « ! »…), que l'extraction écarte — ils
+ * n'apparaissent donc jamais dans `DESTINY_GLYPHS`.
+ */
+export type DestinyGlyphLayer = DestinyGlyphName | (string & Record<never, never>);
 
 /**
  * Symboles composés d'usage courant, sous un nom d'application plutôt que sous
@@ -57,20 +72,36 @@ export type DestinySymbolName = keyof typeof DESTINY_SYMBOLS;
 /** Nom accepté par `<DestinySymbol>` : un composé, ou un glyphe brut. */
 export type DestinySymbolRef = DestinySymbolName | DestinyGlyphName;
 
+/** Décalage de la zone des légendes de touches sur l'ASCII imprimable. */
+const KEY_LEGEND_BASE = 0xee00;
+
 /**
  * Touche du clavier : le fond de touche, puis la légende par-dessus.
  *
  * La police redouble tout l'ASCII imprimable dans la zone U+EE21–U+EE7E pour
- * ces légendes — un « E » de touche n'est pas la lettre E. Les touches nommées
- * (`return`, `shift_left`, `tab`…) sont des glyphes à part entière : les passer
- * ici fonctionne tout autant.
+ * ces légendes — un « E » de touche n'est pas la lettre E, et il faut le
+ * désigner par son caractère : ces doublons n'ont dans la police que le nom
+ * standard du format CFF, que l'extraction n'exporte pas. Les touches nommées
+ * (`return`, `shift_left`, `tab`…) sont des glyphes à part entière, contour
+ * compris : les passer ici fonctionne tout autant, sans calque ajouté.
  */
 export function keySymbol(legend: string): DestinySymbolDef {
-  const glyph = (
-    legend.length === 1 ? String(legend).toUpperCase() : legend
-  ) as DestinyGlyphName;
-  const layers = ["standard_backing" as DestinyGlyphName];
-  if (glyph in DESTINY_GLYPHS) layers.push(glyph);
+  const layers: DestinyGlyphLayer[] = [];
+  if (legend.length === 1) {
+    const code = legend.toUpperCase().charCodeAt(0);
+    if (code >= 0x21 && code <= 0x7e) {
+      // La légende n'est qu'une lettre : le fond de touche vient du calque,
+      // posé dessous et réduit à son contour (voir `outline`).
+      layers.push("standard_backing", String.fromCharCode(KEY_LEGEND_BASE + code));
+      return { layers, outline: 0 };
+    }
+  } else if (legend in DESTINY_GLYPHS) {
+    // Les touches nommées sont d'une seule pièce, fond compris : leur ajouter
+    // le calque le doublerait. Ce fond-là est donc le leur, et c'est tout le
+    // glyphe qui passe en contour.
+    layers.push(legend);
+    return { layers, outline: 0 };
+  }
   return { layers };
 }
 
@@ -89,8 +120,8 @@ export function destinySymbol(
 }
 
 /** Caractère(s) d'une couche. */
-export function glyphChar(name: DestinyGlyphName): string {
-  return DESTINY_GLYPHS[name];
+export function glyphChar(name: DestinyGlyphLayer): string {
+  return DESTINY_GLYPHS[name as DestinyGlyphName] ?? name;
 }
 
 /**

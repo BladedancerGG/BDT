@@ -39,7 +39,7 @@
   --slot-row-gap: 1rem;
   --equipment-columns-height: calc(
     var(--slot-rows) * var(--item-size) + (var(--slot-rows) - 1) *
-      var(--slot-row-gap)
+      var(--slot-row-gap) + 0.75rem
   );
 
   --radius-sm: 2px;

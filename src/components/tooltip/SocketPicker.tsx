@@ -5,7 +5,12 @@ import {useTranslations} from "next-intl";
 import {useDefinition} from "@/lib/manifest/use-definition";
 import type {InventoryItemDefinition} from "@/lib/destiny/types";
 import {usePlugCatalog, type SocketColumn} from "@/lib/destiny/use-sockets";
-import {isFixedPlug} from "@/lib/destiny/sockets";
+import {
+    isCompletedCatalystPlug,
+    isExoticCatalystPlug,
+    isFixedPlug,
+} from "@/lib/destiny/sockets";
+import {isMasterwork} from "@/lib/destiny/overlays";
 import {normalizeText} from "@/lib/search/keywords";
 import {useInsertPlanner} from "@/lib/actions/use-insert-planner";
 import {usePlugActionState, type QueuedItem} from "@/lib/actions/store";
@@ -23,6 +28,12 @@ import {PlugIcon} from "./PlugIcon";
  * s'ouvre au clic sur l'emplacement.
  */
 
+/**
+ * Pool vide, stable d'un rendu à l'autre : `usePlugCatalog` se rejoue sur le
+ * contenu du tableau, un littéral recréé à chaque fois relancerait sa lecture.
+ */
+const NO_OPTIONS: number[] = [];
+
 /** Le socket dont le sélecteur est ouvert. */
 export interface PickerTarget extends SocketColumn {
     /** Forme des icônes : carrée pour les mods et cosmétiques */
@@ -39,8 +50,14 @@ interface SocketPickerValue {
     item?: QueuedItem;
     target?: PickerTarget;
     toggle: (target: PickerTarget) => void;
-    /** Index des sockets verrouillés (fragments non déverrouillés…) */
-    disabled: Set<number>;
+    /**
+     * Index des sockets verrouillés (fragments non déverrouillés…).
+     *
+     * En lecture seule : le contexte ne fait que transmettre. C'est ce qui
+     * permet d'y passer l'ensemble déduit d'un **instantané** de groupe, calculé
+     * une fois et mémoïsé — voir `useSnapshotLocks`.
+     */
+    disabled: ReadonlySet<number>;
     /**
      * Attribut attendu dans chaque socket, par index : les insertions en file
      * s'affichent comme équipées sans attendre la réponse de Bungie.
@@ -149,6 +166,7 @@ export function PlugSlot({
                              label,
                              state,
                              markEnhanced = false,
+                             surface = false,
                          }: {
     column: SocketColumn;
     square?: boolean;
@@ -161,6 +179,8 @@ export function PlugSlot({
     state?: "equipped" | "available";
     /** Voir `PlugIcon` — réservé aux attributs d'arme */
     markEnhanced?: boolean;
+    /** Voir `PlugIcon` — support sous les icônes en simple tracé */
+    surface?: boolean;
 }) {
     const {item, target, toggle, disabled, pending} = useSocketPicker();
     // L'attribut en file prend la place de celui rendu par l'API : l'emplacement
@@ -172,6 +192,33 @@ export function PlugSlot({
         shownHash ?? null,
     );
 
+    // Catalyseur d'exotique terminé : cadre de pièce maîtresse sur l'icône et
+    // perks détaillées dans son infobulle. L'état vient de l'arme du contexte —
+    // c'est elle que la rangée décrit, et c'est elle qui dit si le catalyseur
+    // est achevé (voir `isCompletedCatalystPlug`).
+    const masterwork = isCompletedCatalystPlug(def, isMasterwork(item?.state));
+
+    // Un catalyseur achevé ne se retire pas — le jeu comme l'API le refusent.
+    // Reste à distinguer les deux emplacements qui se ressemblent : celui d'un
+    // catalyseur ordinaire n'offre que l'emplacement vide en face de lui (donc
+    // rien qu'un retrait, et le sélecteur n'a rien à proposer), tandis que les
+    // « refontes » d'une Révision Zéro ou d'une Osteo Striga en alignent
+    // plusieurs, qui, elles, s'échangent librement. C'est la présence d'un
+    // AUTRE catalyseur dans le pool qui les sépare.
+    //
+    // Les définitions ne sont lues que dans ce cas : un emplacement de
+    // revêtement propose plusieurs centaines d'options, qu'il n'y a aucune
+    // raison de charger ici.
+    const {defs: options} = usePlugCatalog(
+        masterwork ? column.options : NO_OPTIONS,
+    );
+    const removalOnly =
+        masterwork &&
+        !column.options.some(
+            (hash) =>
+                hash !== shownHash && isExoticCatalystPlug(options.get(hash)),
+        );
+
     if (!shownHash) return null;
 
     const browsable =
@@ -179,7 +226,8 @@ export function PlugSlot({
         column.options.length > 1 &&
         !disabled.has(column.socketIndex) &&
         // Pièce maîtresse et mémento se paient : l'API refuserait
-        !isFixedPlug(def);
+        !isFixedPlug(def) &&
+        !removalOnly;
     const browseLabel = def?.itemTypeDisplayName || label;
 
     return (
@@ -188,6 +236,8 @@ export function PlugSlot({
             square={square}
             state={state}
             markEnhanced={markEnhanced}
+            surface={surface}
+            masterwork={masterwork}
             onBrowse={
                 browsable
                     ? () => toggle({...column, square, label: browseLabel})

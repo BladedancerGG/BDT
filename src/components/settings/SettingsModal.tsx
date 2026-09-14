@@ -6,7 +6,7 @@ import {usePathname, useRouter} from "@/i18n/navigation";
 import {routing, type Locale} from "@/i18n/routing";
 import {Modal} from "@/components/ui/Modal";
 import {SettingRow, Toggle, Select} from "@/components/ui/SettingRow";
-import {IconSizeControl} from "./IconSizeControl";
+import {IconSizeControl, PLUG_BOUNDS} from "./IconSizeControl";
 import {SizePreview} from "./SizePreview";
 import {SortRuleList} from "./SortRuleList";
 import {Cog6ToothIcon} from "@heroicons/react/24/solid"
@@ -265,6 +265,10 @@ function AppearancePanel() {
     const setVaultIconSize = useSettings((s) => s.setVaultIconSize);
     const loadoutIconSize = useSettings((s) => s.loadoutIconSize);
     const setLoadoutIconSize = useSettings((s) => s.setLoadoutIconSize);
+    const plugSize = useSettings((s) => s.plugSize);
+    const setPlugSize = useSettings((s) => s.setPlugSize);
+    const visualEffects = useSettings((s) => s.visualEffects);
+    const setVisualEffects = useSettings((s) => s.setVisualEffects);
     const showOrnaments = useSettings((s) => s.showOrnaments);
     const setShowOrnaments = useSettings((s) => s.setShowOrnaments);
     const showOriginalOnHover = useSettings((s) => s.showOriginalOnHover);
@@ -287,6 +291,19 @@ function AppearancePanel() {
                         {value: "dark", label: t("themes.dark")},
                         {value: "system", label: t("themes.system")},
                     ]}
+                />
+            </SettingRow>
+
+            <SettingRow
+                label={t("effects")}
+                hint={t("effectsHint")}
+                htmlFor="setting-effects"
+            >
+                <Toggle
+                    id="setting-effects"
+                    checked={visualEffects}
+                    onChange={setVisualEffects}
+                    label={t("effects")}
                 />
             </SettingRow>
 
@@ -373,8 +390,22 @@ function AppearancePanel() {
                 />
             </SettingRow>
 
-            {/* L'aperçu occupe toute la largeur, sous les trois curseurs : c'est
-                de la comparaison entre les trois tailles qu'il tire son intérêt,
+            <SettingRow
+                label={t("plugSize")}
+                hint={t("plugSizeHint")}
+                htmlFor="setting-plug-size"
+            >
+                <IconSizeControl
+                    id="setting-plug-size"
+                    value={plugSize}
+                    onChange={setPlugSize}
+                    unitLabel={t("plugSize")}
+                    bounds={PLUG_BOUNDS}
+                />
+            </SettingRow>
+
+            {/* L'aperçu occupe toute la largeur, sous les curseurs : c'est
+                de la comparaison entre les tailles qu'il tire son intérêt,
                 il n'appartient à aucune des lignes. */}
             <div className="settings__block">
                 <div className="setting-row__text">

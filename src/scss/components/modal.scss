@@ -32,7 +32,7 @@ $ease: cubic-bezier(0.16, 1, 0.3, 1); // décélération franche, sans rebond
   // l'interprétation d'une forme sans argument. Une propriété de moins à animer,
   // et un résultat identique à l'œil.
   opacity: 0;
-  backdrop-filter: blur(5px);
+  backdrop-filter: var(--blur-md);
   transition: opacity $duration $ease;
 
   &[data-status="open"] {
@@ -56,7 +56,7 @@ $ease: cubic-bezier(0.16, 1, 0.3, 1); // décélération franche, sans rebond
   overflow: hidden;
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius);
-  background-color: var(--color-panel);
+  background-color: var(--color-panel-alt);
   color: var(--color-text);
   box-shadow: var(--shadow-panel);
 

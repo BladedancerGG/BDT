@@ -512,20 +512,20 @@ $ease: cubic-bezier(0.16, 1, 0.3, 1); // décélération franche, sans rebond
     margin-right: auto;
   }
 
+  // Les touches et le clic sont dessinés par la police du jeu : pas d'encadré
+  // à peindre ici, le symbole porte déjà son contour de touche.
   &__keys {
     display: inline-flex;
     align-items: baseline;
     gap: 0.1875rem;
+    color: var(--color-text-muted);
+  }
 
-    kbd {
-      padding: 0.0625rem 0.3125rem;
-      border: 1px solid var(--color-border-strong);
-      border-radius: var(--radius);
-      background-color: var(--color-panel-alt);
-      font-family: inherit;
-      font-size: 0.6875rem;
-      color: var(--color-text-muted);
-    }
+  &__key {
+    font-size: 1.125rem;
+    // Sans quoi le bouton pressé se confond avec le corps de la souris : le
+    // symbole du clic gauche devient indiscernable de celui du clic droit.
+    --destiny-symbol-accent: var(--color-accent);
   }
 
   &__note {

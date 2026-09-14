@@ -15,9 +15,10 @@ import {
 } from "@floating-ui/react";
 import {useDefinition} from "@/lib/manifest/use-definition";
 import type {InventoryItemDefinition} from "@/lib/destiny/types";
-import {BUNGIE_ROOT} from "@/lib/destiny/display";
-import {isEnhancedPlug} from "@/lib/destiny/sockets";
-import {watermarkPath} from "@/lib/destiny/overlays";
+import {BUNGIE_ROOT, TIER} from "@/lib/destiny/display";
+import {displayedEnergyCost, isEnhancedPlug} from "@/lib/destiny/sockets";
+import {masterworkBorderPath, watermarkPath} from "@/lib/destiny/overlays";
+import {useSharedItemConstants} from "@/lib/destiny/item-defs";
 import {PlugTooltip} from "./PlugTooltip";
 import {EnhancedPerkIcon, LoadingIcon} from "@/components/icons";
 
@@ -31,12 +32,20 @@ import {EnhancedPerkIcon, LoadingIcon} from "@/components/icons";
  *                 n'en fournit pas
  * - `markEnhanced` : signale les versions améliorées d'attributs. Réservé aux
  *                 colonnes d'attributs d'arme, seules à en contenir.
+ * - `masterwork` : catalyseur d'exotique terminé — cadre de pièce maîtresse
+ *                 par-dessus l'icône. L'état est calculé par l'appelant : il
+ *                 dépend de l'instance de l'arme, pas de la définition du plug.
+ *                 Les perks du catalyseur, elles, sont détaillées dans son
+ *                 infobulle quel que soit son avancement.
  * - `onEquip`   : rend l'icône cliquable — l'infobulle annonce alors le clic
  *                 gauche comme moyen d'équiper l'attribut
  * - `onBrowse`  : rend l'icône cliquable pour **ouvrir le sélecteur** du socket
  *                 (mods, revêtements, ornements, aspects…), là où les options
  *                 sont trop nombreuses pour tenir en colonne
  * - `browseLabel` : ce que le sélecteur contiendra, annoncé dans l'infobulle
+ * - `surface`   : pose un support sous l'icône. Réservé aux plugs dessinés en
+ *                 simple tracé clair sans fond (armatures, mods d'artéfact,
+ *                 bonus d'ensemble inactifs) : le thème clair seul en pose un.
  * - `selected`  : ce socket est celui dont le sélecteur est ouvert
  * - `busy`      : requête en cours sur ce socket
  *
@@ -51,6 +60,8 @@ export function PlugIcon({
                              typeLabel,
                              def: preloadedDef,
                              markEnhanced = false,
+                             masterwork = false,
+                             surface = false,
                              onEquip,
                              onBrowse,
                              browseLabel,
@@ -65,6 +76,8 @@ export function PlugIcon({
     /** Définition déjà chargée — évite une souscription Dexie par icône */
     def?: InventoryItemDefinition;
     markEnhanced?: boolean;
+    masterwork?: boolean;
+    surface?: boolean;
     onEquip?: () => void;
     onBrowse?: () => void;
     browseLabel?: string;
@@ -84,6 +97,18 @@ export function PlugIcon({
     // règle est donc simplement « celui que la définition fournit ».
     const watermark = watermarkPath(def);
     const name = def?.displayProperties?.name ?? "";
+    // Coût en énergie d'armure / de coque de spectre, coin haut droit. Écarte de
+    // lui-même tout le reste : attributs, ornements et fragments — voir
+    // `displayedEnergyCost`.
+    const energyCost = displayedEnergyCost(def);
+    // Cadre de pièce maîtresse d'un catalyseur terminé. L'image vient du
+    // manifeste comme celle des vignettes, dans sa variante exotique : un
+    // catalyseur ne se pose que sur une exotique, quelle que soit la rareté du
+    // plug lui-même (les « refontes » d'Osteo Striga sont de rareté commune).
+    const constants = useSharedItemConstants();
+    const masterworkBorder = masterwork
+        ? masterworkBorderPath(constants, TIER.Exotic)
+        : undefined;
 
     const [open, setOpen] = useState(false);
 
@@ -124,6 +149,8 @@ export function PlugIcon({
         square ? "plug-icon--square" : "plug-icon--circle",
         state ? `plug-icon--${state}` : null,
         enhanced ? "plug-icon--enhanced" : null,
+        masterwork ? "plug-icon--masterwork" : null,
+        surface ? "plug-icon--surface" : null,
         clickable ? "plug-icon--equippable" : null,
         selected ? "plug-icon--selected" : null,
         busy ? "plug-icon--busy" : null,
@@ -180,6 +207,19 @@ export function PlugIcon({
                         )}
                         {enhanced && (
                             <EnhancedPerkIcon className="plug-icon__img-enhanced"/>
+                        )}
+                        {masterworkBorder && (
+                            // Le cadre passe par-dessus tous les autres
+                            // calques, comme sur une vignette d'objet.
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                                src={`${BUNGIE_ROOT}${masterworkBorder}`}
+                                alt=""
+                                className="plug-icon__masterwork"
+                            />
+                        )}
+                        {energyCost !== undefined && (
+                            <span className="plug-icon__energy">{energyCost}</span>
                         )}
                     </>
                 )}

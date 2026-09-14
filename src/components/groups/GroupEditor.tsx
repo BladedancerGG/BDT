@@ -14,7 +14,7 @@ import {
     useLoadoutIdentifiers,
     type LoadoutIdentifiers,
 } from "@/lib/loadouts/use-loadout-identifiers";
-import {useLoadoutGroups} from "@/lib/loadouts/groups/store";
+import {useCharacterGroups, useLoadoutGroups} from "@/lib/loadouts/groups/store";
 import {useConfirmEquipGroup} from "@/lib/loadouts/groups/use-confirm-equip";
 import {foreignItems, useGroupSelection} from "@/lib/loadouts/groups/selection";
 import {SnapshotEditProvider} from "@/lib/loadouts/groups/snapshot-edit";
@@ -86,7 +86,7 @@ export function GroupEditor({
 
     const [selected, setSelected] = useState(0);
     /**
-     * L'emplacement du personnage retenu comme source, ou `null`.
+     * L'emplacement de la grille du bas retenu comme source, ou `null`.
      *
      * Le clic ne recopie plus rien de lui-même : écraser un emplacement du
      * groupe est destructif, et le geste tombait sous le doigt de quiconque
@@ -94,6 +94,16 @@ export function GroupEditor({
      * donc que désigner la source ; c'est un bouton qui engage la copie.
      */
     const [source, setSource] = useState<number | null>(null);
+    /**
+     * Ce que montre la grille du bas : le personnage (`null`) ou un autre
+     * groupe.
+     *
+     * Recopier un emplacement d'un groupe dans un autre passait sinon par
+     * l'équiper en jeu puis le reprendre — un aller-retour de plusieurs
+     * dizaines de requêtes pour déplacer un instantané qu'on a déjà sous la
+     * main.
+     */
+    const [sourceGroupId, setSourceGroupId] = useState<string | null>(null);
 
     // La liste normalisée à la taille du personnage. Toutes les écritures
     // partent de là : un groupe créé quand le compte possédait moins
@@ -103,6 +113,34 @@ export function GroupEditor({
         [group.loadouts, slotCount],
     );
     const current = slots[selected];
+
+    // Les autres groupes du personnage, sources possibles de la grille du bas.
+    // Le groupe en cours d'édition en est exclu : il est déjà au-dessus, et se
+    // recopier sur soi-même n'aurait rien fait d'utile.
+    const siblings = useCharacterGroups(group.characterId);
+    const others = useMemo(
+        () => siblings.filter((other) => other.id !== group.id),
+        [siblings, group.id],
+    );
+    // Résolu par identifiant et non retenu tel quel : le groupe choisi peut
+    // disparaître — suppression sur un autre appareil, relecture du compte — et
+    // la grille retombe alors d'elle-même sur le personnage.
+    const sourceGroup = others.find((other) => other.id === sourceGroupId);
+
+    /**
+     * Les emplacements que montre la grille du bas.
+     *
+     * Ceux d'un groupe passent par `padLoadouts` comme ceux du groupe édité :
+     * un groupe créé quand le compte possédait moins d'emplacements a une liste
+     * plus courte, et la grille en montrerait moins que la réalité.
+     */
+    const sourceLoadouts = useMemo(
+        () =>
+            sourceGroup
+                ? padLoadouts(sourceGroup.loadouts, slotCount)
+                : loadouts,
+        [sourceGroup, slotCount, loadouts],
+    );
 
     /**
      * Où s'équipe un objet, par identifiant d'instance.
@@ -148,15 +186,15 @@ export function GroupEditor({
         setGroupLoadouts(group.id, next);
 
     /**
-     * L'emplacement du personnage prévisualisé, s'il y en a un.
+     * L'emplacement prévisualisé de la grille du bas, s'il y en a un.
      *
      * Désigner une source ne sert pas qu'à viser l'écrasement : on ne recopie
      * pas à l'aveugle un emplacement dont les vignettes ne disent ni les
      * attributs ni les cosmétiques. Le clic ouvre donc son contenu là où celui
-     * du groupe se lisait, en **lecture seule** — c'est un emplacement du jeu,
-     * rien n'y est à modifier ici.
+     * du groupe se lisait, en **lecture seule** — il appartient au jeu ou à un
+     * autre groupe, rien n'y est à modifier ici.
      */
-    const previewed = source === null ? undefined : loadouts[source];
+    const previewed = source === null ? undefined : sourceLoadouts[source];
 
     // Le contenu affiché, résolu contre le profil — le même hook que le mode
     // « équipements » pour un emplacement du jeu. Un seul appel pour les deux
@@ -204,7 +242,10 @@ export function GroupEditor({
     );
 
     // Une seule requête groupée pour toutes les vignettes des deux grilles.
-    const allLoadouts = useMemo(() => [...slots, ...loadouts], [slots, loadouts]);
+    const allLoadouts = useMemo(
+        () => [...slots, ...loadouts, ...sourceLoadouts],
+        [slots, loadouts, sourceLoadouts],
+    );
     const identifiers = useLoadoutIdentifiers(allLoadouts);
 
     /**
@@ -461,16 +502,50 @@ export function GroupEditor({
                         onMove={(from, to) => write(moveItem(slots, from, to))}
                     />
 
-                    {/* Les emplacements du jeu : un clic en ouvre le contenu à
+                    {/* La grille du bas : un clic en ouvre le contenu à
                         gauche, en lecture seule, et le bouton ci-dessous le
-                        recopie dans
-                        l'emplacement sélectionné du groupe. C'est l'écrasement
-                        d'un seul emplacement demandé par le cahier des charges,
-                        rendu à un geste délibéré. */}
+                        recopie dans l'emplacement sélectionné du groupe. C'est
+                        l'écrasement d'un seul emplacement demandé par le cahier
+                        des charges, rendu à un geste délibéré.
+
+                        Sa source se choisit à la place du titre : le personnage
+                        par défaut, ou l'un des autres groupes. Le sélecteur ne
+                        paraît que s'il y a un choix à faire — seul, un groupe
+                        n'a aucun voisin d'où recopier. */}
                     <GroupSlotGrid
-                        title={t("characterSlots")}
-                        loadouts={loadouts}
-                        slotCount={loadouts.length}
+                        title={
+                            others.length === 0 ? (
+                                t("characterSlots")
+                            ) : (
+                                <select
+                                    className="group-slots__source"
+                                    // La valeur vient du groupe RÉSOLU : celui
+                                    // qui a disparu entre-temps laisserait
+                                    // sinon le sélecteur sur un identifiant
+                                    // sans option, que le navigateur affiche
+                                    // comme la première venue.
+                                    value={sourceGroup?.id ?? ""}
+                                    aria-label={t("slotsSource")}
+                                    onChange={(event) => {
+                                        setSourceGroupId(event.target.value || null);
+                                        // La désignation portait sur l'ancienne
+                                        // grille : la garder ferait prévisualiser
+                                        // un emplacement d'une autre source, à la
+                                        // même place.
+                                        setSource(null);
+                                    }}
+                                >
+                                    <option value="">{t("characterSlots")}</option>
+                                    {others.map((other) => (
+                                        <option key={other.id} value={other.id}>
+                                            {other.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            )
+                        }
+                        loadouts={sourceLoadouts}
+                        slotCount={sourceLoadouts.length}
                         identifiers={identifiers}
                         selected={source}
                         // Recliquer l'emplacement déjà ouvert le referme, et

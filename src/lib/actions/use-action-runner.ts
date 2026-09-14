@@ -327,11 +327,14 @@ export function useActionRunner() {
       // Replanification juste avant l'envoi : entre la mise en file et ici,
       // les actions précédentes ont déplacé des objets — dont peut-être
       // celui-ci, ou celui qu'on comptait équiper à sa place.
-      const result = planMove(action.itemInstanceId, action.target, {
-        profile: snapshot,
-        defs,
-        capacities,
-      });
+      const result = planMove(
+        action.itemInstanceId,
+        action.target,
+        { profile: snapshot, defs, capacities },
+        // Sans elle, une pile dont on n'a demandé qu'une part repartirait
+        // entière : le plan est refait de zéro ici.
+        action.stackSize,
+      );
 
       if (!result.ok) {
         useActionQueue.setState((state) => ({

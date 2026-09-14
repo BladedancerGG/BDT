@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { useTranslations } from "next-intl";
 import type { DestinyItemComponent } from "@/lib/bungie/profile";
 import type { ItemDetail } from "@/lib/bungie/item-components";
+import type { ItemCategory } from "@/lib/settings/constants";
 import { useSettings } from "@/lib/settings/store";
 import { useItemDefs } from "./item-defs";
 import { useSortedItems } from "./use-sorted-items";
@@ -21,8 +22,9 @@ import { AMMO_TYPE, groupItems, type BucketSection } from "./grouping";
 export function useGroupedItems(
   items: DestinyItemComponent[],
   details: Record<string, ItemDetail>,
+  category?: ItemCategory,
 ): BucketSection[] {
-  const sorted = useSortedItems(items, details);
+  const sorted = useSortedItems(items, details, category);
   const { defs, traits } = useItemDefs();
   const { bucketNames, damageTypes, classNames } = useGroupDefs();
   const weapon = useSettings((s) => s.weaponGrouping);

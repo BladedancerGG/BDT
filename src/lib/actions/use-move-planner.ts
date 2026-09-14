@@ -37,10 +37,15 @@ export function useMovePlanner() {
 
   /** Ce que coûterait le déplacement — sert aussi à griser les zones de dépôt. */
   const plan = useCallback(
-    (itemInstanceId: string, target: MoveTarget): MovePlan | null => {
+    (
+      itemInstanceId: string,
+      target: MoveTarget,
+      /** Combien d'exemplaires, pour une pile. Absent : toute la pile. */
+      stackSize?: number,
+    ): MovePlan | null => {
       const ctx = context();
       if (!ctx) return null;
-      return planMove(itemInstanceId, target, ctx);
+      return planMove(itemInstanceId, target, ctx, stackSize);
     },
     [context],
   );
@@ -48,14 +53,15 @@ export function useMovePlanner() {
   // L'objet arrive entier plutôt qu'en `(id, hash)` : la file recopie aussi ses
   // habillages, pour que la carte du panneau puisse redessiner sa vignette.
   const enqueue = useCallback(
-    (item: QueuedItem, target: MoveTarget) => {
-      const result = plan(item.itemInstanceId, target);
+    (item: QueuedItem, target: MoveTarget, stackSize?: number) => {
+      const result = plan(item.itemInstanceId, target, stackSize);
       // Rien à faire : l'objet est déjà là où on le dépose
       if (!result || (result.ok && result.steps.length === 0)) return;
 
       enqueueAction({
         ...item,
         target,
+        stackSize,
         steps: result.ok ? result.steps : [],
         failure: result.ok ? undefined : result.failure,
       });

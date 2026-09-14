@@ -6,6 +6,7 @@ import {useVirtualizer} from "@tanstack/react-virtual";
 import type {DestinyItemComponent} from "@/lib/bungie/profile";
 import type {ItemDetail} from "@/lib/bungie/item-components";
 import type {GroupIcon} from "@/lib/destiny/grouping";
+import type {ItemCategory} from "@/lib/settings/constants";
 import {useGroupedItems} from "@/lib/destiny/use-grouped-items";
 import {useGridMetrics} from "@/lib/destiny/use-grid-metrics";
 import {useSearchFiltered} from "@/lib/search/provider";
@@ -97,11 +98,14 @@ export function VirtualItemGrid({
                                     items,
                                     details,
                                     lead,
+                                    category,
                                 }: {
     title: string;
     items: DestinyItemComponent[];
     details: Record<string, ItemDetail>;
     lead?: LeadSection;
+    /** Famille d'objets à retenir — voir `useDisplayableItems` */
+    category?: ItemCategory;
 }) {
     const t = useTranslations("inventory");
     // La recherche s'applique avant le regroupement : les compteurs des
@@ -109,7 +113,7 @@ export function VirtualItemGrid({
     const found = useSearchFiltered(items);
     const leadFound = useSearchFiltered(lead?.items ?? NO_ITEMS);
     // Filtrés, triés selon les critères réglés dans les paramètres, puis groupés
-    const sections = useGroupedItems(found, details);
+    const sections = useGroupedItems(found, details, category);
     const viewportRef = useRef<HTMLDivElement>(null);
     // La taille réglée dans les paramètres change la grille sans changer sa
     // largeur : on la passe pour forcer une re-mesure. C'est le réglage dédié au
@@ -280,6 +284,8 @@ export function VirtualItemGrid({
                                                 state={item.state}
                                                 versionNumber={item.versionNumber}
                                                 gearTier={detail?.instance?.gearTier}
+                                                quantity={item.quantity}
+                                                bucketHash={item.bucketHash}
                                             />
                                         );
                                     })}

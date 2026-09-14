@@ -1,11 +1,14 @@
 "use client";
 
 import type {CSSProperties} from "react";
+import {useTranslations} from "next-intl";
 import {useDefinition} from "@/lib/manifest/use-definition";
+import {BUNGIE_ROOT} from "@/lib/destiny/display";
+import TunedStatIcon from "@/components/icons/armor/TunedStatIcon";
 import type {StatDefinition} from "@/lib/destiny/types";
 
 /**
- * Une ligne de statistique : nom, barre proportionnelle, puis valeur.
+ * Une ligne de statistique : nom, icône, barre proportionnelle, puis valeur.
  *
  * La valeur est **après** la barre, comme dans le jeu : les nombres forment
  * ainsi une colonne alignée à droite, que la barre soit courte ou longue.
@@ -21,6 +24,7 @@ export function StatBar({
                             withBar = true,
                             signed = false,
                             bonus: bonusValue = 0,
+                            tuned,
                         }: {
     statHash: number;
     value: number;
@@ -34,9 +38,18 @@ export function StatBar({
      * déjà, l'API ne renvoyant que le total.
      */
     bonus?: number;
+    /**
+     * Repère de statistique ajustée (armures légendaires de palier 5).
+     * `undefined` supprime la colonne : ailleurs, elle décalerait les noms pour
+     * rien.
+     */
+    tuned?: boolean;
 }) {
+    const t = useTranslations("item");
     const def = useDefinition<StatDefinition>("DestinyStatDefinition", statHash);
     const name = def?.displayProperties?.name;
+    // Les statistiques d'armure ont une icône, celles des armes non.
+    const icon = def?.displayProperties?.icon;
     if (!name) return null;
 
     const pct = (part: number) =>
@@ -48,7 +61,32 @@ export function StatBar({
 
     return (
         <div className={`stat-bar${withBar ? "" : " stat-bar--plain"}`}>
-            <span className="stat-bar__name">{name}</span>
+
+
+            <span className="stat-bar__name">
+                {/* Colonne rendue même vide : le repère ne doit pas décaler les
+                noms d'une ligne à l'autre. */}
+                {tuned !== undefined && (
+                    <span
+                        className="stat-bar__tuned"
+                        title={tuned ? t("tunedStat") : undefined}
+                        aria-label={tuned ? t("tunedStat") : undefined}
+                    >
+                    {tuned && <TunedStatIcon/>}
+                </span>
+                )}
+                {name}
+            </span>
+
+            {icon && (
+                // Glyphe blanc sur fond transparent : posé en masque, il prend
+                // la couleur du texte — comme l'icône d'archétype.
+                <span
+                    className="stat-bar__icon"
+                    style={{"--stat-icon": `url(${BUNGIE_ROOT}${icon})`} as CSSProperties}
+                    aria-hidden
+                />
+            )}
 
             {withBar && (
                 <div className="stat-bar__track">

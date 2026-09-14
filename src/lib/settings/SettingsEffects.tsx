@@ -13,9 +13,11 @@ import {useSettings} from "./store";
  */
 export function SettingsEffects() {
     const theme = useSettings((s) => s.theme);
+    const visualEffects = useSettings((s) => s.visualEffects);
     const iconSize = useSettings((s) => s.iconSize);
     const vaultIconSize = useSettings((s) => s.vaultIconSize);
     const loadoutIconSize = useSettings((s) => s.loadoutIconSize);
+    const plugSize = useSettings((s) => s.plugSize);
 
     useEffect(() => {
         const root = document.documentElement;
@@ -27,6 +29,15 @@ export function SettingsEffects() {
             root.dataset.theme = theme;
         }
     }, [theme]);
+
+    // Attribut posé seulement quand les effets sont coupés : c'est l'état
+    // d'exception. Un cookie muet — ou l'absence de JavaScript — laisse donc
+    // le CSS sur son défaut, effets allumés.
+    useEffect(() => {
+        const root = document.documentElement;
+        if (visualEffects) delete root.dataset.effects;
+        else root.dataset.effects = "off";
+    }, [visualEffects]);
 
     useEffect(() => {
         document.documentElement.style.setProperty("--item-size", `${iconSize}px`);
@@ -45,6 +56,10 @@ export function SettingsEffects() {
             `${loadoutIconSize}px`,
         );
     }, [loadoutIconSize]);
+
+    useEffect(() => {
+        document.documentElement.style.setProperty("--plug-size", `${plugSize}px`);
+    }, [plugSize]);
 
     return null;
 }

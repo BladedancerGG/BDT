@@ -50,3 +50,16 @@
     height: auto;
   }
 }
+
+.profile-loader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 2rem 0;
+
+  svg {
+    width: 100px;
+    height: auto;
+  }
+}

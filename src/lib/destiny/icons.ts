@@ -1,16 +1,21 @@
 // Icônes détourées des objets.
 //
 // `displayProperties.icon` est un JPEG avec le fond de rareté **incrusté** dans
-// l'image. La table `DestinyIconDefinition` — indexée par le hash de l'objet —
-// expose la version détourée :
+// l'image. La table `DestinyIconDefinition` expose la version détourée :
 //   foreground          : PNG transparent de l'objet seul
 //   background          : fond de rareté, en image (on préfère une couleur CSS)
 //   secondaryBackground : filigrane de saison
 //   highResForeground   : variante haute résolution
 //
-// Couverture mesurée : ~62 % des armes et armures du manifeste, ~82 % des
-// objets réellement présents dans un inventaire. Un repli sur le JPEG reste
-// donc indispensable.
+// Elle n'est PAS indexée par le hash de l'objet : elle a ses propres hashes, et
+// c'est `displayProperties.iconHash` qui y renvoie. Les deux coïncident souvent
+// — assez pour que la lecture au hash d'objet paraisse marcher — mais ils
+// diffèrent pour 24 263 des 38 894 objets du manifeste, dont 22 105 ont bien
+// une icône détourée. La couverture des armes et armures passe ainsi de 62 %
+// à 100 %. C'est aussi la lecture que fait DIM (`defs.Icon.get(iconHash)`).
+//
+// Un repli sur le JPEG reste en place : quelques objets n'ont pas de
+// `foreground`.
 
 import type { InventoryItemDefinition } from "./types";
 import { ITEM_TYPE } from "./display";

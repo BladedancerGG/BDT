@@ -8,6 +8,7 @@ import {
 } from "@/lib/bungie/actions";
 import { BungieApiError } from "@/lib/bungie/client";
 import { isMoveStepRequest, type MoveStepError } from "@/lib/actions/types";
+import { isStackId, STACK_ITEM_ID } from "@/lib/destiny/moves";
 
 /**
  * POST /api/actions — exécute **une** étape de déplacement.
@@ -33,12 +34,17 @@ export async function POST(request: Request) {
 
   try {
     const { membershipType } = await getPrimaryDestinyMembership(accessToken);
+    // Un objet non instancié se désigne par son hash et un `itemId` à « 0 » :
+    // ce que porte l'étape est alors l'identifiant de synthèse de la pile, bon
+    // pour la file d'actions mais pas pour l'API — voir `stackId`.
+    const stack = isStackId(body.itemInstanceId);
     const target = {
       accessToken,
       membershipType,
-      itemId: body.itemInstanceId,
+      itemId: stack ? STACK_ITEM_ID : body.itemInstanceId,
       itemReferenceHash: body.itemHash,
       characterId: body.characterId,
+      stackSize: body.stackSize,
     };
 
     switch (body.kind) {

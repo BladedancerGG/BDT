@@ -2,7 +2,9 @@
 
 import {createContext, useContext, useMemo} from "react";
 import type {ItemDetail} from "@/lib/bungie/item-components";
+import type {InventoryItemDefinition} from "@/lib/destiny/types";
 import {savedSockets} from "@/lib/destiny/use-loadout-items";
+import {useFragmentLocks} from "@/lib/destiny/use-fragment-locks";
 
 /**
  * Édition des attributs d'un **instantané** de groupe.
@@ -54,6 +56,12 @@ export interface SnapshotEdit {
      * équipement sauvegardé.
      */
     sockets: number[];
+    /**
+     * Sockets que l'instantané laisse verrouillés — voir `useSnapshotLocks`.
+     * Ils prennent la place de `ItemDetail.disabledSockets`, qui décrit l'objet
+     * du moment et non la configuration qu'on modifie.
+     */
+    locked: ReadonlySet<number>;
     onPick: (socketIndex: number, plugHash: number) => void;
 }
 
@@ -69,17 +77,35 @@ export interface SnapshotEdit {
 export function useSnapshotEdit(
     itemInstanceId: string | undefined,
     detail: ItemDetail | undefined,
+    /**
+     * Définition de l'objet. Sert aux verrous d'une doctrine : sans elle, on ne
+     * sait pas quels sockets sont des aspects et lesquels des fragments.
+     */
+    def?: InventoryItemDefinition,
 ): SnapshotEdit | undefined {
     const context = useContext(SnapshotEditContext);
+    const saved = itemInstanceId
+        ? context?.sockets.get(itemInstanceId)
+        : undefined;
+
+    const sockets = useMemo(
+        () => (saved ? savedSockets(saved, detail) : undefined),
+        [saved, detail],
+    );
+
+    // Les verrous viennent de l'INSTANTANÉ et non de l'objet : c'est tout son
+    // objet que d'être une autre configuration que celle du moment. Le calcul,
+    // lui, est le même que pour l'objet porté — voir `useFragmentLocks`.
+    const locked = useFragmentLocks(def, sockets);
 
     return useMemo(() => {
-        if (!context || !itemInstanceId) return undefined;
-        const saved = context.sockets.get(itemInstanceId);
-        if (!saved) return undefined;
+        if (!context || !itemInstanceId || !sockets) return undefined;
         return {
-            sockets: savedSockets(saved, detail),
+            sockets,
+            locked,
             onPick: (socketIndex: number, plugHash: number) =>
                 context.onPick(itemInstanceId, socketIndex, plugHash),
         };
-    }, [context, itemInstanceId, detail]);
+    }, [context, itemInstanceId, sockets, locked]);
 }
+
