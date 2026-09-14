@@ -39,6 +39,7 @@ export function MainMenuButton() {
                     src="/images/BDT.png"
                     width={40}
                     height={40}
+                    alt={"BDT logo"}
                 />
             </h1>
         </button>
