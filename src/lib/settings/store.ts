@@ -16,7 +16,6 @@ import {
     parseItemCategory,
     parseSearchMissMode,
     parseViewMode,
-    VIEW_MODES,
     type ItemCategory,
     type SearchMissMode,
     type ThemePreference,
@@ -253,14 +252,13 @@ export const useSettings = create<SettingsState>()(
             setSearchMissMode: (searchMissMode) => set({searchMissMode}),
             setViewMode: (viewMode) => set({viewMode}),
             setSyncEnabled: (syncEnabled) => set({syncEnabled}),
-            // Un cycle et non une bascule : il y a trois modes depuis les
-            // groupes d'équipements, et la touche Tab n'en a qu'un à donner.
+            // Une bascule, et non un cycle sur les trois modes : la navigation
+            // n'offre plus que deux destinations, `loadouts` n'étant plus qu'un
+            // étage sous `groups`. Tab passe donc d'une branche à l'autre, et
+            // ramène à l'inventaire depuis l'étage du bas.
             toggleViewMode: () =>
                 set((state) => ({
-                    viewMode:
-                        VIEW_MODES[
-                            (VIEW_MODES.indexOf(state.viewMode) + 1) % VIEW_MODES.length
-                        ],
+                    viewMode: state.viewMode === "inventory" ? "groups" : "inventory",
                 })),
 
             toggleSort: (id) =>

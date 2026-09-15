@@ -90,6 +90,22 @@
     }
   }
 
+  // Bandeau du mode « équipements » : son bouton de retour vers les groupes.
+  // Au-dessus du corps, dont il reprend les marges latérales pour s'aligner sur
+  // la première colonne.
+  &__toolbar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
+    padding: 1rem 1rem 0;
+
+    svg {
+      width: 1rem;
+      height: 1rem;
+    }
+  }
+
   // Équipement à gauche, coffre à droite. Empilés sous 1024 px : les deux
   // colonnes d'emplacements et leurs panneaux dépliants demandent de la largeur.
   &__body {

@@ -47,6 +47,7 @@ import {ActionsPanel} from "./actions/ActionsPanel";
 import {DropZones} from "./dnd/DropZones";
 import {DragScopeProvider, MoveDnd, type DragScope} from "./dnd/MoveDnd";
 import {LoadingIcon} from "@/components/icons";
+import {ArrowLeftIcon} from "@heroicons/react/24/solid";
 
 /**
  * Vide l'unique file d'actions.
@@ -174,6 +175,7 @@ function Inventory({data}: { data: ProfileData }) {
      */
     const selecting = useGroupSelection((s) => s.active);
     const preferredMode = useSettings((s) => s.viewMode);
+    const setViewMode = useSettings((s) => s.setViewMode);
     const viewMode = selecting ? "inventory" : preferredMode;
 
     const currentEquipped = current
@@ -472,6 +474,20 @@ function Inventory({data}: { data: ProfileData }) {
                             }`}
                             inert={!equipmentMode}
                         >
+                            {/* La seule sortie de ce mode : il n'a plus
+                                d'onglet, on y descend depuis la carte des
+                                équipements actuels de la vue « groupes ». */}
+                            <div className="inventory-view__toolbar">
+                                <button
+                                    type="button"
+                                    className="btn btn--small"
+                                    onClick={() => setViewMode("groups")}
+                                >
+                                    <ArrowLeftIcon/>
+                                    {t("backToGroups")}
+                                </button>
+                            </div>
+
                             <div className="inventory-view__body inventory-view__body--equipment">
                                 {/* Une ligne par emplacement, ses attributs à côté */}
                                 <div className="inventory-view__equipment">

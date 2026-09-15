@@ -14,10 +14,10 @@ import {
 import {Link} from "@/i18n/navigation";
 import {useUi} from "@/lib/ui/store";
 import {useSettings} from "@/lib/settings/store";
-import {VIEW_MODES} from "@/lib/settings/constants";
+import {NAV_VIEW_MODES, navViewModeOf, navViewTarget} from "@/lib/settings/constants";
 import {useGroupSelection} from "@/lib/loadouts/groups/selection";
 import {APP_TITLE} from "@/lib/app-info";
-import {Cog6ToothIcon, SquaresPlusIcon} from "@heroicons/react/24/solid"
+import {Cog6ToothIcon} from "@heroicons/react/24/solid"
 import {LoadoutsIcon, VaultIcon} from "@/components/icons";
 import DiscordIcon from "@/components/icons/other/DiscordIcon"
 import GithubIcon from "@/components/icons/other/GithubIcon";
@@ -95,23 +95,27 @@ export function MainMenu({displayName}: { displayName?: string }) {
                         </header>
 
                         {/* Les vues ne sont pas des routes : basculer, c'est écrire
-                            la préférence, comme le font les onglets. */}
+                            la préférence, comme le font les onglets. Deux
+                            entrées seulement — voir NAV_VIEW_MODES. */}
                         {!selecting && (
                             <div className="main-menu__section">
-                                {VIEW_MODES.map((mode) => (
+                                {NAV_VIEW_MODES.map((mode) => (
                                     <button
                                         key={mode}
                                         type="button"
                                         className="main-menu__item"
-                                        aria-current={mode === viewMode ? "page" : undefined}
+                                        aria-current={
+                                            mode === navViewModeOf(viewMode)
+                                                ? "page"
+                                                : undefined
+                                        }
                                         onClick={() => {
-                                            setViewMode(mode);
+                                            setViewMode(navViewTarget(mode));
                                             setOpen(false);
                                         }}
                                     >
                                         {mode === "inventory" && <VaultIcon/>}
                                         {mode === "loadouts" && <LoadoutsIcon/>}
-                                        {mode === "groups" && <SquaresPlusIcon/>}
                                         {tCommon(mode)}
                                     </button>
                                 ))}

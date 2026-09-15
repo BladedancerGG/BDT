@@ -75,6 +75,28 @@ export function parseViewMode(raw: unknown): ViewMode | undefined {
 }
 
 /**
+ * Les vues qu'offre la navigation — onglets comme menu.
+ *
+ * `groups` n'y a plus d'entrée : la vue des groupes est devenue la porte des
+ * équipements, et l'on descend vers `loadouts` en cliquant la carte des
+ * équipements actuels. L'entrée « équipements » garde donc son nom et son icône
+ * mais ouvre les groupes, et reste marquée active dans les deux vues — ce sont
+ * deux étages du même endroit.
+ */
+export const NAV_VIEW_MODES = ["inventory", "loadouts"] as const;
+export type NavViewMode = (typeof NAV_VIEW_MODES)[number];
+
+/** La vue qu'ouvre une entrée de navigation. */
+export function navViewTarget(mode: NavViewMode): ViewMode {
+    return mode === "loadouts" ? "groups" : mode;
+}
+
+/** L'entrée de navigation à marquer active pour une vue donnée. */
+export function navViewModeOf(viewMode: ViewMode): NavViewMode {
+    return viewMode === "inventory" ? "inventory" : "loadouts";
+}
+
+/**
  * Familles d'objets affichées par la vue d'inventaire.
  *
  * L'onglet choisi commande **les deux côtés** de la vue : les emplacements du
