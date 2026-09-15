@@ -6,13 +6,22 @@
 //
 // La séquence suit le cahier des charges : vider les emplacements, puis, pour
 // chacun de ceux du groupe, équiper ses objets avec leurs attributs et écraser
-// l'emplacement avec ce qui est alors équipé.
+// l'emplacement avec ce qui est alors équipé. **L'ordre dans lequel les
+// emplacements y passent, lui, n'est pas celui du personnage** : il est choisi
+// pour que deux emplacements qui se ressemblent se suivent — voir
+// `equip-order.ts`.
 
 import type {DestinyLoadout} from "@/lib/bungie/profile";
 import type {QueuedItem} from "@/lib/actions/store";
 import {INVALID_HASH, isEmptyLoadout, isRealHash} from "../loadout";
 import type {LoadoutIdentifierHashes} from "../use-loadout-identifiers";
 import type {GroupLoadout} from "./types";
+import {
+    orderCost,
+    orderEquipSlots,
+    type EquipState,
+    type OrderedSlot,
+} from "./equip-order";
 
 /** Un attribut à poser une fois l'objet équipé. */
 export interface PlannedPlug {
@@ -52,8 +61,15 @@ export interface SkippedGroupSlot {
 export interface GroupEquipPlan {
     /** Emplacements du personnage à vider, dans l'ordre */
     clear: number[];
+    /** Emplacements à équiper, **dans l'ordre d'exécution choisi** */
     slots: PlannedGroupSlot[];
     skipped: SkippedGroupSlot[];
+    /**
+     * Requêtes que les équipements et les attributs demanderont, l'ordre choisi
+     * pris en compte — un objet déjà en place n'en coûte aucune. Les vidages et
+     * les écrasements n'y sont pas : voir `planRequestCount`.
+     */
+    changes: number;
 }
 
 /**
@@ -71,6 +87,15 @@ export interface GroupEquipContext {
     itemOf: (itemInstanceId: string) => QueuedItem | undefined;
     /** Attributs actuels de l'objet, indexés par index de socket */
     socketsOf: (itemInstanceId: string) => readonly number[];
+    /**
+     * Instances équipées sur le personnage avant toute action.
+     *
+     * Elles décident par quel emplacement commencer : celui qui ressemble le
+     * plus à ce qui est déjà porté ne coûte presque rien. Le vidage qui le
+     * précède n'y change rien — `ClearLoadout` efface un emplacement
+     * enregistré, il ne déséquipe personne.
+     */
+    equippedNow: readonly string[];
 }
 
 /** Clé d'un socket précis d'un objet précis. */
@@ -201,6 +226,11 @@ export function planGroupEquip(
     const skipped: SkippedGroupSlot[] = [];
     const volatiles = volatileSockets(groupLoadouts);
 
+    /** Ce que chaque emplacement retenu coûte, pour en choisir l'ordre. */
+    const costs: OrderedSlot[] = [];
+    /** L'état des sockets avant la séquence, restreint à ceux qui servent. */
+    const initialSockets = new Map<string, number>();
+
     groupLoadouts.forEach((loadout, loadoutIndex) => {
         // Le groupe laisse cet emplacement vide : le vidage suffit à l'y mettre.
         if (isEmptyLoadout(loadout)) return;
@@ -217,6 +247,7 @@ export function planGroupEquip(
 
         const equip: QueuedItem[] = [];
         const plugs: PlannedPlug[] = [];
+        const sockets = new Map<string, number>();
 
         for (const entry of loadout.items) {
             const item = ctx.itemOf(entry.itemInstanceId);
@@ -224,15 +255,23 @@ export function planGroupEquip(
             // remplira sans lui, comme le fait le jeu.
             if (!item) continue;
 
+            const current = ctx.socketsOf(entry.itemInstanceId);
             equip.push(item);
             plugs.push(
-                ...plugsToInsert(
-                    item,
-                    entry.plugItemHashes,
-                    ctx.socketsOf(entry.itemInstanceId),
-                    volatiles,
-                ),
+                ...plugsToInsert(item, entry.plugItemHashes, current, volatiles),
             );
+
+            // Le relevé qui sert au choix de l'ordre. Il part des valeurs
+            // **enregistrées**, et non des `plugs` ci-dessus : ceux-ci ont déjà
+            // écarté ce qui est en place, alors qu'ici c'est justement ce qu'un
+            // emplacement voisin fait économiser qu'on cherche à voir.
+            entry.plugItemHashes.forEach((plugItemHash, socketIndex) => {
+                if (plugItemHash === INVALID_HASH || plugItemHash === 0) return;
+                const key = socketKey(entry.itemInstanceId, socketIndex);
+                sockets.set(key, plugItemHash);
+                const now = current[socketIndex];
+                if (now !== undefined) initialSockets.set(key, now);
+            });
         }
 
         // Plus un seul objet : il n'y aurait rien à équiper, et l'écrasement
@@ -248,7 +287,17 @@ export function planGroupEquip(
             equip,
             plugs,
         });
+        costs.push({items: equip.map((item) => item.itemInstanceId), sockets});
     });
+
+    // —— Choisir l'ordre d'exécution, et ranger les emplacements dedans.
+    const initial: EquipState = {
+        items: new Set(ctx.equippedNow),
+        sockets: initialSockets,
+    };
+    const order = orderEquipSlots(costs, initial);
+    const ordered = order.map((index) => slots[index]);
+    const changes = orderCost(costs, order, initial);
 
     /** Les emplacements qu'un écrasement va de toute façon réécrire. */
     const overwritten = new Set(slots.map((slot) => slot.loadoutIndex));
@@ -257,19 +306,18 @@ export function planGroupEquip(
         isEmptyLoadout(loadout) || overwritten.has(index) ? [] : [index],
     );
 
-    return {clear, slots, skipped};
+    return {clear, slots: ordered, skipped, changes};
 }
 
-/** Nombre de requêtes que le plan enverra, au plus — pour le dire à l'avance. */
+/**
+ * Nombre de requêtes que le plan enverra, à peu près — pour le dire à l'avance.
+ *
+ * Un vidage et un écrasement par emplacement, plus ce que l'ordre choisi laisse
+ * de différences à combler (`changes`). L'estimation n'encadre rien : un objet
+ * déjà équipé ne coûte rien, mais un objet au coffre peut coûter plusieurs
+ * requêtes (déséquipement, rangement, transfert). D'où « environ » dans la
+ * confirmation.
+ */
 export function planRequestCount(plan: GroupEquipPlan): number {
-    return (
-        plan.clear.length +
-        plan.slots.reduce(
-            // `equip` majore : un objet déjà équipé ne coûte rien, un objet au
-            // coffre peut en revanche coûter plusieurs requêtes (déséquipement,
-            // rangement, transfert). D'où « au plus ».
-            (total, slot) => total + slot.equip.length + slot.plugs.length + 1,
-            0,
-        )
-    );
+    return plan.clear.length + plan.slots.length + plan.changes;
 }

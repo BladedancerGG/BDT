@@ -281,6 +281,20 @@ function AppearancePanel() {
 
     return (
         <div className="settings__group">
+
+            <SettingRow label={t("language")} hint={t("languageHint")} htmlFor="setting-language">
+                <Select<Locale>
+                    id="setting-language"
+                    value={locale}
+                    onChange={changeLocale}
+                    options={routing.locales.map((value) => ({
+                        value,
+                        label: LOCALE_LABELS[value],
+                    }))}
+                />
+                {pending && <span className="settings__pending" aria-hidden/>}
+            </SettingRow>
+
             <SettingRow label={t("theme")} htmlFor="setting-theme">
                 <Select<ThemePreference>
                     id="setting-theme"
@@ -305,19 +319,6 @@ function AppearancePanel() {
                     onChange={setVisualEffects}
                     label={t("effects")}
                 />
-            </SettingRow>
-
-            <SettingRow label={t("language")} hint={t("languageHint")} htmlFor="setting-language">
-                <Select<Locale>
-                    id="setting-language"
-                    value={locale}
-                    onChange={changeLocale}
-                    options={routing.locales.map((value) => ({
-                        value,
-                        label: LOCALE_LABELS[value],
-                    }))}
-                />
-                {pending && <span className="settings__pending" aria-hidden/>}
             </SettingRow>
 
             <SettingRow

@@ -26,6 +26,11 @@ const NO_ITEMS: readonly string[] = [];
  * écraser l'emplacement avec ce qui est alors équipé. Le calcul, lui, est dans
  * `equip.ts` — module pur, vérifiable hors React.
  *
+ * Les emplacements sont mis en file **dans l'ordre que le plan a choisi**, qui
+ * n'est pas celui du personnage : deux emplacements qui partagent leurs objets
+ * se suivent, et l'exécuteur n'a alors plus qu'à envoyer les différences. Voir
+ * `equip-order.ts` — c'est là que se gagnent les requêtes.
+ *
  * Toutes ces actions portent un **même identifiant de lot**, et c'est
  * indispensable : chaque étape suppose la précédente aboutie. L'échec d'un
  * équipement annule la suite, faute de quoi l'écrasement aurait enregistré en
@@ -71,6 +76,11 @@ export function useEquipGroup(characterId: string | null) {
                         };
                     },
                     socketsOf: (id) => profile.items[id]?.sockets ?? [],
+                    // Ce que le personnage porte déjà : c'est par là que la
+                    // séquence commencera si un emplacement s'en approche.
+                    equippedNow: (profile.equipment[characterId] ?? []).flatMap(
+                        (item) => (item.itemInstanceId ? [item.itemInstanceId] : []),
+                    ),
                 },
             );
         },

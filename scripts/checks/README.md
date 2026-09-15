@@ -14,6 +14,7 @@ casse en silence.
 | ---------------------- | ---------------------------------------------- |
 | `edit.check.ts`        | `lib/loadouts/groups/edit.ts`                  |
 | `equip.check.ts`       | `lib/loadouts/groups/equip.ts`                 |
+| `equip-order.check.ts` | `lib/loadouts/groups/equip-order.ts` (ordre d'exécution) |
 | `insert.check.ts`      | `lib/destiny/insert-plan.ts`                   |
 | `backup.check.ts`      | `lib/settings/backup.ts`                       |
 | `sync-merge.check.ts`  | `lib/loadouts/groups/sync-merge.ts`            |

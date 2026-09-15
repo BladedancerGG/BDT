@@ -8,6 +8,11 @@
 //  - un emplacement écarté plutôt qu'équipé à moitié, quand ses objets ont
 //    disparu ou que son apparence est incomplète — `SnapshotLoadout` exige les
 //    trois identifiants.
+//
+// L'**ordre** dans lequel les emplacements sortent du plan n'est plus celui du
+// personnage (voir `equip-order.check.ts`) : les contrôles qui portent sur le
+// contenu d'un emplacement le retrouvent par son `loadoutIndex`, jamais par sa
+// place dans `slots`.
 
 import {
     planGroupEquip,
@@ -34,7 +39,14 @@ const ctx: GroupEquipContext = {
             ? undefined
             : ({itemInstanceId: id, itemHash: HASHES[id]} satisfies QueuedItem),
     socketsOf: (id) => SOCKETS[id] ?? [],
+    equippedNow: [],
 };
+
+/** Les attributs de chaque emplacement, rangés par `loadoutIndex`. */
+const plugsByIndex = (plan: {slots: {loadoutIndex: number; plugs: {plugItemHash: number}[]}[]}) =>
+    [...plan.slots]
+        .sort((a, b) => a.loadoutIndex - b.loadoutIndex)
+        .map((slot) => slot.plugs.map((plug) => plug.plugItemHash));
 
 /** Un emplacement plein, avec une apparence valide. */
 const full = (items: {id: string; plugs: number[]}[]): GroupLoadout => ({
@@ -102,6 +114,7 @@ const SUBCLASS: GroupEquipContext = {
         id === "sub" ? ({itemInstanceId: "sub", itemHash: 55} satisfies QueuedItem)
                      : undefined,
     socketsOf: () => [400, 500],
+    equippedNow: [],
 };
 
 const grenade = (hash: number): GroupLoadout => ({
@@ -114,7 +127,11 @@ const grenade = (hash: number): GroupLoadout => ({
 // enregistrait la grenade du premier.
 const shared = planGroupEquip([grenade(401), grenade(400)], [], SUBCLASS);
 check("le socket disputé est posé pour les DEUX emplacements",
-    shared.slots.map((s) => s.plugs.map((p) => p.plugItemHash)), [[401], [400]]);
+    plugsByIndex(shared), [[401], [400]]);
+// L'ordre, lui, s'inverse : commencer par la valeur déjà en place épargne une
+// insertion. C'est tout le propos d'`equip-order.ts`.
+check("… et l'emplacement le moins cher passe en premier",
+    shared.slots.map((s) => s.loadoutIndex), [1, 0]);
 
 // Le socket 1 vaut 500 partout, et 500 est déjà en place : rien à poser.
 check("un socket stable et déjà en place reste écarté",
@@ -124,19 +141,18 @@ check("un socket stable et déjà en place reste écarté",
 const three = planGroupEquip(
     [grenade(400), grenade(401), grenade(402)], [], SUBCLASS);
 check("trois valeurs pour un socket : les trois sont posées",
-    three.slots.map((s) => s.plugs.map((p) => p.plugItemHash)),
-    [[400], [401], [402]]);
+    plugsByIndex(three), [[400], [401], [402]]);
 
 // Deux emplacements qui demandent la MÊME valeur, déjà en place : rien à poser.
 check("deux emplacements d'accord sur la valeur en place : rien à poser",
-    planGroupEquip([grenade(400), grenade(400)], [], SUBCLASS)
-        .slots.map((s) => s.plugs.length), [0, 0]);
+    plugsByIndex(planGroupEquip([grenade(400), grenade(400)], [], SUBCLASS)),
+    [[], []]);
 
 // La sentinelle d'un emplacement ne rend pas le socket volatil : elle veut
 // justement dire « ne pas y toucher ».
 check("un emplacement à la sentinelle ne rend pas le socket volatil",
-    planGroupEquip([grenade(400), grenade(INVALID_HASH)], [], SUBCLASS)
-        .slots.map((s) => s.plugs.length), [0, 0]);
+    plugsByIndex(planGroupEquip([grenade(400), grenade(INVALID_HASH)], [], SUBCLASS)),
+    [[], []]);
 
 
 
@@ -163,6 +179,7 @@ const BARE: GroupEquipContext = {
         EMPTY_FRAGMENT, EMPTY_FRAGMENT, EMPTY_FRAGMENT,
         EMPTY_FRAGMENT, EMPTY_FRAGMENT, EMPTY_FRAGMENT,
     ],
+    equippedNow: [],
 };
 
 /** Un instantané avec deux aspects et trois fragments. */
@@ -243,8 +260,8 @@ const partial = planGroupEquip(
     ctx,
 );
 check("ni les libres, ni ceux qu'un écrasement réécrit", partial.clear, [1]);
-check("les emplacements remplis, dans l'ordre",
-    partial.slots.map((s) => s.loadoutIndex), [0, 3]);
+check("les emplacements remplis sont tous là",
+    [...partial.slots].map((s) => s.loadoutIndex).sort(), [0, 3]);
 
 const onlyClear = planGroupEquip(group([undefined, undefined, undefined, undefined]),
     character, ctx);
@@ -276,7 +293,7 @@ check("vidages : 1 et 3 (0 est réécrit, 2 est libre)", counted.clear, [1, 3]);
 check("2 équipements et 2 attributs pour l'unique emplacement",
     [counted.slots[0].equip.length, counted.slots[0].plugs.length], [2, 2]);
 // 2 vidages + 2 équipements + 2 attributs + 1 écrasement
-check("requêtes au plus", planRequestCount(counted), 7);
+check("requêtes annoncées", planRequestCount(counted), 7);
 check("un plan sans rien à faire ne coûte rien",
     planRequestCount(planGroupEquip([], [], ctx)), 0);
 check("un groupe qui ne fait que vider coûte un vidage par emplacement",

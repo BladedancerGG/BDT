@@ -21,6 +21,7 @@
   "files": [
     "edit.check.ts",
     "equip.check.ts",
+    "equip-order.check.ts",
     "insert.check.ts",
     "backup.check.ts",
     "sync-merge.check.ts",

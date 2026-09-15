@@ -1022,8 +1022,9 @@ The sequence is the specified one, and `equip.ts` computes it — a pure module
 like `edit.ts`, verified by running it:
 
 1. **clear** the character's loadout slots;
-2. for each group slot, in order: **equip** its items, **insert** the perks that
-   differ, then **snapshot** the slot over what is then equipped.
+2. for each group slot, **in the order chosen below**: **equip** its items,
+   **insert** the perks that differ, then **snapshot** the slot over what is
+   then equipped.
 
 There is no "write a loadout" endpoint: `SnapshotLoadout` only records what the
 character currently wears. That is the whole reason for the shape above — the
@@ -1040,6 +1041,35 @@ refused.
 identical — a `SnapshotLoadout` overwrites the slot it targets — and it saves one
 request per filled slot. Already-free slots are skipped for the same reason, and
 because `ClearLoadout` would refuse them.
+
+##### The order of the slots is chosen, not given
+
+`equip-order.ts` decides in which order the slots are played, and it is **not**
+the character's slot order. Equipping an item that is already on is free — the
+runner re-plans every move and drops the ones that became pointless — so the
+only thing a group really costs is the **differences between consecutive
+slots**. Walking the slots in index order ignores that kinship and pays for a
+near-complete set every time.
+
+It is a travelling-salesman path problem with asymmetric costs and an imposed
+start: what the character already wears. The cost of a step is one request per
+item the previous slot did not leave equipped, plus one per socket it did not
+leave at the wanted value — items *replace* each other, plugs *accumulate*, an
+inserted perk surviving the item being stowed. It is solved by a greedy
+construction followed by a local search (relocate a slot, swap two), evaluated
+by simulating the whole order rather than through a distance matrix.
+
+Not solved exactly, and deliberately: a character has at most twelve slots, and
+the real data is heavily clustered — a character carries several *families* of
+loadouts (PvP, PvE, a raid) that share almost everything inside and almost
+nothing across. The cheapest path walks them family by family on its own, and
+on the check's twelve-slot instance the local search lands on the optimum an
+exact Held-Karp confirms.
+
+Nothing about the end state depends on this order: every snapshot targets its
+own slot and none reads the others. The only visible difference is what the
+character wears once it is over — the last slot *played*, no longer the last
+slot of the list.
 
 Each item is enqueued **unconditionally**, and that matters: `useMovePlanner`
 drops a pointless move by consulting the profile *at enqueue time*, and the
@@ -2857,9 +2887,9 @@ La séquence est celle du cahier des charges, et `equip.ts` la calcule — modul
 pur comme `edit.ts`, vérifié en l'exécutant :
 
 1. **vider** les emplacements d'équipement du personnage ;
-2. pour chaque emplacement du groupe, dans l'ordre : **équiper** ses objets,
-   **poser** les attributs qui diffèrent, puis **écraser** l'emplacement avec ce
-   qui est alors équipé.
+2. pour chaque emplacement du groupe, **dans l'ordre choisi plus bas** :
+   **équiper** ses objets, **poser** les attributs qui diffèrent, puis
+   **écraser** l'emplacement avec ce qui est alors équipé.
 
 Il n'existe pas d'endpoint « écrire un équipement » : `SnapshotLoadout`
 n'enregistre que ce que le personnage porte à l'instant. C'est toute la raison de
@@ -2876,6 +2906,37 @@ serait refusée.
 final est identique — un `SnapshotLoadout` écrase l'emplacement qu'il vise — et
 cela épargne une requête par emplacement rempli. Les emplacements déjà libres
 sont écartés pour la même raison, et parce que `ClearLoadout` les refuserait.
+
+##### L'ordre des emplacements se choisit, il n'est pas donné
+
+`equip-order.ts` décide dans quel ordre les emplacements passent, et ce **n'est
+pas** celui du personnage. Équiper un objet déjà en place ne coûte rien —
+l'exécuteur replanifie chaque déplacement et écarte ceux devenus inutiles — si
+bien que ce qu'un groupe coûte réellement, ce sont les **différences entre deux
+emplacements consécutifs**. Les parcourir dans l'ordre des index ignore cette
+parenté : on paie chaque fois la panoplie entière, ou presque.
+
+C'est un problème de voyageur de commerce (chemin, coûts asymétriques) avec un
+point de départ imposé : ce que le personnage porte déjà. Le coût d'une étape
+est d'une requête par objet que l'emplacement précédent n'a pas laissé équipé,
+plus une par socket qu'il n'a pas laissé à la bonne valeur — les objets **se
+remplacent**, les attributs **s'accumulent**, un attribut posé survivant au
+rangement de l'objet. Il est résolu par une construction gloutonne suivie d'une
+recherche locale (déplacer un emplacement, en échanger deux), évaluée en
+simulant l'ordre entier plutôt qu'au travers d'une matrice de distances.
+
+Pas résolu exactement, et volontairement : un personnage a au plus douze
+emplacements, et les données réelles sont très groupées — on porte plusieurs
+*familles* d'équipements (du JcJ, du JcE, un raid) qui partagent presque tout à
+l'intérieur et presque rien entre elles. Le chemin le moins cher les parcourt
+famille par famille de lui-même, et sur l'instance à douze emplacements de la
+vérification la recherche locale retombe sur l'optimum qu'un Held-Karp exact
+confirme.
+
+L'état final ne dépend en rien de cet ordre : chaque écrasement vise son propre
+emplacement, et aucun ne lit les autres. Seule change la panoplie que le
+personnage porte à la fin — celle du dernier emplacement *joué*, et non plus
+celle du dernier de la liste.
 
 Chaque objet est mis en file **sans condition**, et c'est essentiel :
 `useMovePlanner` écarte un déplacement inutile en consultant le profil *au moment
