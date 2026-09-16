@@ -2,6 +2,7 @@
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useActionsBusy } from "@/lib/actions/store";
+import { useSharedSnapshotDetails } from "./shared-snapshot";
 import type { DestinyItemComponent, DestinyLoadout } from "./profile";
 import type { ItemDetail } from "./item-components";
 import type { ProfilePlugSets } from "./plug-sets";
@@ -56,9 +57,14 @@ const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 export function useProfile() {
   const queryClient = useQueryClient();
   const busy = useActionsBusy();
+  // La page publique d'un partage n'a pas de session : la requête y serait
+  // refusée, et la relancer à chaque infobulle ouverte n'aurait fait que
+  // remplir la console de 401. L'instantané y tient lieu de profil.
+  const shared = useSharedSnapshotDetails();
 
   return useQuery<ProfileData>({
     queryKey: ["profile"],
+    enabled: !shared,
     // Le profil ne change qu'en jouant : inutile de le recharger sans cesse
     staleTime: 5 * 60 * 1000,
     // Tant que des actions attendent ou s'exécutent, le cache local est en

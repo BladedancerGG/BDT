@@ -22,6 +22,7 @@ casse en silence.
 | `gear.check.ts`        | `lib/destiny/gear.ts` (rangées des coques, vaisseaux et passereaux) |
 | `moves.check.ts`       | `lib/destiny/moves.ts` (déplacement des piles) |
 | `sockets.check.ts`     | `lib/destiny/sockets.ts` (quels sockets lisent les plugs du compte) |
+| `share.check.ts`       | `lib/loadouts/share/snapshot.ts` (l'instantané d'un partage) |
 | `css-duplicates.py`    | la feuille de styles compilée (voir plus bas)  |
 
 ## Lancer

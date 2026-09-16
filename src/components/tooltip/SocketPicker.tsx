@@ -14,6 +14,7 @@ import {isMasterwork} from "@/lib/destiny/overlays";
 import {normalizeText} from "@/lib/search/keywords";
 import {useInsertPlanner} from "@/lib/actions/use-insert-planner";
 import {usePlugActionState, type QueuedItem} from "@/lib/actions/store";
+import {useSnapshotOnly} from "@/lib/bungie/shared-snapshot";
 import {PlugIcon} from "./PlugIcon";
 
 /**
@@ -74,6 +75,14 @@ interface SocketPickerValue {
      * sur l'insertion réelle, celle de l'équipement porté.
      */
     onPick?: (socketIndex: number, plugHash: number) => void;
+    /**
+     * Rien n'est modifiable : aucun sélecteur ne s'ouvre, aucun choix ne
+     * s'écrit.
+     *
+     * Personne ne le pose : il est ajouté par `useSocketPicker` sur une page qui
+     * ne tient que d'un instantané — voir `useSnapshotOnly`.
+     */
+    readOnly?: boolean;
 }
 
 const SocketPickerContext = createContext<SocketPickerValue>({
@@ -85,8 +94,26 @@ const SocketPickerContext = createContext<SocketPickerValue>({
 
 export const SocketPickerProvider = SocketPickerContext.Provider;
 
+/**
+ * Le contexte du sélecteur, forcé en **lecture seule** sur une page partagée.
+ *
+ * La règle est posée ici et non chez chaque fournisseur, pour la raison exacte
+ * qui a fait naître `usePlugWriter` : trois surfaces écrivent un attribut, et
+ * deux ont tour à tour oublié de répéter une règle de ce genre. Ce hook est le
+ * seul point par lequel toutes passent — l'ouverture du sélecteur (`PlugSlot`)
+ * comme l'écriture (`usePlugWriter`).
+ */
 export function useSocketPicker(): SocketPickerValue {
-    return useContext(SocketPickerContext);
+    const value = useContext(SocketPickerContext);
+    const snapshotOnly = useSnapshotOnly();
+
+    // Mémoïsé : l'objet sert de valeur de retour à des composants qui le
+    // destructurent, mais une identité neuve à chaque rendu se paierait dans
+    // tout consommateur qui en ferait une dépendance.
+    return useMemo(
+        () => (snapshotOnly ? {...value, readOnly: true} : value),
+        [value, snapshotOnly],
+    );
 }
 
 /**
@@ -105,7 +132,7 @@ export function useSocketPicker(): SocketPickerValue {
 export function usePlugWriter(
     item: QueuedItem | undefined,
 ): ((socketIndex: number, plugHash: number) => void) | undefined {
-    const {onPick} = useSocketPicker();
+    const {onPick, readOnly} = useSocketPicker();
     const insert = useInsertPlanner();
 
     const write = useCallback(
@@ -120,6 +147,10 @@ export function usePlugWriter(
         [onPick, insert, item],
     );
 
+    // Lecture seule : ni instantané à écrire, ni compte pour équiper. Rendre
+    // `undefined` suffit à rendre les icônes inertes — c'est ce qui décide si
+    // elles se cliquent.
+    if (readOnly) return undefined;
     return onPick || item ? write : undefined;
 }
 
@@ -182,7 +213,7 @@ export function PlugSlot({
     /** Voir `PlugIcon` — support sous les icônes en simple tracé */
     surface?: boolean;
 }) {
-    const {item, target, toggle, disabled, pending} = useSocketPicker();
+    const {item, target, toggle, disabled, pending, readOnly} = useSocketPicker();
     // L'attribut en file prend la place de celui rendu par l'API : l'emplacement
     // montre ce que l'utilisateur vient de choisir, pas ce qu'il remplace.
     const pendingHash = pending.get(column.socketIndex);
@@ -223,6 +254,9 @@ export function PlugSlot({
 
     const browsable =
         Boolean(item) &&
+        // Un partage se regarde : ouvrir le sélecteur n'aurait proposé que des
+        // options qu'on ne peut pas équiper.
+        !readOnly &&
         column.options.length > 1 &&
         !disabled.has(column.socketIndex) &&
         // Pièce maîtresse et mémento se paient : l'API refuserait

@@ -13,7 +13,8 @@
     "duplicate": "Duplicate",
     "cancel": "Cancel",
     "confirm": "Confirm",
-    "join": "Join"
+    "join": "Join",
+    "share": "Share"
   },
   "auth": {
     "login": "Sign in with Bungie"
@@ -334,6 +335,21 @@
     "equipSkipped": "{count} slot(s) are skipped: their items are gone from the account, or their appearance is incomplete.",
     "colorLabel": "Group colour",
     "colorNone": "No colour",
-    "useEquipped": "Use the equipped items"
+    "useEquipped": "Use the equipped items",
+    "shareGroup": "Share this group",
+    "shareLoadout": "Share this loadout"
+  },
+  "share": {
+    "title": "Share",
+    "pending": "Creating the link…",
+    "ready": "The link is ready: anyone who opens it sees this snapshot, no sign-in required.",
+    "empty": "Nothing to share: this snapshot holds no item.",
+    "failed": "The link could not be created. Try again in a moment.",
+    "copy": "Copy",
+    "copied": "Copied",
+    "linkLabel": "Share link",
+    "sharedLabel": "Shared",
+    "sharedBy": "{user} shared {name}",
+    "cta": "Create and manage your own groups:"
   }
 }

@@ -37,6 +37,7 @@ model User {
   syncEnabled    Boolean    @default(true)
   settings       UserSettings?
   loadoutGroups  UserLoadoutGroups?
+  sharedLoadouts SharedLoadout[]
 }
 
 // Préférences synchronisées d'un utilisateur.
@@ -73,4 +74,36 @@ model UserLoadoutGroups {
   // (cf. lib/loadouts/groups/types.ts)
   data      Json
   updatedAt DateTime @updatedAt
+}
+
+// Un groupe ou un équipement **partagé** par lien public.
+//
+// Une table à part, et non un drapeau sur les groupes : ce qui est partagé est
+// un INSTANTANÉ figé, autonome, et non une vue du groupe de l'auteur. Un lien
+// doit continuer de montrer ce qui a été partagé même si le groupe change
+// ensuite, ou disparaît — et surtout, le visiteur n'a pas le profil de
+// l'auteur : les objets y sont donc résolus (hash, emplacement, attributs
+// enregistrés) plutôt que désignés par instance, seule forme qui ne se relit
+// qu'avec le compte d'origine.
+model SharedLoadout {
+  /**
+   * Identifiant ALÉATOIRE et non un cuid croissant : c'est la seule chose qui
+   * protège le lien, la page étant publique et sans session.
+   */
+  id        String   @id
+  /** « group » ou « loadout » — voir lib/loadouts/share/types.ts */
+  kind      String
+  /** Repris tel quel dans l'URL et dans le titre de la page */
+  name      String
+  /** SharedSnapshot, cf. lib/loadouts/share/types.ts */
+  data      Json
+  /**
+   * L'auteur, pour qu'un compte supprimé emporte ses partages. Le visiteur,
+   * lui, n'a aucun compte : la page ne lit jamais cette colonne.
+   */
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }

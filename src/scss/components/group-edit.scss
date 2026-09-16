@@ -7,7 +7,14 @@
 // reprend la disposition de la vue « équipements » et lui faut toute la
 // largeur. Les deux sont des vues de la même pile — l'empilement et le fondu
 // vivent dans `.view` (layout/main.scss), la colonne comprise.
-.group-edit {
+//
+// `.group-preview` — la page publique d'un partage — partage cette disposition
+// et non une copie : c'est la même vue, en lecture seule et sans compte. Les
+// deux blocs sont donc déclarés ensemble plutôt que recopiés, ce que le
+// contrôle CSS de scripts/checks/ signalerait d'ailleurs comme un recouvrement.
+// Ce qui n'appartient qu'à la page publique vit dans `group-preview.scss`.
+.group-edit,
+.group-preview {
   gap: 1rem;
 
   &__toolbar {
@@ -371,40 +378,6 @@
 // nom. Les deux vignettes sont côte à côte et non superposées comme dans
 // `loadout-title` — chacune ouvre sa propre grille, autant qu'elles soient
 // distinctes d'emblée plutôt qu'au survol.
-
-// —— Le titre de la prévisualisation d'un emplacement du personnage ——
-//
-// Il occupe la place du bloc d'identifiants du groupe, dans un conteneur centré
-// dont la police est celle d'un titre : d'où le rappel de taille, la mention
-// n'étant pas le nom mais ce qu'on en fait.
-
-.group-preview-title {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  min-width: 0;
-  font-size: 1.125rem;
-
-  &__label {
-    @include m.slot-mention;
-  }
-
-  // La vignette des grilles, ramenée à la hauteur d'un titre et rendue inerte :
-  // rien ne se choisit ici, c'est un emplacement du jeu qu'on regarde.
-  &__slot {
-    width: 2.25rem;
-    height: 2.25rem;
-    flex-shrink: 0;
-    cursor: default;
-  }
-
-  &__name {
-    @include m.truncate;
-    font-weight: 600;
-  }
-}
 
 .group-identifiers {
   display: flex;

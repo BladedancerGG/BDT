@@ -13,7 +13,8 @@
     "duplicate": "Dupliquer",
     "cancel": "Annuler",
     "confirm": "Confirmer",
-    "join": "Rejoindre"
+    "join": "Rejoindre",
+    "share": "Partager"
   },
   "auth": {
     "login": "Se connecter avec Bungie"
@@ -334,6 +335,21 @@
     "equipSkipped": "{count} emplacement(s) sont ignorés : leurs objets ont disparu du compte, ou leur apparence est incomplète.",
     "colorLabel": "Couleur du groupe",
     "colorNone": "Aucune couleur",
-    "useEquipped": "Utiliser les objets équipés"
+    "useEquipped": "Utiliser les objets équipés",
+    "shareGroup": "Partager ce groupe",
+    "shareLoadout": "Partager cet équipement"
+  },
+  "share": {
+    "title": "Partager",
+    "pending": "Création du lien…",
+    "ready": "Le lien est prêt : toute personne qui l’ouvre verra cet instantané, sans avoir à se connecter.",
+    "empty": "Il n’y a rien à partager : aucun objet dans cet instantané.",
+    "failed": "Le lien n’a pas pu être créé. Réessayez dans un instant.",
+    "copy": "Copier",
+    "copied": "Copié",
+    "linkLabel": "Lien de partage",
+    "sharedLabel": "Partage de",
+    "sharedBy": "{user} a partagé {name}",
+    "cta": "Créez et gérez vos propres groupes :"
   }
 }

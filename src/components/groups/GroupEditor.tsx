@@ -12,7 +12,6 @@ import {isEmptyLoadout} from "@/lib/loadouts/loadout";
 import {
     useLoadoutIdentifierChoices,
     useLoadoutIdentifiers,
-    type LoadoutIdentifiers,
 } from "@/lib/loadouts/use-loadout-identifiers";
 import {useCharacterGroups, useLoadoutGroups} from "@/lib/loadouts/groups/store";
 import {useConfirmEquipGroup} from "@/lib/loadouts/groups/use-confirm-equip";
@@ -32,9 +31,17 @@ import {
     emptyGroupLoadout,
     type LoadoutGroup,
 } from "@/lib/loadouts/groups/types";
+import {buildShare} from "@/lib/loadouts/share/snapshot";
+import {useShareSource} from "@/lib/loadouts/share/use-share-source";
+import {useShare} from "@/components/share/useShare";
 import {EquipmentModeView} from "@/components/equipment/EquipmentModeView";
-import {LoadoutSlotTile} from "@/components/loadouts/LoadoutSlotTile";
-import {ArrowLeftIcon, BoltIcon, Squares2X2Icon} from "@heroicons/react/24/solid";
+import {LoadoutSlotHeading} from "@/components/loadouts/LoadoutSlotHeading";
+import {
+    ArrowLeftIcon,
+    BoltIcon,
+    ShareIcon,
+    Squares2X2Icon,
+} from "@heroicons/react/24/solid";
 import {GroupColorPicker} from "./GroupColorPicker";
 import {GroupNameField} from "./GroupNameField";
 import {GroupSlotIdentifiers} from "./GroupSlotIdentifiers";
@@ -85,6 +92,8 @@ export function GroupEditor({
     const setGroupColor = useLoadoutGroups((s) => s.setGroupColor);
     const confirmEquip = useConfirmEquipGroup(group.characterId);
     const startSelection = useGroupSelection((s) => s.start);
+    const shareSource = useShareSource(data, defs);
+    const {share, dialog: shareDialog} = useShare();
     const choices = useLoadoutIdentifierChoices();
 
     const [selected, setSelected] = useState(0);
@@ -376,6 +385,64 @@ export function GroupEditor({
                         <Squares2X2Icon/>
                         {t("pickItems")}
                     </button>
+                    {/* Deux partages et non un : on vient ici pour composer
+                        UN emplacement autant que le groupe, et c'est souvent
+                        celui-là qu'on veut montrer. Le second porte donc sur
+                        l'emplacement sélectionné, et sur lui seul.
+
+                        Le groupe est partagé tel qu'il est composé — `slots`,
+                        normalisé à la taille du personnage — et non tel qu'il
+                        est stocké : un groupe plus ancien que le dernier
+                        emplacement débloqué en montrerait un de moins. */}
+                    <button
+                        type="button"
+                        className="btn btn--small"
+                        onClick={() =>
+                            share(
+                                buildShare(
+                                    "group",
+                                    group.name,
+                                    slots,
+                                    shareSource,
+                                    group.color,
+                                ),
+                            )
+                        }
+                    >
+                        <ShareIcon/>
+                        {t("shareGroup")}
+                    </button>
+                    <button
+                        type="button"
+                        className="btn btn--small"
+                        // Un emplacement vide ne montrerait rien : le partage
+                        // est retenu ici plutôt que refusé dans la modale.
+                        disabled={groupEmpty}
+                        onClick={() =>
+                            current &&
+                            share(
+                                buildShare(
+                                    // Le nom du partage sert le lien et le
+                                    // titre de la page : c'est celui de
+                                    // l'emplacement — « Solaire », « Raid » —
+                                    // tel que le jeu le nomme, et non celui du
+                                    // groupe, que tous ses emplacements
+                                    // partagent. Il vient de la requête groupée
+                                    // déjà faite pour les vignettes ; le numéro
+                                    // ne sert que si le manifeste n'a rien à ce
+                                    // hash.
+                                    "loadout",
+                                    identifiers.names.get(current.nameHash) ??
+                                        tLoadouts("slot", {number: selected + 1}),
+                                    [current],
+                                    shareSource,
+                                ),
+                            )
+                        }
+                    >
+                        <ShareIcon/>
+                        {t("shareLoadout")}
+                    </button>
                     <button
                         type="button"
                         className="btn btn--small btn--danger"
@@ -428,7 +495,7 @@ export function GroupEditor({
                         // ressemblaient.
                         title={
                             previewed ? (
-                                <PreviewTitle
+                                <LoadoutSlotHeading
                                     loadout={previewed}
                                     index={source ?? 0}
                                     identifiers={identifiers}
@@ -587,53 +654,9 @@ export function GroupEditor({
                     )}
                 </div>
             </div>
+
+            {shareDialog}
         </section>
-    );
-}
-
-/**
- * Le titre du panneau quand il montre un emplacement du **personnage**.
- *
- * Il dit d'où vient ce qu'on lit — sans quoi rien ne distinguait la
- * prévisualisation du contenu du groupe, les deux occupant le même panneau. Le
- * pendant en lecture seule de `GroupSlotIdentifiers` : ici il n'y a rien à
- * choisir, c'est un emplacement du jeu.
- *
- * Les identifiants sont **reçus** et non lus : ils viennent de l'unique requête
- * groupée de l'éditeur, comme pour les vignettes des deux grilles.
- */
-function PreviewTitle({
-                          loadout,
-                          index,
-                          identifiers,
-                          label,
-                      }: {
-    loadout: DestinyLoadout;
-    /** Place de l'emplacement chez le personnage, à partir de 0 */
-    index: number;
-    identifiers: LoadoutIdentifiers;
-    label: string;
-}) {
-    const name = identifiers.names.get(loadout.nameHash);
-
-    return (
-        <span className="group-preview-title">
-            <span className="group-preview-title__label">{label}</span>
-            {/* La vignette des deux grilles, telle quelle : le fond coloré, le
-                glyphe par-dessus et le numéro dans l'angle. La recomposer ici
-                aurait redit ce que `LoadoutSlotTile` dessine déjà, et laissé les
-                deux se désaccorder à la première retouche. Elle n'est pas
-                cliquable ici — d'où le `<span>` et non le `<button>` des
-                grilles, l'habillage `.loadout-slot` étant commun. */}
-            <span className="loadout-slot group-preview-title__slot">
-                <LoadoutSlotTile
-                    loadout={loadout}
-                    index={index}
-                    identifiers={identifiers}
-                />
-            </span>
-            {name && <span className="group-preview-title__name">{name}</span>}
-        </span>
     );
 }
 

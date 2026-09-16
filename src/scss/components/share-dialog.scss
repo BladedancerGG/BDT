@@ -1,0 +1,58 @@
+// La modale d'un partage : le lien qui vient d'être déposé, et de quoi le
+// recopier.
+//
+// Gabarit compact (voir `modal--compact`) : il n'y a qu'une ligne à montrer, et
+// le gabarit par défaut l'aurait perdue au milieu du vide.
+.share-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: min(26rem, 80vw);
+
+  &__title {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+  }
+
+  &__message {
+    margin: 0;
+    color: var(--color-text-muted);
+    font-size: 0.8125rem;
+
+    &--error {
+      color: var(--color-danger);
+    }
+  }
+
+  &__link {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+
+    svg {
+      width: 0.875rem;
+      height: 0.875rem;
+    }
+  }
+
+  // Le lien reste dans un champ plutôt que dans un paragraphe : le
+  // presse-papier peut être refusé — page non sécurisée, permission — et il
+  // faut alors pouvoir le sélectionner à la main.
+  &__url {
+    flex: 1 1 14rem;
+    min-width: 0;
+    padding: 0.4375rem 0.5rem;
+    border: 1px solid var(--color-border-strong);
+    background-color: var(--color-panel-alt);
+    font: inherit;
+    font-size: 0.8125rem;
+    color: var(--color-text);
+
+    &:focus-visible {
+      outline: none;
+      border-color: var(--color-accent);
+    }
+  }
+}

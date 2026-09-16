@@ -1,0 +1,36 @@
+@use "../abstracts/mixins" as m;
+
+// La page publique d'un groupe ou d'un équipement partagé.
+//
+// Sa disposition est celle de l'éditeur d'un groupe, déclarée avec lui dans
+// `group-edit.scss` : c'est la même vue, en lecture seule et sans compte. Ne
+// vivent ici que les quelques éléments qui n'appartiennent qu'à elle — la barre
+// d'outils n'y porte ni couleur, ni champ de nom, ni écrasement, mais le titre
+// du partage et de quoi venir s'en servir.
+.group-preview {
+  // La page n'est PAS dans une pile de vues : rien ne passe derrière elle, et
+  // le bas de la colonne n'a pas à rester collé au bord de la fenêtre.
+  padding-bottom: 1rem;
+
+  &__title {
+    @include m.truncate;
+    margin: 0;
+    font-size: 1.125rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+  }
+
+  // Le seul geste de la page, poussé à droite comme les actions de l'éditeur :
+  // le visiteur n'a rien à modifier ici, il vient voir — et, s'il le veut,
+  // ouvrir l'application pour de bon. L'accroche et son bouton ne se séparent
+  // jamais : la phrase s'arrête sur lui.
+  &__cta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0 0 0 auto;
+    color: var(--color-text-muted);
+    font-size: 0.8125rem;
+  }
+}

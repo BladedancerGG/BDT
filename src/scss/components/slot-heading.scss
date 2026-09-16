@@ -1,0 +1,36 @@
+@use "../abstracts/mixins" as m;
+
+// —— Le titre d'un emplacement d'équipement montré en lecture seule ——
+//
+// Il occupe la place du bloc d'identifiants du groupe — prévisualisation d'un
+// emplacement du personnage, ou page publique d'un partage — dans un conteneur
+// centré dont la police est celle d'un titre : d'où le rappel de taille, la
+// mention n'étant pas le nom mais ce qu'on en fait.
+
+.slot-heading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  min-width: 0;
+  font-size: 1.125rem;
+
+  &__label {
+    @include m.slot-mention;
+  }
+
+  // La vignette des grilles, ramenée à la hauteur d'un titre et rendue inerte :
+  // rien ne se choisit ici, c'est un instantané qu'on regarde.
+  &__slot {
+    width: 2.25rem;
+    height: 2.25rem;
+    flex-shrink: 0;
+    cursor: default;
+  }
+
+  &__name {
+    @include m.truncate;
+    font-weight: 600;
+  }
+}

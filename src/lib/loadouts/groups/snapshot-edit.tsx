@@ -3,7 +3,7 @@
 import {createContext, useContext, useMemo} from "react";
 import type {ItemDetail} from "@/lib/bungie/item-components";
 import type {InventoryItemDefinition} from "@/lib/destiny/types";
-import {savedSockets} from "@/lib/destiny/use-loadout-items";
+import {savedSockets} from "@/lib/destiny/saved-sockets";
 import {useFragmentLocks} from "@/lib/destiny/use-fragment-locks";
 
 /**

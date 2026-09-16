@@ -28,6 +28,7 @@
     "subclass.check.ts",
     "gear.check.ts",
     "moves.check.ts",
-    "sockets.check.ts"
+    "sockets.check.ts",
+    "share.check.ts"
   ]
 }

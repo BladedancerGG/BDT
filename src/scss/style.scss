@@ -32,6 +32,7 @@
 @use "components/item-thumb";
 @use "components/item-tooltip";
 @use "components/group-edit";
+@use "components/group-preview";
 @use "components/group-list";
 @use "components/loadout-edit";
 @use "components/loadout-panel";
@@ -42,7 +43,9 @@
 @use "components/plug-tooltip";
 @use "components/search-bar";
 @use "components/settings";
+@use "components/share-dialog";
 @use "components/size-preview";
+@use "components/slot-heading";
 @use "components/item-category-tabs";
 @use "components/view-mode-tabs";
 @use "components/socket-picker";

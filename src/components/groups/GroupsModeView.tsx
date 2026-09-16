@@ -22,6 +22,9 @@ import type {InventoryItemDefinition} from "@/lib/destiny/types";
 import {useCharacterGroups, useLoadoutGroups} from "@/lib/loadouts/groups/store";
 import {copyGroupLoadouts} from "@/lib/loadouts/groups/types";
 import {useConfirmEquipGroup} from "@/lib/loadouts/groups/use-confirm-equip";
+import {buildShare} from "@/lib/loadouts/share/snapshot";
+import {useShareSource} from "@/lib/loadouts/share/use-share-source";
+import {useShare} from "@/components/share/useShare";
 import {useLoadoutIdentifiers} from "@/lib/loadouts/use-loadout-identifiers";
 import {useSettings} from "@/lib/settings/store";
 import {SortableGroupCard, StaticGroupCard} from "./GroupCard";
@@ -75,6 +78,10 @@ export function GroupsModeView({
     const moveGroup = useLoadoutGroups((s) => s.moveGroup);
     const confirmEquip = useConfirmEquipGroup(characterId);
     const setViewMode = useSettings((s) => s.setViewMode);
+    // Le partage part d'ici comme de l'éditeur : c'est le même instantané, et
+    // la même modale. Seule la construction demande le profil, qui est là.
+    const shareSource = useShareSource(data, defs);
+    const {share, dialog: shareDialog} = useShare();
 
     const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -175,6 +182,21 @@ export function GroupsModeView({
                                 identifiers={identifiers}
                                 onEquip={() => confirmEquip(group)}
                                 onEdit={() => setEditingId(group.id)}
+                                // Le groupe entier, emplacements vides
+                                // compris : c'est sa forme qu'on partage, et
+                                // la grille de la page publique en montre
+                                // autant que la carte d'ici.
+                                onShare={() =>
+                                    share(
+                                        buildShare(
+                                            "group",
+                                            group.name,
+                                            group.loadouts,
+                                            shareSource,
+                                            group.color,
+                                        ),
+                                    )
+                                }
                                 onDuplicate={
                                     characterId
                                         ? () =>
@@ -210,6 +232,8 @@ export function GroupsModeView({
             </DndContext>
 
             {slotCount === 0 && <p className="group-list__empty">{t("noSlots")}</p>}
+
+            {shareDialog}
         </section>
     );
 }

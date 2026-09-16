@@ -1356,6 +1356,42 @@ card an inert cell. Identifiers are **passed in**, never read there: resolving
 them per tile would mean one Dexie query per cell, hundreds for a page of cards.
 A single grouped `useLoadoutIdentifiers` covers the whole page.
 
+### Sharing a group or a loadout
+
+A group card and the group editor both offer a **Share** button — the editor
+offers two, one for the whole group and one for the selected slot. Either one
+deposits a snapshot and hands back a link to a public page:
+
+    /group/<id>/<name>      /loadout/<id>/<name>
+
+The `<id>` is 9 random bytes in base64url. It is the only thing protecting the
+link: the page takes no session, and anyone holding the address sees it. The
+second segment is the name at the time of sharing, there so the link reads;
+nothing reads it back.
+
+**A share cannot be a reference to the group.** A `DestinyLoadout` only names
+its items by `itemInstanceId`, and an instance resolves only against the profile
+that holds it — a visitor's profile would resolve none of them, and the page
+would show ten empty rows. `lib/loadouts/share/snapshot.ts` therefore resolves
+every item at deposit time: its `itemHash`, the bucket it **equips** into (from
+the definition, not from the component, which says "vault" for a stored item),
+its state, and the perks the loadout recorded — run through `savedSockets`, so
+the single-choice sockets the game never writes keep their real plug. The
+`ItemDetail` of each item travels with it, shared across slots. That is also
+what **freezes** the share: the group may change afterwards, or be deleted, the
+link keeps showing what was shared.
+
+The public page (`components/share/SharedLoadoutView.tsx`) needs nothing but
+that snapshot and the **manifest**, which is public. It reuses the group
+editor's layout under the name `.group-preview` — same view, stripped of
+everything that writes — and the two blocks are declared together in
+`group-edit.scss` rather than copied, which the CSS check would flag anyway.
+
+Snapshots live in their own table (`SharedLoadout`), tied to their author only
+so that deleting an account takes its shares with it; the page never reads that
+column. `POST /api/shares` validates the body entry by entry, like the groups
+route: a public page has no session to paper over a malformed snapshot.
+
 ### Renaming and recolouring a loadout
 
 The title of a selected slot is `3 - Solar`, with the loadout's tile under it.
@@ -1774,7 +1810,7 @@ which names what is about to be overwritten.
 src/
   app/[locale]/      Pages (i18n routing: "/" = FR, "/en" = EN)
   app/api/           Server routes (auth, manifest, profile, item, loadouts,
-                     loadout-groups, health)
+                     loadout-groups, shares, health)
   proxy.ts           i18n routing middleware (named "proxy" since Next 16)
   i18n/              next-intl configuration (routing + request)
   lib/
@@ -1784,6 +1820,7 @@ src/
     destiny/         Game constants, types, socket logic
     loadouts/        In-game saved loadouts (contract + write actions)
     loadouts/groups/ Loadout groups (pure edit & equip engines, store, sync)
+    loadouts/share/  Public shares (self-contained snapshot, contract, reading)
     manifest/        Manifest download & cache (IndexedDB)
     settings/        User preferences (cookie-backed store)
   components/        UI components
@@ -3245,6 +3282,46 @@ jamais lus là : les résoudre par vignette ferait une requête Dexie par case, 
 des centaines pour une page de cartes. Un unique `useLoadoutIdentifiers` groupé
 couvre toute la page.
 
+### Partager un groupe ou un équipement
+
+La carte d'un groupe comme son éditeur portent un bouton **Partager** —
+l'éditeur en porte deux, l'un pour le groupe entier, l'autre pour l'emplacement
+sélectionné. L'un comme l'autre dépose un instantané et rend le lien d'une page
+publique :
+
+    /group/<id>/<nom>      /loadout/<id>/<nom>
+
+L'`<id>` est fait de 9 octets tirés au sort, en base64url. C'est la seule chose
+qui protège le lien : la page ne demande aucune session, et quiconque a
+l'adresse la voit. Le second segment est le nom au moment du partage, là pour
+que le lien se lise ; rien ne le relit.
+
+**Un partage ne peut pas être une référence au groupe.** Un `DestinyLoadout` ne
+désigne ses objets que par `itemInstanceId`, et une instance ne se résout
+qu'avec le profil qui la détient — celui d'un visiteur n'en résoudrait aucune,
+et la page n'afficherait que dix lignes vides. `lib/loadouts/share/snapshot.ts`
+résout donc chaque objet au dépôt : son `itemHash`, l'emplacement où il
+s'**équipe** (celui de la définition, pas celui du composant, qui vaut « coffre »
+pour un objet rangé), son état, et les attributs que l'équipement a enregistrés
+— passés par `savedSockets`, pour que les sockets à choix unique, dont le jeu
+n'écrit jamais le vrai hash, gardent le leur. L'`ItemDetail` de chaque objet
+voyage avec lui, mis en commun entre les emplacements. C'est aussi ce qui
+**fige** le partage : le groupe peut changer ensuite, ou disparaître, le lien
+continue de montrer ce qui a été partagé.
+
+La page publique (`components/share/SharedLoadoutView.tsx`) ne tient que de cet
+instantané et du **manifeste**, qui est public. Elle reprend la disposition de
+l'éditeur d'un groupe sous le nom `.group-preview` — la même vue, amputée de
+tout ce qui modifie — et les deux blocs sont déclarés ensemble dans
+`group-edit.scss` plutôt que recopiés, ce que le contrôle CSS signalerait de
+toute façon.
+
+Les instantanés vivent dans leur propre table (`SharedLoadout`), rattachés à
+leur auteur pour la seule raison qu'un compte supprimé doit emporter ses
+partages ; la page ne lit jamais cette colonne. `POST /api/shares` valide le
+corps entrée par entrée, comme la route des groupes : une page publique n'a pas
+de session pour rattraper un instantané mal formé.
+
 ### Renommer et recolorer un équipement
 
 Le titre d'un emplacement sélectionné est « 3 - Solaire », avec sa vignette en
@@ -3687,7 +3764,7 @@ D'où la confirmation, qui annonce ce qui va être écrasé.
 src/
   app/[locale]/      Pages (routing i18n : « / » = FR, « /en » = EN)
   app/api/           Routes serveur (auth, manifest, profile, item, loadouts,
-                     loadout-groups, health)
+                     loadout-groups, shares, health)
   proxy.ts           Middleware de routing i18n (nommé « proxy » depuis Next 16)
   i18n/              Configuration next-intl (routing + request)
   lib/
@@ -3697,6 +3774,7 @@ src/
     destiny/         Constantes de jeu, types, logique des sockets
     loadouts/        Équipements sauvegardés en jeu (contrat + écritures)
     loadouts/groups/ Groupes d'équipements (moteurs purs édition/équipement, store)
+    loadouts/share/  Partages publics (instantané autonome, contrat, lecture)
     manifest/        Téléchargement & cache du manifeste (IndexedDB)
     settings/        Préférences utilisateur (store adossé au cookie)
   components/        Composants UI
