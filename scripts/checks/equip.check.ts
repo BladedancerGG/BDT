@@ -31,6 +31,11 @@ import {check, report, section} from "./assert";
 //
 // `a1` et `a2` existent, `gone` a été démantelé depuis l'enregistrement.
 const HASHES: Record<string, number> = {a1: 11, a2: 12};
+
+/** Aucune substitution : ce que l'instantané porte est ce qu'il faut poser. */
+const KEEP: GroupEquipContext["resolvePlug"] = (_, __, plugItemHash) =>
+    plugItemHash;
+
 const SOCKETS: Record<string, number[]> = {a1: [100, 200, 300], a2: [400]};
 
 const ctx: GroupEquipContext = {
@@ -39,6 +44,7 @@ const ctx: GroupEquipContext = {
             ? undefined
             : ({itemInstanceId: id, itemHash: HASHES[id]} satisfies QueuedItem),
     socketsOf: (id) => SOCKETS[id] ?? [],
+    resolvePlug: KEEP,
     equippedNow: [],
 };
 
@@ -114,6 +120,7 @@ const SUBCLASS: GroupEquipContext = {
         id === "sub" ? ({itemInstanceId: "sub", itemHash: 55} satisfies QueuedItem)
                      : undefined,
     socketsOf: () => [400, 500],
+    resolvePlug: KEEP,
     equippedNow: [],
 };
 
@@ -179,6 +186,7 @@ const BARE: GroupEquipContext = {
         EMPTY_FRAGMENT, EMPTY_FRAGMENT, EMPTY_FRAGMENT,
         EMPTY_FRAGMENT, EMPTY_FRAGMENT, EMPTY_FRAGMENT,
     ],
+    resolvePlug: KEEP,
     equippedNow: [],
 };
 
@@ -299,6 +307,37 @@ check("un plan sans rien à faire ne coûte rien",
 check("un groupe qui ne fait que vider coûte un vidage par emplacement",
     planRequestCount(onlyClear), 3);
 
+// —— La version améliorée d'un attribut ———————————————————————
+//
+// L'arme a été façonnée, améliorée ou montée d'un palier depuis
+// l'enregistrement : son attribut porte désormais un autre hash, et le
+// résolveur substitue. Ce qui se vérifie ici n'est pas l'appariement lui-même
+// (voir `perk-upgrades.check.ts`) mais que la substitution passe AVANT tout le
+// reste du plan — sans quoi le filtre du déjà-en-place et le relevé des sockets
+// volatils travailleraient sur des hashes périmés.
+section("attribut remplacé par sa version améliorée");
+
+/** L'attribut 100 du socket 0 de `a1` n'existe plus que sous le hash 101. */
+const UPGRADE: GroupEquipContext = {
+    ...ctx,
+    resolvePlug: (id, socketIndex, plugItemHash) =>
+        id === "a1" && socketIndex === 0 && plugItemHash === 100 ? 101 : plugItemHash,
+};
+
+check("l'attribut enregistré part sous sa version améliorée",
+    planGroupEquip([full([{id: "a1", plugs: [100]}])], [], UPGRADE)
+        .slots[0].plugs.map((plug) => plug.plugItemHash), [101]);
+check("substitué, il vaut celui en place et ne coûte plus rien",
+    planGroupEquip([full([{id: "a1", plugs: [100]}])], [], {
+        ...UPGRADE,
+        socketsOf: () => [101],
+    }).slots[0].plugs, []);
+check("sans substitution, l'ancien hash serait demandé pour rien",
+    planGroupEquip([full([{id: "a1", plugs: [100]}])], [], {
+        ...ctx,
+        socketsOf: () => [101],
+    }).slots[0].plugs.map((plug) => plug.plugItemHash), [100]);
+
 // —— Le plan n'altère rien ————————————————————————————————————
 section("immuabilité");
 
@@ -306,5 +345,10 @@ const source = group([full([{id: "a1", plugs: [100, 555]}])]);
 const before = JSON.stringify(source);
 planGroupEquip(source, character, ctx);
 check("le groupe passé en entrée est intact", JSON.stringify(source), before);
+
+const substituted = group([full([{id: "a1", plugs: [100, 555]}])]);
+const untouched = JSON.stringify(substituted);
+planGroupEquip(substituted, character, UPGRADE);
+check("une substitution non plus", JSON.stringify(substituted), untouched);
 
 process.exit(report());

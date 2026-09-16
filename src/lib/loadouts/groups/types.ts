@@ -86,9 +86,19 @@ export function emptyGroupLoadout(): GroupLoadout {
  * La copie est **profonde** sur les listes : les objets du profil sont
  * remplacés à chaque relecture, et un groupe qui les partagerait verrait son
  * instantané changer sous lui.
+ *
+ * `recordPlugs` est le filtre des attributs enregistrés — celui qui oublie les
+ * colonnes d'attributs d'une arme façonnée (voir `useRecordPlugs`). Il est
+ * **injecté** plutôt que lu ici : la route de l'API importe ce module, et il
+ * demande le profil comme le manifeste. Omis, tout est recopié tel quel, ce
+ * qu'attend la duplication d'un groupe — les instantanés y sont déjà filtrés.
  */
 export function copyGroupLoadouts(
     loadouts: readonly DestinyLoadout[],
+    recordPlugs: (
+        itemInstanceId: string,
+        plugItemHashes: readonly number[],
+    ) => number[] = (_, plugItemHashes) => [...plugItemHashes],
 ): GroupLoadout[] {
     return loadouts.map((loadout) => ({
         colorHash: loadout.colorHash,
@@ -96,7 +106,10 @@ export function copyGroupLoadouts(
         nameHash: loadout.nameHash,
         items: loadout.items.map((item) => ({
             itemInstanceId: item.itemInstanceId,
-            plugItemHashes: [...(item.plugItemHashes ?? [])],
+            plugItemHashes: recordPlugs(
+                item.itemInstanceId,
+                item.plugItemHashes ?? [],
+            ),
         })),
     }));
 }

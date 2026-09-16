@@ -16,14 +16,18 @@ import {useEquipGroup} from "./use-equip-group";
  * ce que le personnage porte.
  *
  * Renvoie `false` quand rien n'a été engagé : profil absent, ou refus.
+ *
+ * **Asynchrone** depuis que le plan l'est : les attributs qu'une arme n'offre
+ * plus se remplacent par leur version améliorée, ce que seul le manifeste dit.
+ * Voir `buildPlugResolver`.
  */
 export function useConfirmEquipGroup(characterId: string | null) {
     const t = useTranslations("groups");
     const {plan, equip} = useEquipGroup(characterId);
 
     return useCallback(
-        (group: LoadoutGroup): boolean => {
-            const result = plan(group);
+        async (group: LoadoutGroup): Promise<boolean> => {
+            const result = await plan(group);
             if (!result) return false;
 
             const message = [
@@ -41,7 +45,7 @@ export function useConfirmEquipGroup(characterId: string | null) {
                 .join("\n\n");
 
             if (!window.confirm(message)) return false;
-            equip(group);
+            equip(result);
             return true;
         },
         [plan, equip, t],

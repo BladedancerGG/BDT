@@ -23,6 +23,7 @@ casse en silence.
 | `moves.check.ts`       | `lib/destiny/moves.ts` (déplacement des piles) |
 | `sockets.check.ts`     | `lib/destiny/sockets.ts` (quels sockets lisent les plugs du compte) |
 | `share.check.ts`       | `lib/loadouts/share/snapshot.ts` (l'instantané d'un partage) |
+| `perk-upgrades.check.ts` | `lib/destiny/perk-upgrades.ts` (attributs améliorés, armes façonnées) |
 | `css-duplicates.py`    | la feuille de styles compilée (voir plus bas)  |
 
 ## Lancer

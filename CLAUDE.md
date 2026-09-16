@@ -61,7 +61,8 @@ scripts/checks/run.sh    # compile et exécute les vérifications, dans le conte
 Elles couvrent aujourd'hui `lib/loadouts/groups/edit.ts`, `lib/loadouts/groups/equip.ts`,
 `lib/loadouts/groups/equip-order.ts`,
 `lib/loadouts/groups/sync-merge.ts`, `lib/destiny/insert-plan.ts`, `lib/settings/backup.ts`,
-`lib/destiny/subclass.ts`, `lib/destiny/gear.ts`, `lib/destiny/moves.ts` (les piles)
+`lib/destiny/subclass.ts`, `lib/destiny/gear.ts`, `lib/destiny/moves.ts` (les piles),
+`lib/destiny/perk-upgrades.ts` (attributs améliorés et armes façonnées)
 et `lib/loadouts/share/snapshot.ts` (l'instantané d'un partage),
 et contrôlent au passage les règles CSS qui se recouvrent.
 **Les lancer après toute modification de ces modules**, et y ajouter un cas quand un piège

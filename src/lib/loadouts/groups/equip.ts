@@ -88,6 +88,27 @@ export interface GroupEquipContext {
     /** Attributs actuels de l'objet, indexés par index de socket */
     socketsOf: (itemInstanceId: string) => readonly number[];
     /**
+     * L'attribut à poser réellement, à la place de celui qu'un emplacement a
+     * enregistré.
+     *
+     * Une arme façonnée, améliorée ou montée d'un palier **remplace ses
+     * attributs par leur version améliorée**, qui porte un autre hash — et
+     * l'opération n'existe pas dans l'API : le groupe n'en sait rien jusqu'à ce
+     * qu'il constate l'écart. Sans cette résolution, la séquence demandait
+     * l'ancien hash, que l'arme n'offre plus, et Bungie refusait. Voir
+     * `upgradedPlug`.
+     *
+     * Elle est appliquée **avant tout le reste** — relevé des sockets
+     * volatils, filtre des attributs déjà en place, calcul de l'ordre : tous
+     * comparent des hashes, et les faire travailler sur des valeurs périmées
+     * fausserait aussi bien le plan que son coût annoncé.
+     */
+    resolvePlug: (
+        itemInstanceId: string,
+        socketIndex: number,
+        plugItemHash: number,
+    ) => number;
+    /**
      * Instances équipées sur le personnage avant toute action.
      *
      * Elles décident par quel emplacement commencer : celui qui ressemble le
@@ -206,6 +227,30 @@ function plugsToInsert(
 }
 
 /**
+ * Le groupe, ses attributs enregistrés remis à jour contre les objets.
+ *
+ * Fait **une fois pour toutes, en tête de plan**, plutôt qu'au moment de poser
+ * chaque attribut : `volatileSockets` et le relevé qui choisit l'ordre
+ * comparent eux aussi des hashes enregistrés, et deux emplacements demandant le
+ * même attribut — l'un sous sa version d'origine, l'autre sous sa version
+ * améliorée — se seraient crus en désaccord. Voir `GroupEquipContext.resolvePlug`.
+ */
+function resolveGroupPlugs(
+    groupLoadouts: readonly GroupLoadout[],
+    resolvePlug: GroupEquipContext["resolvePlug"],
+): GroupLoadout[] {
+    return groupLoadouts.map((loadout) => ({
+        ...loadout,
+        items: loadout.items.map((entry) => ({
+            ...entry,
+            plugItemHashes: entry.plugItemHashes.map((plugItemHash, socketIndex) =>
+                resolvePlug(entry.itemInstanceId, socketIndex, plugItemHash),
+            ),
+        })),
+    }));
+}
+
+/**
  * Le plan complet d'un équipement de groupe.
  *
  * **Le vidage est restreint aux emplacements que le groupe ne remplit pas.**
@@ -218,10 +263,11 @@ function plugsToInsert(
  * c'est le vidage qui produit son état final.
  */
 export function planGroupEquip(
-    groupLoadouts: readonly GroupLoadout[],
+    savedLoadouts: readonly GroupLoadout[],
     characterLoadouts: readonly DestinyLoadout[],
     ctx: GroupEquipContext,
 ): GroupEquipPlan {
+    const groupLoadouts = resolveGroupPlugs(savedLoadouts, ctx.resolvePlug);
     const slots: PlannedGroupSlot[] = [];
     const skipped: SkippedGroupSlot[] = [];
     const volatiles = volatileSockets(groupLoadouts);

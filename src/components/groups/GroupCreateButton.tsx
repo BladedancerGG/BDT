@@ -23,6 +23,7 @@ import {
     blankGroupLoadouts,
     copyGroupLoadouts,
 } from "@/lib/loadouts/groups/types";
+import {useRecordPlugs} from "@/lib/loadouts/groups/use-record-plugs";
 import {Modal} from "@/components/ui/Modal";
 import {GroupColorPicker} from "./GroupColorPicker";
 import {PlusIcon} from "@heroicons/react/24/solid";
@@ -53,6 +54,7 @@ export function GroupCreateButton({
     const tCommon = useTranslations("common");
     const createGroup = useLoadoutGroups((s) => s.createGroup);
     const count = useLoadoutGroups((s) => s.groups.length);
+    const recordPlugs = useRecordPlugs();
 
     const [open, setOpen] = useState(false);
     const [source, setSource] = useState<Source | null>(null);
@@ -96,7 +98,7 @@ export function GroupCreateButton({
             color,
             loadouts:
                 source === "equipped"
-                    ? copyGroupLoadouts(loadouts)
+                    ? copyGroupLoadouts(loadouts, recordPlugs)
                     // Un groupe vide a autant d'emplacements que le personnage :
                     // c'est la grille de la carte, et la place de chaque
                     // instantané à venir.

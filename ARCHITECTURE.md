@@ -1042,6 +1042,47 @@ identical — a `SnapshotLoadout` overwrites the slot it targets — and it save
 request per filled slot. Already-free slots are skipped for the same reason, and
 because `ClearLoadout` would refuse them.
 
+##### Perks a weapon no longer offers
+
+A snapshot records plug **hashes**, and a weapon changes its pool behind the
+app's back: shaping it, enhancing it or raising its tier swaps its perks for
+their **enhanced** versions, which carry different hashes. None of those three
+operations exists in the API — nothing warns, and the group only finds out when
+Bungie refuses the insertion. This is the failure users hit: a group saved with
+plain "Chill Clip", the weapon enhanced in game since, and a group equip asking
+for a perk the weapon no longer has.
+
+Two moves, in opposite directions, in `lib/destiny/perk-upgrades.ts`.
+
+**At equip time, a recorded perk the weapon no longer offers is replaced by its
+enhanced version.** The pool the weapon advertises (`reusablePlugs`,
+component 310) is already in the profile, so the check is free: a recorded hash
+still in it goes through untouched, and only the stale ones cost a manifest
+read. Nothing in the manifest links the two versions — of the 700 plugs labelled
+"Enhanced", no shared key pairs them, and half the upgradable families (barrels,
+magazines, blades…) carry no sandbox perk at all. What does pair them, on 684 of
+the 700, is **name + `plugCategoryIdentifier`**; rarity then tells which is
+which (see `isEnhancedPlug`). The pairing is searched **only among the options
+the weapon offers right now**, which is what makes it safe: the manifest's
+homonyms — shaders, ship transmat effects, ghost upgrades — never share a socket
+with a weapon perk, and none is of the rarity the match demands. When nothing
+fits, the recorded value goes out as it is: a refusal visible in the actions
+panel beats a guessed substitution.
+
+The substitution runs **first**, before the volatile-socket survey and the
+already-in-place filter: those compare hashes too, and two slots wanting the
+same perk under its two versions would have thought themselves in disagreement.
+
+**When recording, a crafted weapon's perk columns are dropped.** A crafted
+weapon has a single choice per column — there is nothing to restore — but the
+recorded hash goes stale at the next reshape or enhancement. Only the
+`WEAPON_PERKS` category is dropped; mods, shader, ornament, masterwork and
+intrinsic stay recorded, since those are exactly what a group is for. The
+`INVALID_HASH` sentinel is what "forgets": it means "not recorded, take the
+current value" (see `savedSockets`), where a zero would mean "empty socket".
+`useRecordPlugs` only reads the manifest for the profile's **crafted** items —
+a few dozen against a thousand.
+
 ##### The order of the slots is chosen, not given
 
 `equip-order.ts` decides in which order the slots are played, and it is **not**
@@ -2943,6 +2984,51 @@ serait refusée.
 final est identique — un `SnapshotLoadout` écrase l'emplacement qu'il vise — et
 cela épargne une requête par emplacement rempli. Les emplacements déjà libres
 sont écartés pour la même raison, et parce que `ClearLoadout` les refuserait.
+
+##### Les attributs qu'une arme n'offre plus
+
+Un instantané enregistre des **hashes** de plugs, et une arme change de pool
+dans le dos de l'application : la façonner, l'améliorer ou lui monter un palier
+remplace ses attributs par leur version **améliorée**, qui porte un autre hash.
+Aucune de ces trois opérations n'existe dans l'API — rien ne prévient, et le
+groupe ne l'apprend qu'au refus de Bungie. C'est la panne rencontrée par les
+utilisateurs : un groupe enregistré avec « Chargeur glacial » d'origine, l'arme
+améliorée en jeu depuis, et un équipement de groupe qui réclame un attribut que
+l'arme n'a plus.
+
+Deux mouvements, en sens inverse, dans `lib/destiny/perk-upgrades.ts`.
+
+**À l'équipement, un attribut enregistré que l'arme n'offre plus part sous sa
+version améliorée.** Le pool que l'arme annonce (`reusablePlugs`, composant 310)
+est déjà dans le profil : la comparaison est gratuite, un hash encore proposé
+passe tel quel, et seuls les périmés coûtent une lecture du manifeste. Rien dans
+le manifeste ne relie les deux versions — sur les 700 plugs étiquetés
+« amélioré », aucune clé commune ne les apparie, et la moitié des familles
+améliorables (canons, chargeurs, lames…) ne portent aucun perk de bac à sable.
+Ce qui les apparie vraiment, sur 684 des 700, c'est le couple **nom +
+`plugCategoryIdentifier`** ; la rareté les départage ensuite (voir
+`isEnhancedPlug`). L'appariement se cherche **dans les seules options que l'arme
+propose aujourd'hui**, et c'est ce qui le rend sûr : les homonymes du manifeste
+— revêtements, effets d'apparition de vaisseau, améliorations de Spectre — ne
+cohabitent jamais avec un attribut d'arme dans un même socket, et aucun n'est de
+la rareté exigée. Quand rien ne convient, la valeur enregistrée part telle
+quelle : mieux vaut un refus visible dans le panneau d'actions qu'une
+substitution devinée.
+
+La substitution passe **en tête**, avant le relevé des sockets volatils et le
+filtre du déjà-en-place : eux aussi comparent des hashes, et deux emplacements
+voulant le même attribut sous ses deux versions se seraient crus en désaccord.
+
+**À l'enregistrement, les colonnes d'attributs d'une arme façonnée sont
+oubliées.** Une arme façonnée n'a qu'un choix par colonne — il n'y a rien à y
+rétablir — mais le hash enregistré devient faux dès le prochain refaçonnage ou
+la prochaine amélioration. Seule la catégorie `WEAPON_PERKS` est oubliée : mods,
+revêtement, ornement, pièce maîtresse et armature restent enregistrés, puisque
+c'est justement ce qu'un groupe sert à rétablir. La sentinelle `INVALID_HASH`
+est ce qui « oublie » — elle signifie « non enregistré, prendre la valeur
+courante » (voir `savedSockets`), là où un zéro signifierait « socket vide ».
+`useRecordPlugs` ne lit le manifeste que pour les objets **façonnés** du profil,
+quelques dizaines contre un millier.
 
 ##### L'ordre des emplacements se choisit, il n'est pas donné
 

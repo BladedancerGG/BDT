@@ -29,6 +29,7 @@
     "gear.check.ts",
     "moves.check.ts",
     "sockets.check.ts",
-    "share.check.ts"
+    "share.check.ts",
+    "perk-upgrades.check.ts"
   ]
 }

@@ -180,7 +180,7 @@ export function GroupsModeView({
                                 loadouts={group.loadouts}
                                 slotCount={slotCount}
                                 identifiers={identifiers}
-                                onEquip={() => confirmEquip(group)}
+                                onEquip={() => void confirmEquip(group)}
                                 onEdit={() => setEditingId(group.id)}
                                 // Le groupe entier, emplacements vides
                                 // compris : c'est sa forme qu'on partage, et

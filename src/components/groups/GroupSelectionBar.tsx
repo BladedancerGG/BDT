@@ -7,6 +7,7 @@ import {useLoadoutIdentifierChoices} from "@/lib/loadouts/use-loadout-identifier
 import {useLoadoutGroups} from "@/lib/loadouts/groups/store";
 import {useGroupSelection} from "@/lib/loadouts/groups/selection";
 import {padLoadouts, setItems} from "@/lib/loadouts/groups/edit";
+import {useRecordPlugs} from "@/lib/loadouts/groups/use-record-plugs";
 import {CheckIcon, XMarkIcon} from "@heroicons/react/24/solid";
 
 /**
@@ -43,6 +44,7 @@ export function GroupSelectionBar({
     );
     const setGroupLoadouts = useLoadoutGroups((s) => s.setGroupLoadouts);
     const choices = useLoadoutIdentifierChoices();
+    const recordPlugs = useRecordPlugs();
 
     /**
      * Faux tant que les constantes du manifeste ne sont pas lues. Confirmer
@@ -64,7 +66,11 @@ export function GroupSelectionBar({
                 picked,
                 // Les attributs d'un objet **nouveau venu** ; ceux déjà
                 // enregistrés sont conservés par `setItems`.
-                (itemInstanceId) => data.items[itemInstanceId]?.sockets ?? [],
+                (itemInstanceId) =>
+                    recordPlugs(
+                        itemInstanceId,
+                        data.items[itemInstanceId]?.sockets ?? [],
+                    ),
                 {
                     colorHash: choices.colors[0].hash,
                     iconHash: choices.icons[0].hash,

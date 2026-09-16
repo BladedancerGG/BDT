@@ -7,11 +7,101 @@ import {useActionQueue} from "@/lib/actions/store";
 import {useInsertPlanner} from "@/lib/actions/use-insert-planner";
 import {PROFILE_KEY} from "@/lib/actions/use-move-planner";
 import {useLoadoutActions} from "@/lib/loadouts/use-loadout-actions";
-import {planGroupEquip, type GroupEquipPlan} from "./equip";
-import type {LoadoutGroup} from "./types";
+import {getDefinitions} from "@/lib/manifest/manifest";
+import type {ItemDetail} from "@/lib/bungie/item-components";
+import type {InventoryItemDefinition} from "@/lib/destiny/types";
+import {upgradedPlug} from "@/lib/destiny/perk-upgrades";
+import {INVALID_HASH} from "../loadout";
+import {planGroupEquip, type GroupEquipContext, type GroupEquipPlan} from "./equip";
+import type {GroupLoadout, LoadoutGroup} from "./types";
 
 /** Référence stable pour les emplacements sans objet à signaler. */
 const NO_ITEMS: readonly string[] = [];
+
+/** Rien à rattraper : la valeur enregistrée est celle à poser. */
+const VERBATIM: GroupEquipContext["resolvePlug"] = (_, __, plugItemHash) =>
+    plugItemHash;
+
+/**
+ * Clé d'un attribut enregistré, **hash compris**.
+ *
+ * Le hash n'est pas de trop : un même socket d'un même objet porte des valeurs
+ * différentes d'un emplacement du groupe à l'autre — un personnage n'a qu'une
+ * doctrine par élément. Une clé qui s'arrêterait à l'objet et au socket ferait
+ * suivre à l'un la substitution calculée pour l'autre.
+ */
+function staleKey(
+    itemInstanceId: string,
+    socketIndex: number,
+    saved: number,
+): string {
+    return `${itemInstanceId}:${socketIndex}:${saved}`;
+}
+
+/**
+ * Par quoi remplacer les attributs enregistrés que les armes n'offrent plus.
+ *
+ * **Le manifeste n'est lu que pour les sockets réellement périmés**, et c'est
+ * ce qui rend l'opération gratuite dans le cas ordinaire : un groupe de dix
+ * emplacements porte quelques centaines d'attributs, et leurs pools quelques
+ * milliers d'options. Comparer d'abord le hash enregistré au pool que l'arme
+ * annonce (`reusablePlugs`, composant 310, déjà dans le profil) ramène presque
+ * toujours l'ensemble à vide — auquel cas aucune lecture n'a lieu du tout.
+ *
+ * Voir `upgradedPlug` pour ce qui apparie les deux versions d'un attribut.
+ */
+async function buildPlugResolver(
+    groupLoadouts: readonly GroupLoadout[],
+    items: Record<string, ItemDetail>,
+): Promise<GroupEquipContext["resolvePlug"]> {
+    const stale: {key: string; saved: number; available: number[]}[] = [];
+    const hashes = new Set<number>();
+
+    for (const loadout of groupLoadouts) {
+        for (const entry of loadout.items) {
+            const detail = items[entry.itemInstanceId];
+            entry.plugItemHashes.forEach((saved, socketIndex) => {
+                if (!saved || saved === INVALID_HASH) return;
+                // Un socket dont l'arme n'annonce aucune option — les mods
+                // d'armure viennent des plug sets du compte — n'apprend rien.
+                const available = detail?.reusablePlugs?.[String(socketIndex)];
+                if (!available?.length || available.includes(saved)) return;
+
+                stale.push({
+                    key: staleKey(entry.itemInstanceId, socketIndex, saved),
+                    saved,
+                    available,
+                });
+                hashes.add(saved);
+                for (const hash of available) hashes.add(hash);
+            });
+        }
+    }
+
+    if (stale.length === 0) return VERBATIM;
+
+    const list = [...hashes];
+    const rows = await getDefinitions<InventoryItemDefinition>(
+        "DestinyInventoryItemDefinition",
+        list,
+    );
+    const defs = new Map<number, InventoryItemDefinition>();
+    rows.forEach((row, index) => {
+        if (row) defs.set(list[index], row);
+    });
+
+    const upgrades = new Map<string, number>();
+    for (const {key, saved, available} of stale) {
+        const upgraded = upgradedPlug(saved, available, (hash) => defs.get(hash));
+        if (upgraded !== saved) upgrades.set(key, upgraded);
+    }
+
+    if (upgrades.size === 0) return VERBATIM;
+
+    return (itemInstanceId, socketIndex, plugItemHash) =>
+        upgrades.get(staleKey(itemInstanceId, socketIndex, plugItemHash)) ??
+        plugItemHash;
+}
 
 /**
  * Équiper un groupe : la séquence complète, mise en file.
@@ -42,9 +132,15 @@ export function useEquipGroup(characterId: string | null) {
     const insert = useInsertPlanner();
     const {run: runLoadout} = useLoadoutActions();
 
-    /** Le plan, pour l'annoncer avant de l'engager. `null` sans profil. */
+    /**
+     * Le plan, pour l'annoncer avant de l'engager. `null` sans profil.
+     *
+     * **Asynchrone**, et c'est le manifeste qui l'impose : les attributs qu'une
+     * arme n'offre plus se remplacent par leur version améliorée, ce qui demande
+     * de lire des définitions en IndexedDB. Voir `buildPlugResolver`.
+     */
     const plan = useCallback(
-        (group: LoadoutGroup): GroupEquipPlan | null => {
+        async (group: LoadoutGroup): Promise<GroupEquipPlan | null> => {
             const profile = queryClient.getQueryData<ProfileData>(PROFILE_KEY);
             if (!profile || !characterId) return null;
 
@@ -58,6 +154,11 @@ export function useEquipGroup(characterId: string | null) {
                     .flatMap((item) =>
                         item.itemInstanceId ? [[item.itemInstanceId, item] as const] : [],
                     ),
+            );
+
+            const resolvePlug = await buildPlugResolver(
+                group.loadouts,
+                profile.items,
             );
 
             return planGroupEquip(
@@ -76,6 +177,7 @@ export function useEquipGroup(characterId: string | null) {
                         };
                     },
                     socketsOf: (id) => profile.items[id]?.sockets ?? [],
+                    resolvePlug,
                     // Ce que le personnage porte déjà : c'est par là que la
                     // séquence commencera si un emplacement s'en approche.
                     equippedNow: (profile.equipment[characterId] ?? []).flatMap(
@@ -88,10 +190,10 @@ export function useEquipGroup(characterId: string | null) {
     );
 
     const equip = useCallback(
-        (group: LoadoutGroup) => {
+        /** Le plan est **reçu** : `useConfirmEquipGroup` l'a déjà chiffré. */
+        (result: GroupEquipPlan) => {
             const profile = queryClient.getQueryData<ProfileData>(PROFILE_KEY);
-            const result = plan(group);
-            if (!result || !characterId || !profile) return;
+            if (!characterId || !profile) return;
 
             const characterLoadouts = profile.loadouts?.[characterId] ?? [];
             // `randomUUID` est disponible sans condition : Bungie refuse les
@@ -164,7 +266,7 @@ export function useEquipGroup(characterId: string | null) {
                 );
             }
         },
-        [plan, queryClient, characterId, enqueueMove, insert, runLoadout],
+        [queryClient, characterId, enqueueMove, insert, runLoadout],
     );
 
     return {plan, equip};

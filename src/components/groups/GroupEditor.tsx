@@ -15,6 +15,7 @@ import {
 } from "@/lib/loadouts/use-loadout-identifiers";
 import {useCharacterGroups, useLoadoutGroups} from "@/lib/loadouts/groups/store";
 import {useConfirmEquipGroup} from "@/lib/loadouts/groups/use-confirm-equip";
+import {useRecordPlugs} from "@/lib/loadouts/groups/use-record-plugs";
 import {foreignItems, useGroupSelection} from "@/lib/loadouts/groups/selection";
 import {SnapshotEditProvider} from "@/lib/loadouts/groups/snapshot-edit";
 import {
@@ -91,6 +92,7 @@ export function GroupEditor({
     const renameGroup = useLoadoutGroups((s) => s.renameGroup);
     const setGroupColor = useLoadoutGroups((s) => s.setGroupColor);
     const confirmEquip = useConfirmEquipGroup(group.characterId);
+    const recordPlugs = useRecordPlugs();
     const startSelection = useGroupSelection((s) => s.start);
     const shareSource = useShareSource(data, defs);
     const {share, dialog: shareDialog} = useShare();
@@ -316,7 +318,7 @@ export function GroupEditor({
                 slots,
                 selected,
                 picked,
-                (id) => data.items[id]?.sockets ?? [],
+                (id) => recordPlugs(id, data.items[id]?.sockets ?? []),
                 {
                     colorHash: choices.colors[0].hash,
                     iconHash: choices.icons[0].hash,
@@ -369,7 +371,7 @@ export function GroupEditor({
                     <button
                         type="button"
                         className="btn btn--small btn--primary"
-                        onClick={() => confirmEquip(group)}
+                        onClick={() => void confirmEquip(group)}
                     >
                         <BoltIcon/>
                         {tCommon("equip")}
@@ -459,7 +461,7 @@ export function GroupEditor({
                                     }),
                                 )
                             ) {
-                                write(copyGroupLoadouts(loadouts));
+                                write(copyGroupLoadouts(loadouts, recordPlugs));
                             }
                         }}
                     >
@@ -643,7 +645,10 @@ export function GroupEditor({
                                         setLoadout(
                                             slots,
                                             selected,
-                                            copyGroupLoadouts([previewed])[0],
+                                            copyGroupLoadouts(
+                                                [previewed],
+                                                recordPlugs,
+                                            )[0],
                                         ),
                                     )
                                 }
