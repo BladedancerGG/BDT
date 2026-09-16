@@ -15,7 +15,7 @@ import {useLoadoutActionState} from "@/lib/loadouts/use-loadout-actions";
  * va produire.
  *
  * Cette révélation est entièrement en CSS (voir `equipment-mode--preview` et le
- * `:has()` de `inventory-view__equipment`) : la passer par un état React
+ * `:has()` de `loadout-edit__contents`) : la passer par un état React
  * re-rendrait les dix lignes et leurs attributs à chaque entrée et sortie du
  * curseur, pour une transition d'opacité.
  */

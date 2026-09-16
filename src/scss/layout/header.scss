@@ -1,26 +1,42 @@
-// En-tête de l'application (titre + barre de compte).
+@use "../abstracts/variables" as v;
+@use "../abstracts/mixins" as m;
 
-.app-header {
+// En-tête de l'application : un seul élément pour les deux barres qui se
+// succédaient — titre et compte d'un côté, personnages et modes d'affichage de
+// l'autre. Elles ne commandaient qu'une même chose, ce que la page montre.
+//
+// Il vit dans la vue connectée et non dans la page : il porte les onglets de
+// personnage, et n'a donc rien à montrer tant que le manifeste et le profil ne
+// sont pas chargés.
+
+.header {
+  // Une seule colonne sur téléphone : les cinq blocs s'y empilent. L'en-tête
+  // en flex les faisait déjà passer à la ligne un à un — la barre de recherche
+  // s'y réserve toute la largeur (voir `min-width` dans search-bar.scss).
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 1rem;
-  height: 70px;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  // Ne se comprime pas au profit du coffre (voir la chaîne de .app-main)
+  flex-shrink: 0;
+  height: 3.5rem;
 
-  // Bouton du menu + titre
-  &__brand {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    height: 100%;
-  }
+  border-bottom: 1px solid var(--color-border);
 
   &__title {
     font-size: 1.5rem;
     font-weight: 700;
     letter-spacing: 0.02em;
+
+    img {
+      aspect-ratio: 1/1;
+    }
+  }
+
+  &__characters {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
     height: 100%;
   }
 }

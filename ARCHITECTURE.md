@@ -637,10 +637,10 @@ layout does not shift at the moment the user is aiming. Each zone asks the
 planner whether it is reachable, and a zone that is not stays visible, disabled,
 carrying its reason.
 
-They are three layers, all **direct children** of `.inventory-view__body`: an
+They are three layers, all **direct children** of `.inventory__body`: an
 absolutely-positioned child of a grid that is given a grid position takes that
 **grid area** as its containing block. The vault layer therefore matches the
-`.inventory-view__storage` column exactly, with nothing to measure and no
+`.inventory__storage` column exactly, with nothing to measure and no
 approximate ratio to keep in sync — which is also why `__body` declares explicit
 `grid-template-rows` even for a single row (an implicit line does not exist for
 an absolutely-positioned child, which would fall back to the whole block).
@@ -1676,7 +1676,7 @@ first three are bounded to `ICON_SIZE`, the plug one to `PLUG_SIZE`:
 | Variable | Setting | Where it applies |
 | --- | --- | --- |
 | `--item-size` | *Icon size* | equipped items and character inventory |
-| `--vault-item-size` | *Vault icon size* | vault and postmaster — `.inventory-view__storage` redefines `--item-size` from it for its whole subtree |
+| `--vault-item-size` | *Vault icon size* | vault and postmaster — `.inventory__storage` redefines `--item-size` from it for its whole subtree |
 | `--loadout-item-size` | *Loadout slot size* | loadout slot tiles (`.loadout-slot`, the group grids), i.e. the *loadouts* and *groups* views |
 | `--plug-size` | *Perk and mod size* | every `PlugIcon`, round or square, plus what is measured against it: the socket picker grid and the tooltip skeletons |
 
@@ -2466,11 +2466,11 @@ lieu de s'insérer : la mise en page ne bouge pas au moment où l'utilisateur vi
 Chaque zone demande au planificateur si elle est atteignable ; celle qui ne l'est
 pas reste affichée, désactivée, avec son motif.
 
-Ce sont trois calques, tous enfants **directs** de `.inventory-view__body` : un
+Ce sont trois calques, tous enfants **directs** de `.inventory__body` : un
 enfant en position absolue d'une grille, à qui l'on donne une position dans
 cette grille, prend pour bloc conteneur la **zone de grille** désignée. Le
 calque du coffre épouse donc exactement la colonne de
-`.inventory-view__storage`, sans rien à mesurer ni ratio approché à tenir à
+`.inventory__storage`, sans rien à mesurer ni ratio approché à tenir à
 jour — c'est aussi pourquoi `__body` déclare des `grid-template-rows` explicites
 même pour une seule rangée (une ligne implicite n'existe pas pour un enfant en
 position absolue, qui retomberait sur le bloc entier).
@@ -3582,7 +3582,7 @@ Quatre tailles indépendantes, chacune portée par sa propre variable CSS sur
 | Variable | Réglage | Où elle s'applique |
 | --- | --- | --- |
 | `--item-size` | « Taille des icônes » | objets équipés et inventaire du personnage |
-| `--vault-item-size` | « Taille des icônes du coffre » | coffre et objets perdus — `.inventory-view__storage` en redéfinit `--item-size` pour tout son sous-arbre |
+| `--vault-item-size` | « Taille des icônes du coffre » | coffre et objets perdus — `.inventory__storage` en redéfinit `--item-size` pour tout son sous-arbre |
 | `--loadout-item-size` | « Taille des emplacements d'équipement » | vignettes d'emplacement (`.loadout-slot`, les grilles de groupes), soit les vues « équipements » et « groupes » |
 | `--plug-size` | « Taille des attributs et mods » | toutes les `PlugIcon`, rondes comme carrées, et ce qui se mesure sur elles : la grille du sélecteur de sockets et les squelettes d'infobulle |
 

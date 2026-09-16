@@ -62,6 +62,7 @@ export function GroupEditor({
                                 loadouts,
                                 classType,
                                 slotCount,
+                                hidden,
                                 onClose,
                             }: {
     group: LoadoutGroup;
@@ -71,6 +72,8 @@ export function GroupEditor({
     loadouts: readonly DestinyLoadout[];
     classType: number | undefined;
     slotCount: number;
+    /** La vue est en retrait dans la pile : estompée, et hors d'atteinte */
+    hidden: boolean;
     onClose: () => void;
 }) {
     const t = useTranslations("groups");
@@ -315,8 +318,11 @@ export function GroupEditor({
     };
 
     return (
-        <div className="group-editor">
-            <div className="group-editor__toolbar">
+        <section
+            className={`view group-edit${hidden ? " view--hidden" : ""}`}
+            inert={hidden}
+        >
+            <div className="group-edit__toolbar">
                 <button
                     type="button"
                     className="btn btn--small"
@@ -346,7 +352,7 @@ export function GroupEditor({
 
 
 
-                <div className="group-editor__actions">
+                <div className="group-edit__actions">
                     {/* Le même geste que sur la carte du groupe, résumé et
                         confirmé de la même façon : on vient ici pour composer un
                         groupe, et repartir sur la grille pour l'équiper n'avait
@@ -408,9 +414,9 @@ export function GroupEditor({
                 </div>
             </div>
 
-            <div className="group-editor__body">
+            <div className="group-edit__body">
                 {/* Les dix lignes de l'emplacement sélectionné, modifiables */}
-                <div className="group-editor__contents">
+                <div className="group-edit__contents">
                     {/* Les rangées d'attributs comme les infobulles y puisent :
                         un clic sur un attribut ou un cosmétique est écrit dans
                         l'instantané, pas envoyé à Bungie. */}
@@ -484,7 +490,7 @@ export function GroupEditor({
                     </SnapshotEditProvider>
                 </div>
 
-                <div className="group-editor__slots">
+                <div className="group-edit__slots">
                     <GroupSlotGrid
                         title={t("groupSlots")}
                         loadouts={slots}
@@ -561,7 +567,7 @@ export function GroupEditor({
                         temps, il aurait surtout fallu deviner pourquoi. C'est le
                         clic sur un emplacement du personnage qui l'appelle. */}
                     {previewed && (
-                        <div className="group-editor__slot-action">
+                        <div className="group-edit__slot-action">
                             <button
                                 type="button"
                                 className="btn btn--small"
@@ -581,7 +587,7 @@ export function GroupEditor({
                     )}
                 </div>
             </div>
-        </div>
+        </section>
     );
 }
 

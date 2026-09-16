@@ -236,6 +236,7 @@
     "loading": "Loading profile…",
     "error": "Unable to load the profile.",
     "vault": "Vault",
+    "character": "Character",
     "expand": "Expand",
     "collapse": "Collapse",
     "otherGroup": "Other",

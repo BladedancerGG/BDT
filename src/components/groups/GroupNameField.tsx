@@ -42,7 +42,7 @@ export function GroupNameField({
 
     return (
         <input
-            className="group-name__input group-editor__name-input"
+            className="group-name__input group-edit__name-input"
             value={draft}
             maxLength={GROUP_NAME_MAX}
             aria-label={label}

@@ -3,7 +3,7 @@
 .view-mode-tabs {
   display: flex;
   gap: 0.5rem;
-  align-items: flex-start;
+  align-items: center;
 
   &__hint {
     height: 100%;
@@ -29,6 +29,10 @@
         var(--color-panel-alt)
       );
     }
+  }
+
+  .btn {
+    padding: 0.3rem;
   }
 }
 

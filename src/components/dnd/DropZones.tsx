@@ -97,10 +97,10 @@ function DropZone({
 /**
  * Les sept zones de dépôt, révélées pendant un déplacement.
  *
- * Trois calques, tous **enfants directs** de `.inventory-view__body` : un
+ * Trois calques, tous **enfants directs** de `.inventory__body` : un
  * enfant en position absolue d'une grille, à qui l'on donne une position dans
  * cette grille, prend pour bloc conteneur la **zone de grille** elle-même. Le
- * calque du coffre épouse donc exactement la colonne de `.inventory-view__storage`,
+ * calque du coffre épouse donc exactement la colonne de `.inventory__storage`,
  * sans mesure ni valeur approchée à tenir à jour.
  *
  * Ils restent montés en permanence : c'est ce qui permet d'animer la sortie

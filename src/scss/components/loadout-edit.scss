@@ -1,0 +1,69 @@
+@use "../abstracts/variables" as v;
+@use "../abstracts/mixins" as m;
+
+// Vue « équipements » : les lignes de l'équipement à gauche, le panneau des
+// équipements enregistrés du personnage à droite.
+//
+// Elle n'a plus d'onglet : on y descend depuis la carte des équipements
+// actuels de la vue des groupes, et son seul bouton de barre en ressort.
+// L'empilement et le fondu vivent dans `.view` (layout/main.scss).
+
+.loadout-edit {
+  gap: 1rem;
+
+  &__toolbar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
+
+    svg {
+      width: 1rem;
+      height: 1rem;
+    }
+  }
+
+  // Pas de calque de dépôt à accrocher ici, donc pas besoin des lignes
+  // explicites du corps de l'inventaire.
+  &__body {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2rem;
+    align-items: start;
+    min-width: 0;
+
+    @include m.from(v.$bp-lg) {
+      // Le panneau prend sa largeur naturelle (quatre vignettes et des boutons),
+      // les lignes d'équipement occupent le reste.
+      grid-template-columns: minmax(0, 1fr) auto;
+      // Maillon de la chaîne de hauteurs (voir .app-main)
+      flex: 1;
+      min-height: 0;
+      align-items: stretch;
+    }
+  }
+
+  // Colonne de gauche : les lignes, puis le résumé du personnage sous elles.
+  &__contents {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    // Bloc conteneur du bouton de création, centré par-dessus (loadout-create)
+    position: relative;
+
+    @include m.from(v.$bp-lg) {
+      min-height: 0;
+    }
+  }
+
+  &__panel {
+    min-width: 0;
+
+    @include m.from(v.$bp-lg) {
+      min-height: 0;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: var(--color-border-strong) transparent;
+    }
+  }
+}

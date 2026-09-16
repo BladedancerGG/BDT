@@ -211,9 +211,9 @@
 }
 
 // La révélation est commandée par le bouton, qui est son voisin dans
-// `inventory-view__equipment` — d'où le `:has()` porté par leur parent commun.
-.inventory-view__equipment:has(.loadout-create__button:hover),
-.inventory-view__equipment:has(.loadout-create__button:focus-visible) {
+// `loadout-edit__contents` — d'où le `:has()` porté par leur parent commun.
+.loadout-edit__contents:has(.loadout-create__button:hover),
+.loadout-edit__contents:has(.loadout-create__button:focus-visible) {
   .equipment-mode--preview {
     .equipment-mode__item .item,
     .plug-chips,

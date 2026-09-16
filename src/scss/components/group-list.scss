@@ -1,0 +1,297 @@
+@use "../abstracts/variables" as v;
+@use "../abstracts/mixins" as m;
+
+// Vue « groupes » : une carte par groupe du personnage.
+//
+// Les vignettes d'emplacement empruntent `.loadout-slot`, défini dans
+// `loadout-panel.scss` : c'est le même objet, dessiné du même fond coloré et du
+// même glyphe. Seul le contenant change.
+
+// La colonne, l'empilement et le fondu viennent de `.view` (layout/main.scss) :
+// ce fichier ne décrit que le contenu de la vue. Les cartes défilent pour leur
+// propre compte — voir `__cards`.
+.group-list {
+  gap: 1rem;
+
+  &__toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    flex-shrink: 0;
+  }
+
+  // Les cartes s'alignent en rangées et débordent vers le bas, comme dans la
+  // maquette. Le défilement est celui de la zone, pas celui de la page.
+  &__cards {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 1rem;
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  &__empty {
+    max-width: 28rem;
+    color: var(--color-text-muted);
+    font-size: 0.8125rem;
+  }
+
+  // Rappel du glisser-déposer, à la place que la maquette réservait au bouton
+  // de tri : l'ordre des cartes est celui que l'utilisateur leur donne, il n'y
+  // a donc aucun critère à choisir — seulement un geste à annoncer.
+  &__hint {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    margin: 0;
+    color: var(--color-text-muted);
+    font-size: 0.8125rem;
+  }
+}
+
+// —— Une carte de groupe ————————————————————————————————————
+//
+// Quatre colonnes de vignettes, comme le panneau du personnage et comme le jeu.
+// La largeur suit donc la taille d'icône réglée dans les paramètres.
+
+.group-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  //padding: 0.75rem;
+  border-top: 10px solid var(--group-color, transparent);
+  background-color: var(--color-panel);
+
+  &__header {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    min-width: 0;
+    margin: 0.75rem 0.75rem 0;
+  }
+
+  // Bloc conteneur du calque d'actions, en excluant l'en-tête : voir le calque.
+  &__body {
+    min-width: 0;
+  }
+
+  // Le geste part de la poignée et non de la carte : celle-ci porte un calque
+  // de boutons, qu'un seuil de déplacement ne protégerait pas d'un clic
+  // interprété de travers.
+  &__handle {
+    flex-shrink: 0;
+    padding: 0 0.125rem;
+    border: 0;
+    background: none;
+    color: var(--color-text-muted);
+    font-size: 0.875rem;
+    line-height: 1;
+    cursor: move;
+    touch-action: none;
+
+    &:hover,
+    &:focus-visible {
+      color: var(--color-text);
+    }
+  }
+
+  &--dragging {
+    opacity: 0.6;
+    // Au-dessus de ses voisines pendant le geste, sans quoi la carte suivante
+    // la recouvrirait dès qu'elle se décale.
+    z-index: 2;
+  }
+
+  &__name {
+    @include m.truncate;
+    margin: 0;
+    max-width: calc(4 * var(--loadout-item-size) + 3 * var(--item-gap));
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--color-text);
+  }
+
+  &__grid {
+    margin: 0.75rem;
+    display: grid;
+    grid-template-columns: repeat(4, var(--loadout-item-size));
+    gap: var(--item-gap);
+    justify-content: start;
+
+    // `.loadout-slot` est dessiné pour le panneau du personnage, où chaque
+    // vignette est un bouton. Ici elles ne sont encore que l'aperçu du groupe :
+    // annoncer un clic qui ne fait rien tromperait sur ce qui est cliquable.
+    // Aucune réaction au survol, et les deux bordures de repos sont donc
+    // répétées ici : celle de la vignette pleine et le transparent du vide.
+    .loadout-slot {
+      cursor: default;
+
+      &:hover {
+        border-color: var(--color-border-strong);
+      }
+
+      &--empty:hover {
+        border-color: transparent;
+      }
+    }
+  }
+
+  // —— Le calque d'actions ————————————————————————————————
+  //
+  // Les boutons restent dans le DOM et atteignables au clavier : c'est ce qui
+  // impose l'opacité plutôt que `display: none` ou `visibility: hidden`, qui
+  // les retireraient de la tabulation et empêcheraient `:focus-within` de les
+  // révéler.
+  //
+  // Il couvre `__body` et non la carte : sur la carte entière il recouvrait
+  // l'en-tête, donc la poignée de déplacement, dès que le survol l'activait —
+  // et réorganiser les cartes devenait impossible. Le calque lui-même ne capte
+  // par ailleurs **jamais** le pointeur : seuls ses boutons le font, comme le
+  // calque de création d'équipement (voir `loadout-create`).
+  &__actions {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem;
+
+    background-color: var(--color-overlay);
+    opacity: 0;
+    // Jamais lui : ses boutons seulement, ci-dessous.
+    pointer-events: none;
+    transition: opacity 150ms ease-in-out;
+  }
+
+  &:hover &__actions,
+  &:focus-within &__actions {
+    opacity: 1;
+
+    .group-card__action {
+      pointer-events: auto;
+    }
+  }
+  .group-card--dragging &__actions {
+    opacity: 0 !important;
+  }
+
+  &__action {
+    width: 100%;
+    max-width: 12rem;
+    pointer-events: none;
+    justify-content: center;
+    text-align: center;
+    white-space: normal;
+
+    &:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+  }
+
+  // La carte des équipements du jeu : rien à y déclencher, donc aucun calque et
+  // aucune réaction au survol.
+  // La carte des équipements du jeu : rien à y déclencher, et jamais de couleur.
+  &--static {
+    border-color: var(--color-border-strong);
+  }
+
+  // Celle-là mène au mode « équipements » : elle doit s'annoncer comme telle,
+  // n'ayant pas de calque d'actions pour le faire à sa place.
+  &--clickable {
+    &, & * {
+      cursor: pointer;
+    }
+
+    &:hover,
+    &:focus-visible {
+      border-color: var(--color-accent);
+    }
+  }
+}
+
+// —— « + Nouveau groupe » ————————————————————————————————————
+
+.group-create {
+  &__button {
+    svg {
+      width: 1rem;
+      height: 1rem;
+    }
+  }
+
+  // Menu déroulant, monté dans un portail Floating UI — comme le sélecteur de
+  // sockets, il ne doit pas être rogné par le conteneur de défilement.
+  &__menu {
+    z-index: 40;
+    display: flex;
+    flex-direction: column;
+    min-width: 14rem;
+    padding: 0.25rem;
+    border: 1px solid var(--color-border-strong);
+    background-color: var(--color-panel);
+    box-shadow: 0 8px 24px var(--color-overlay-semi-transparent);
+  }
+
+  &__item {
+    padding: 0.5rem 0.625rem;
+    border: 0;
+    background: none;
+    font: inherit;
+    color: var(--color-text);
+    text-align: left;
+    cursor: pointer;
+
+    &:hover,
+    &:focus-visible {
+      background-color: var(--color-panel-alt);
+    }
+  }
+}
+
+// —— Le nom, demandé dans une modale ————————————————————————
+
+// Le formulaire ne pose pas sa marge intérieure : `.modal--compact` la porte.
+.group-name {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: min(22rem, 80vw);
+
+  &__title {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+  }
+
+  &__label {
+    @include m.section-title;
+  }
+
+  &__input {
+    padding: 0.4375rem 0.5rem;
+    border: none;
+    background-color: transparent;
+    font: inherit;
+    color: var(--color-text);
+    font-family: var(--font-mono);
+
+    &:focus-visible {
+      outline: none;
+      border-color: var(--color-accent);
+    }
+  }
+
+  &__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+  }
+}

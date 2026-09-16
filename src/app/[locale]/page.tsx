@@ -1,9 +1,6 @@
 import {getTranslations} from "next-intl/server";
 import {getCurrentUser} from "@/lib/auth/current-user";
 import {Dashboard} from "@/components/Dashboard";
-import {HeaderActions} from "@/components/HeaderActions";
-import {SearchBar} from "@/components/search/SearchBar";
-import {MainMenuButton} from "@/components/nav/MainMenuButton";
 import {MainMenu} from "@/components/nav/MainMenu";
 import {APP_TITLE} from "@/lib/app-info";
 import Image from "next/image";
@@ -16,18 +13,15 @@ export default async function Home() {
         <main className="app-main">
             {user ? (
                 <>
-                    <header className="app-header">
-                        <div className="app-header__brand">
-                            {user && <MainMenuButton/>}
-                        </div>
-                        <SearchBar/>
-                        <HeaderActions
-                            bungieMembershipId={user.bungieMembershipId}
-                            displayName={user.displayName}
-                        />
-                    </header>
+                    {/* L'en-tête vit dans le `Dashboard` : il porte les onglets
+                        de personnage, et ne doit donc paraître qu'une fois le
+                        manifeste et le profil chargés. Les seules données du
+                        serveur dont il a besoin descendent en props. */}
                     <MainMenu displayName={user.displayName}/>
-                    <Dashboard/>
+                    <Dashboard
+                        bungieMembershipId={user.bungieMembershipId}
+                        displayName={user.displayName}
+                    />
                 </>
             ) : (
                 <div className="login-screen">

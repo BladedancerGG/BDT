@@ -59,7 +59,7 @@ export function ViewModeTabs() {
 
     return (
         <div className="view-mode-tabs" role="tablist" aria-label={t("inventory.viewMode")}>
-            <div className="view-mode-tabs__hint"><DestinySymbol name={"tab"}/></div>
+            {/*<div className="view-mode-tabs__hint"><DestinySymbol name={"tab"}/></div>*/}
             {NAV_VIEW_MODES.map((mode) => (
                 <button
                     key={mode}
@@ -73,8 +73,8 @@ export function ViewModeTabs() {
                 >
                     {mode === "inventory" &&  <VaultIcon/> }
                     {mode === "loadouts" &&  <LoadoutsIcon/> }
-                    <span>{t(`common.${mode}`)}</span>
-                </button>
+                    {/*<span>{t(`common.${mode}`)}</span>*/}
+                </button>   
             ))}
         </div>
     );

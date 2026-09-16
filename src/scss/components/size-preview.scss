@@ -18,7 +18,7 @@
 
     // Le coffre a son propre réglage : redéfinir --item-size ici suffit, tout
     // le sous-arbre (`.item` comme `.item-thumb`) lit déjà cette variable —
-    // c'est exactement ce que fait .inventory-view__storage.
+    // c'est exactement ce que fait .inventory__storage.
     &--vault {
       --item-size: var(--vault-item-size);
     }

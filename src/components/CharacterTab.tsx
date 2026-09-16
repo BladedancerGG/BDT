@@ -1,6 +1,6 @@
 "use client";
 
-import type {CSSProperties} from "react";
+import type {ComponentPropsWithRef, CSSProperties} from "react";
 import {useTranslations} from "next-intl";
 import {
     useDefinition,
@@ -9,22 +9,29 @@ import {
 import type {Character} from "@/lib/bungie/use-profile";
 import {BUNGIE_ROOT} from "@/lib/destiny/display";
 import {useSearchCounts} from "@/lib/search/provider";
+import {ClassIcon} from "./ClassIcon";
 
 interface ClassDefinition {
     displayProperties: DisplayProperties;
 }
 
-// Onglet de sélection d'un personnage : emblème + classe + niveau de puissance,
-// et, pendant une recherche, le nombre d'objets trouvés chez ce personnage.
+/**
+ * Un personnage dans le sélecteur de l'en-tête : symbole de classe, emblème en
+ * fond, nom de classe et niveau de puissance — et, pendant une recherche, le
+ * nombre d'objets trouvés chez lui.
+ *
+ * Les attributs du bouton sont **passés tels quels** : c'est `CharacterPicker`
+ * qui le monte dans son menu déroulant, et Floating UI y pose son rôle, sa
+ * place dans la navigation aux flèches et le gestionnaire de clic.
+ */
 export function CharacterTab({
                                  character,
                                  selected,
-                                 onSelect,
+                                 ...buttonProps
                              }: {
     character: Character;
     selected: boolean;
-    onSelect: () => void;
-}) {
+} & ComponentPropsWithRef<"button">) {
     const classDef = useDefinition<ClassDefinition>(
         "DestinyClassDefinition",
         character.classHash,
@@ -40,8 +47,9 @@ export function CharacterTab({
     return (
         <button
             type="button"
-            onClick={onSelect}
-            className={`character-tab${selected ? " character-tab--selected" : ""}`}>
+            className={`character-tab${selected ? " character-tab--selected" : ""}`}
+            {...buttonProps}
+        >
             {/* L'URL de l'emblème est passée au CSS via une variable */}
             <span
                 className="character-tab__emblem"
@@ -51,7 +59,12 @@ export function CharacterTab({
                     } as CSSProperties
                 }/>
             <span className="character-tab__info">
-                <span className="character-tab__icon-space"></span>
+                {/* Le symbole de classe, devant le nom : l'emblème est un décor
+                    que rien n'oblige à décrire la classe qui le porte. */}
+                <ClassIcon
+                    classType={character.classType}
+                    className="character-tab__icon"
+                />
                 <div className="character-tab__text">
                     <span className="character-tab__class">{className}</span>
                     {/* Puissance en haut, résultats de recherche en bas */}

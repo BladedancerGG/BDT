@@ -15,11 +15,11 @@ $duration: 250ms;
 .drop-zones {
   // —— Calques ————————————————————————————————————————————————
   //
-  // Chacun est un enfant **direct** de .inventory-view__body, et porte une
+  // Chacun est un enfant **direct** de .inventory__body, et porte une
   // position dans sa grille. C'est ce qui rend la largeur exacte : un élément
   // en position absolue placé dans une grille prend pour bloc conteneur la
   // *zone de grille* désignée, et non le bloc entier. Le calque du coffre
-  // épouse ainsi la colonne de .inventory-view__storage au pixel près, quelle
+  // épouse ainsi la colonne de .inventory__storage au pixel près, quelle
   // que soit la largeur que prend l'équipement à sa gauche.
   //
   // ⚠ Les DEUX lignes de chaque axe doivent être données. Une ligne de fin
@@ -75,7 +75,7 @@ $duration: 250ms;
   }
 
   // Empilé sous le seuil, à droite au-delà — comme les colonnes qu'ils
-  // recouvrent (voir .inventory-view__body).
+  // recouvrent (voir .inventory__body).
   &__vault {
     grid-column: 1 / 2;
     grid-row: 2 / 3;

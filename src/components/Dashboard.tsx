@@ -8,7 +8,17 @@ import {LoadingIcon} from "@/components/icons"
 // Composant racine de l'espace connecté : garantit le manifeste puis affiche
 // l'inventaire. On centralise ici l'appel à useManifest pour éviter des
 // téléchargements concurrents.
-export function Dashboard() {
+//
+// Rien d'autre que les écrans de chargement n'est rendu tant que le manifeste
+// n'est pas là — l'en-tête compris, qui porte les onglets de personnage et
+// n'aurait rien à y montrer.
+export function Dashboard({
+                              bungieMembershipId,
+                              displayName,
+                          }: {
+    bungieMembershipId?: string;
+    displayName?: string;
+}) {
     const t = useTranslations("manifest");
     const {status, progress} = useManifest();
 
@@ -38,8 +48,9 @@ export function Dashboard() {
     }
 
     return (
-        <div className="dashboard">
-            <InventoryView/>
-        </div>
+        <InventoryView
+            bungieMembershipId={bungieMembershipId}
+            displayName={displayName}
+        />
     );
 }

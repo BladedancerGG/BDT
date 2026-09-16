@@ -9,6 +9,7 @@
   // Sous le point de rupture, l'en-tête passe à la ligne : la barre y prend
   // toute la largeur plutôt que de coincer le titre et la barre de compte.
   min-width: 100%;
+  height: 100%;
 
   @include m.from(v.$bp-md) {
     min-width: 16rem;
@@ -17,6 +18,7 @@
   &__field {
     display: flex;
     align-items: center;
+    height: 100%;
     gap: 0.5rem;
     padding: 0 0.5rem;
     border: 1px solid var(--color-border);

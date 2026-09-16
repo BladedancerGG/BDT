@@ -1,20 +1,10 @@
 @use "../abstracts/variables" as v;
 @use "../abstracts/mixins" as m;
 
-// Dashboard : conteneur de l'espace connecté + indicateur de chargement
-// du manifeste.
-
-.dashboard {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-
-  // Maillon de la chaîne de hauteurs (voir .app-main)
-  @include m.from(v.$bp-lg) {
-    flex: 1;
-    min-height: 0;
-  }
-}
+// Écrans d'attente de l'espace connecté : manifeste, puis profil.
+//
+// Ils occupent la page à eux seuls — l'en-tête n'est monté qu'une fois les deux
+// chargés, n'ayant ni personnage ni recherche à offrir avant.
 
 .manifest-loader {
   display: flex;
@@ -57,6 +47,15 @@
   align-items: center;
   gap: 1rem;
   padding: 2rem 0;
+  font-size: 0.875rem;
+
+  &__message {
+    color: var(--color-text-muted);
+  }
+
+  &--error &__message {
+    color: var(--color-danger);
+  }
 
   svg {
     width: 100px;

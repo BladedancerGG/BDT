@@ -34,11 +34,11 @@ export function MainMenuButton() {
             title={t("open")}
         >
             <Bars3Icon/>
-            <h1 className="app-header__title">
+            <h1 className="header__title">
                 <Image
                     src="/images/BDT.png"
-                    width={40}
-                    height={40}
+                    width={30}
+                    height={30}
                     alt={"BDT logo"}
                 />
             </h1>

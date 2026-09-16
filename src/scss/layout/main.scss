@@ -9,7 +9,7 @@
   // --item-size est surchargée à l'exécution par le réglage utilisateur.
   --item-size: #{v.$item-size};
   // Taille propre au coffre et aux objets perdus : réglée à part dans les
-  // paramètres, elle ne s'applique que sous .inventory-view__storage, qui y
+  // paramètres, elle ne s'applique que sous .inventory__storage, qui y
   // redéfinit --item-size pour tout son sous-arbre.
   --vault-item-size: #{v.$item-size};
   // Taille des vignettes d'emplacement d'équipement (vues « équipements » et
@@ -119,5 +119,70 @@ button {
     height: 100dvh;
     min-height: 0;
     overflow: hidden;
+  }
+}
+
+// —— La pile des vues ————————————————————————————————————————
+//
+// Les trois vues — inventaire, équipements, groupes — sont montées en
+// permanence et superposées dans la MÊME case de grille : la bascule est alors
+// un fondu, et rien n'est à reconstruire — ni le coffre virtualisé, ni les
+// définitions déjà lues. Une seule zone nommée suffit à les empiler ; la
+// hauteur de la case est celle de la plus grande.
+.views {
+  display: grid;
+  grid-template-areas: "stack";
+  min-width: 0;
+  // Bloc conteneur de la vue cachée, sortie du flux (voir --hidden)
+  position: relative;
+
+  // Maillon de la chaîne de hauteurs (voir .app-main)
+  @include m.from(v.$bp-lg) {
+    flex: 1;
+    min-height: 0;
+    grid-template-rows: minmax(0, 1fr);
+  }
+}
+
+// Une vue de la pile. Elle porte AUSSI sa propre classe de base — .inventory,
+// .loadout-edit, .group-list ou .group-edit — qui décrit son contenu ; celle-ci
+// ne décrit que sa place dans la pile.
+.view {
+  grid-area: stack;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 1rem 1rem 0;
+  transition: opacity 180ms ease-in-out;
+
+  @include m.from(v.$bp-lg) {
+    min-height: 0;
+  }
+
+  &--hidden {
+    opacity: 0;
+    visibility: hidden;
+    // La visibilité ne bascule qu'à la FIN du fondu : sans ce délai la vue
+    // disparaîtrait d'un coup au lieu de s'effacer. Elle revient en revanche
+    // sans attendre, le délai ne portant que sur l'état caché.
+    transition:
+      opacity 180ms ease-in-out,
+      visibility 0s linear 180ms;
+
+    // Sortie du flux : sans cela la case de grille garderait la hauteur de la
+    // PLUS GRANDE des vues, et la plus courte traînerait des centaines de
+    // pixels de vide sous elle. Sur grand écran la hauteur vient du parent et
+    // rien ne bouge ; en dessous, la page se réajuste pendant le fondu.
+    position: absolute;
+    inset: 0;
+  }
+
+  // Respecte la préférence système : la bascule reste instantanée
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+
+    &--hidden {
+      transition: none;
+    }
   }
 }

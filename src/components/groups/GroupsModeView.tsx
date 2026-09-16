@@ -45,6 +45,10 @@ import {GroupEditor} from "./GroupEditor";
  * plutôt que de s'ouvrir par-dessus : l'éditeur reprend la disposition du mode
  * « équipements » et lui faut toute la largeur, et une modale de cette taille
  * n'aurait été qu'une page déguisée.
+ *
+ * Les deux écrans sont chacun une vue de la pile — `.group-list` et
+ * `.group-edit` — et portent donc eux-mêmes son habillage : c'est ce qui évite
+ * l'enveloppe qu'il aurait fallu autour d'eux pour recevoir `hidden`.
  */
 export function GroupsModeView({
                                    characterId,
@@ -52,6 +56,7 @@ export function GroupsModeView({
                                    loadouts,
                                    data,
                                    defs,
+                                   hidden,
                                }: {
     characterId: string | null;
     /** Classe du personnage : filtre les objets proposés dans l'éditeur */
@@ -60,6 +65,8 @@ export function GroupsModeView({
     loadouts: readonly DestinyLoadout[];
     data: ProfileData;
     defs: Map<number, InventoryItemDefinition>;
+    /** La vue est en retrait dans la pile : estompée, et hors d'atteinte */
+    hidden: boolean;
 }) {
     const t = useTranslations("groups");
     const groups = useCharacterGroups(characterId);
@@ -95,23 +102,25 @@ export function GroupsModeView({
     const editing = groups.find((group) => group.id === editingId);
     if (editingId && editing && characterId) {
         return (
-            <section className="loadout-groups">
-                <GroupEditor
-                    group={editing}
-                    data={data}
-                    defs={defs}
-                    loadouts={loadouts}
-                    classType={classType}
-                    slotCount={slotCount}
-                    onClose={() => setEditingId(null)}
-                />
-            </section>
+            <GroupEditor
+                group={editing}
+                data={data}
+                defs={defs}
+                loadouts={loadouts}
+                classType={classType}
+                slotCount={slotCount}
+                hidden={hidden}
+                onClose={() => setEditingId(null)}
+            />
         );
     }
 
     return (
-        <section className="loadout-groups">
-            <div className="loadout-groups__toolbar">
+        <section
+            className={`view group-list${hidden ? " view--hidden" : ""}`}
+            inert={hidden}
+        >
+            <div className="group-list__toolbar">
                 <GroupCreateButton characterId={characterId} loadouts={loadouts}/>
 
                 {/* L'ordre des cartes est celui que l'utilisateur leur donne en
@@ -119,7 +128,7 @@ export function GroupsModeView({
                     le geste ne se devine pas — d'où ce rappel, à la place que la
                     maquette réservait au bouton de tri. */}
                 {groups.length > 1 && (
-                    <p className="loadout-groups__hint">
+                    <p className="group-list__hint">
                         <span aria-hidden>↑↓</span>
                         {t("dragHint")}
                     </p>
@@ -136,7 +145,7 @@ export function GroupsModeView({
                     if (from !== -1 && to !== -1) moveGroup(characterId, from, to);
                 }}
             >
-                <div className="loadout-groups__cards">
+                <div className="group-list__cards">
                     {/* La première carte montre toujours les emplacements du
                         jeu. Elle n'a pas d'actions et n'est pas déplaçable :
                         c'est l'état courant du personnage, pas un groupe. Un
@@ -200,7 +209,7 @@ export function GroupsModeView({
                 </div>
             </DndContext>
 
-            {slotCount === 0 && <p className="loadout-groups__empty">{t("noSlots")}</p>}
+            {slotCount === 0 && <p className="group-list__empty">{t("noSlots")}</p>}
         </section>
     );
 }
