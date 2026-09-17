@@ -55,15 +55,33 @@ type GridRow =
 };
 
 /**
+ * Sous-groupe d'une section de tête : un personnage, quand les objets perdus
+ * des trois sont réunis.
+ */
+export interface LeadGroup {
+    key: string;
+    label: string;
+    icon?: GroupIcon;
+    items: DestinyItemComponent[];
+}
+
+/**
  * Section posée avant le coffre, dans le même défilement — en pratique les
  * objets perdus. Ses objets ne sont ni triés ni regroupés : ils sont peu
  * nombreux, et leur ordre est celui du Courrier.
+ *
+ * `groups` les découpe par personnage, ce que demande la disposition « trois
+ * personnages » : les objets perdus y viennent des trois à la fois, et rien
+ * dans une vignette ne dit chez qui elle dort. `items` reste la liste
+ * complète — c'est elle que filtre la recherche, les sous-groupes n'en
+ * retenant ensuite que ce qui a survécu.
  */
 export interface LeadSection {
     key: string;
     label: string;
     icon?: GroupIcon;
     items: DestinyItemComponent[];
+    groups?: LeadGroup[];
 }
 
 // Référence stable : `useSearchFiltered` mémorise sur l'identité de sa liste
@@ -168,7 +186,35 @@ export function VirtualItemGrid({
                 collapsed: leadCollapsed,
                 height: rootHeight,
             });
-            if (!leadCollapsed) pushItems(lead.key, leadFound);
+            if (!leadCollapsed) {
+                if (lead.groups) {
+                    // Le filtre de recherche a déjà été appliqué à la liste
+                    // complète : les sous-groupes s'y ramènent par identité,
+                    // plutôt que de relancer un filtrage par personnage — ce
+                    // qui demanderait autant de hooks que de personnages.
+                    const kept = new Set(leadFound);
+                    for (const group of lead.groups) {
+                        const items = group.items.filter((item) => kept.has(item));
+                        // Un personnage sans rien au Courrier n'a pas de ligne :
+                        // trois en-têtes vides ne diraient que du vide.
+                        if (items.length === 0) continue;
+                        const groupKey = `${lead.key}/${group.key}`;
+                        const groupCollapsed = collapsed.has(groupKey);
+                        out.push({
+                            kind: "group",
+                            key: groupKey,
+                            label: group.label,
+                            icon: group.icon,
+                            count: items.length,
+                            collapsed: groupCollapsed,
+                            height: groupHeight,
+                        });
+                        if (!groupCollapsed) pushItems(groupKey, items);
+                    }
+                } else {
+                    pushItems(lead.key, leadFound);
+                }
+            }
         }
 
         const vaultCollapsed = collapsed.has(VAULT_KEY);

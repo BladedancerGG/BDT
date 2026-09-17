@@ -89,6 +89,38 @@ $duration: 250ms;
     }
   }
 
+  // Disposition « trois personnages » : les paires de zones se rangent côte à
+  // côte, chacune sous la colonne de son personnage — l'ordre est celui des
+  // colonnes, garanti par `DropZones`. Elles ne se partagent plus la hauteur
+  // mais la largeur, d'où la seule bascule de direction.
+  //
+  // ⚠ Le sélecteur part du corps de la vue, et le calque ne porte PAS de
+  // modificateur. Ces classes-là ne commandent que le fondu ; en ajouter une
+  // qui change la mise en page dans la même liste, c'est mêler deux choses qui
+  // n'ont rien à voir — le fondu doit être exactement celui de la disposition
+  // historique, sans rien qui puisse s'y glisser.
+  .inventory__body--columns &__characters {
+    // Les zones recouvrent les colonnes : elles se mesurent sur la taille de
+    // celles-ci, pas sur celle de la disposition historique.
+    --item-size: var(--columns-item-size);
+
+    display: flex;
+    flex-direction: row;
+    gap: 2rem;
+
+    .drop-zones__row {
+      display: flex;
+
+      .drop-zone--equip {
+        flex-basis: max(60px, var(--item-size));
+        flex-grow: 0;
+        flex-shrink: 0;
+        overflow: hidden;
+        padding: 0;
+      }
+    }
+  }
+
   &__row {
     display: grid;
     grid-template-columns: 1fr 1fr;

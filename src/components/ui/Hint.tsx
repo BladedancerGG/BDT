@@ -55,7 +55,7 @@ export function Hint({
         whileElementsMounted: autoUpdate,
     });
 
-    const hover = useHover(context, {move: false, delay: {open: 200, close: 0}});
+    const hover = useHover(context, {move: false, delay: {open: 100, close: 0}});
     const focus = useFocus(context);
     const dismiss = useDismiss(context);
     const role = useRole(context, {role: "tooltip"});

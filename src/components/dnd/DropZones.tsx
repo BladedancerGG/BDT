@@ -111,11 +111,18 @@ export function DropZones({
   characters,
   selectedCharacterId,
   category,
+  columns = false,
 }: {
   characters: readonly Character[];
   selectedCharacterId: string | null;
   /** Famille affichée : elle décide du découpage — voir plus bas */
   category: ItemCategory;
+  /**
+   * Disposition « trois personnages » : les paires de zones se rangent alors
+   * côte à côte, chacune sous la colonne de son personnage, au lieu de
+   * s'empiler.
+   */
+  columns?: boolean;
 }) {
   const t = useTranslations("actions.move");
   const tCommon = useTranslations("common");
@@ -134,12 +141,19 @@ export function DropZones({
 
   // Le personnage affiché en premier : c'est celui que l'utilisateur regarde,
   // et ses deux zones se passent de préciser un nom.
+  //
+  // Sauf en colonnes : l'ordre y est celui du profil, comme celui des colonnes
+  // qu'elles recouvrent (voir `CharacterColumns`). Réordonner ferait tomber les
+  // zones sous le mauvais personnage — l'erreur ne se verrait qu'au dépôt.
   const ordered = useMemo(
-    () => [
-      ...characters.filter((c) => c.characterId === selectedCharacterId),
-      ...characters.filter((c) => c.characterId !== selectedCharacterId),
-    ],
-    [characters, selectedCharacterId],
+    () =>
+      columns
+        ? characters
+        : [
+            ...characters.filter((c) => c.characterId === selectedCharacterId),
+            ...characters.filter((c) => c.characterId !== selectedCharacterId),
+          ],
+    [characters, selectedCharacterId, columns],
   );
 
   /**
@@ -181,6 +195,11 @@ export function DropZones({
 
   const planOf = (target: MoveTarget) => plans?.get(zoneId(target)) ?? null;
 
+  // La disposition ne pose AUCUNE classe ici : sa géométrie est décrite depuis
+  // `.inventory__body--columns`, le corps de la vue (voir drop-zones.scss). Les
+  // calques portent ainsi rigoureusement la même liste de classes dans les deux
+  // dispositions — et avec elle le même fondu d'apparition et de disparition,
+  // qui est tout ce que ces classes commandent.
   const layer = (name: string) =>
     `drop-zones__${name} drop-zones__layer${
       dragged ? " drop-zones__layer--visible" : ""
@@ -206,10 +225,9 @@ export function DropZones({
         )}
 
         {!shared &&
-          ordered.map((character, index) => {
+          ordered.map((character) => {
             const name = names.get(character.characterId) ?? "";
-            const current =
-              index === 0 && character.characterId === selectedCharacterId;
+            const current = character.characterId === selectedCharacterId;
             const equip: MoveTarget = {
               kind: "equipped",
               characterId: character.characterId,
@@ -219,20 +237,28 @@ export function DropZones({
               characterId: character.characterId,
             };
 
+            // Chaque paire tombe sous la colonne de son personnage : la
+            // position le désigne déjà, et trois fois « Transférer vers
+            // l'inventaire de Chasseur » ne dirait rien de plus — deux
+            // personnages de même classe portent d'ailleurs le même nom.
+            const named = !columns && !current;
+
             return (
               <div
                 key={character.characterId}
+                // La hauteur exacte des colonnes d'équipement ne vaut que
+                // pour la disposition historique, où les trois rangées
+                // s'empilent : en colonnes, chacune occupe toute la hauteur du
+                // calque, sous la colonne qu'elle recouvre.
                 className={`drop-zones__row${
-                  current ? " drop-zones__row--current" : ""
+                  current && !columns ? " drop-zones__row--current" : ""
                 }`}
               >
                 <DropZone
                   variant="equip"
                   target={equip}
                   plan={planOf(equip)}
-                  label={
-                    current ? tCommon("equip") : t("equipOn", { character: name })
-                  }
+                  label={named ? t("equipOn", { character: name }) : tCommon("equip")}
                 >
                   <CharacterMark character={character} />
                 </DropZone>
@@ -241,9 +267,7 @@ export function DropZones({
                   target={inventory}
                   plan={planOf(inventory)}
                   label={
-                    current
-                      ? t("inventoryHere")
-                      : t("inventoryOf", { character: name })
+                    named ? t("inventoryOf", { character: name }) : t("inventoryHere")
                   }
                 >
                   <CharacterMark character={character} />

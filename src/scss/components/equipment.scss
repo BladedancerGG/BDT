@@ -62,7 +62,7 @@
 
 .equipment-slot {
   display: flex;
-  gap: 0.625rem;
+  gap: var(--item-gap);
 
   &__label {
     font-size: 0.8125rem;
@@ -111,7 +111,7 @@ $slot-columns: 3;
 
 .slot-inventory {
   // Facteur de réduction hors survol
-  --slot-reduced: 0.315;
+  --slot-reduced: 0.3;
 
   position: relative;
   flex-shrink: 0;

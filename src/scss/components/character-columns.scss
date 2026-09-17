@@ -1,0 +1,110 @@
+@use "../abstracts/variables" as v;
+@use "../abstracts/mixins" as m;
+
+// Disposition « trois personnages » de la vue d'inventaire : une colonne par
+// personnage, côte à côte, et le coffre à droite comme toujours.
+//
+// Chaque ligne porte l'objet équipé à gauche et l'inventaire de son emplacement
+// à droite — c'est `.equipment-slot--right` (components/equipment.scss), la
+// colonne des armures de la disposition historique, réemployée telle quelle.
+
+.character-columns {
+  // Cette disposition a son propre réglage de taille : trois colonnes tiennent
+  // dans la largeur qu'une seule occupait. Redéfinir --item-size ici suffit —
+  // tout le sous-arbre la lit déjà, vignettes comme géométrie ci-dessous. Même
+  // mécanique que `.inventory__storage` pour le coffre.
+  --item-size: var(--columns-item-size);
+
+  // —— Débordement de la grille dépliée ————————————————————
+  //
+  // L'inventaire d'un emplacement est affiché en réduit et reprend sa taille
+  // réelle au survol, par un `transform` : il déborde donc de l'empreinte
+  // qu'il occupe dans la mise en page. En largeur, la colonne est taillée pour
+  // la grille dépliée (`.character-column`), il n'y a rien à réserver ; en
+  // hauteur, c'est la réserve du bas qui empêche la dernière ligne de sortir
+  // de la section.
+  //
+  // Le facteur est celui de `--slot-reduced` (components/equipment.scss) : les
+  // deux valeurs se lisent ensemble, changer l'une demande de changer l'autre.
+  // Il n'est pas hérité de la grille elle-même — une variable posée sur un
+  // descendant ne remonte pas jusqu'ici.
+  --slot-grid-width: calc(3 * var(--item-size) + 2 * var(--item-gap));
+  --slot-overhang: calc(var(--slot-grid-width) * (1 - 0.3));
+
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 0.5rem 0 calc(var(--slot-overhang) + 1rem) 0;
+  gap: 2rem;
+  overflow: hidden;
+
+  // La page ne défilant plus sur grand écran, cette colonne défile pour son
+  // propre compte si la fenêtre est trop courte — comme `.equipment`.
+  @include m.from(v.$bp-lg) {
+    min-height: 0;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-border-strong) transparent;
+  }
+}
+
+.character-column {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.75rem;
+  width: calc(4 * var(--item-size) + 3 * var(--item-gap));
+  // La largeur vient des emplacements, pas de l'emblème : le bandeau du
+  // sélecteur impose une largeur minimale qui n'a pas cours ici.
+  flex-shrink: 0;
+
+
+  .character-tab {
+    min-width: 0;
+    width: 100%;
+
+    .character-tab__info {
+      padding-left: calc(var(--item-size) * 0.75);
+
+    }
+    .character-tab__class {
+      font-size: calc(var(--item-size) * 0.3);
+    }
+
+    .character-tab__power {
+      font-size: calc(var(--item-size) * 0.35);
+    }
+  }
+
+
+  // Entre l'emblème et les emplacements : les marges verticales prévues pour un
+  // pied d'équipement s'ajouteraient à la gouttière de la colonne.
+  .character-summary {
+    padding-block: 0;
+    align-items: flex-start;
+    width: 100%;
+
+    .character-summary__stats {
+      width: 100%;
+      gap: calc(var(--item-size) * 0.1);
+    }
+
+    .character-summary__stat-icon {
+      width: calc(var(--item-size) * 0.25);
+      height: calc(var(--item-size) * 0.25);
+    }
+
+    .character-summary__stat-value {
+      font-size: calc(var(--item-size) * 0.25);
+    }
+  }
+
+  &__slots {
+    padding-right: var(--slot-overhang);
+    display: flex;
+    flex-direction: column;
+    // Même gouttière que les colonnes de la disposition historique : une ligne
+    // fait la hauteur de la vignette équipée (voir layout/main.scss).
+    gap: var(--slot-row-gap);
+  }
+}

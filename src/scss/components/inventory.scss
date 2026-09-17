@@ -46,6 +46,16 @@
     }
   }
 
+  // Disposition « trois personnages » : les colonnes prennent leur largeur
+  // naturelle, comme l'équipement de la disposition historique, mais restent
+  // compressibles — trois colonnes valent large, et le coffre ne doit pas être
+  // chassé hors de l'écran.
+  &__body--columns {
+    @include m.from(v.$bp-lg) {
+      grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+    }
+  }
+
   // Colonne de droite : le stockage, Courrier et coffre dans un seul défilement
   &__storage {
     // Le coffre et les objets perdus suivent leur propre réglage de taille :

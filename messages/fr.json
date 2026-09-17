@@ -106,7 +106,9 @@
       "originalOnHover": "Afficher l'icône de base au survol",
       "originalOnHoverHint": "Survoler une armure ornementée révèle son icône de base",
       "iconSize": "Taille des icônes",
-      "iconSizeHint": "Objets équipés et inventaire du personnage",
+      "iconSizeHint": "Objets équipés et inventaire du personnage affiché",
+      "columnsIconSize": "Taille des icônes en colonnes",
+      "columnsIconSizeHint": "Objets équipés et inventaire, quand les trois personnages sont côte à côte",
       "vaultIconSize": "Taille des icônes du coffre",
       "vaultIconSizeHint": "Coffre et objets perdus",
       "loadoutIconSize": "Taille des emplacements d’équipement",
@@ -118,6 +120,12 @@
       "previewEmpty": "L’aperçu attend le chargement de l’inventaire"
     },
     "inventory": {
+      "layout": "Disposition de l’inventaire",
+      "layoutHint": "« Trois personnages » montre les trois inventaires côte à côte ; les objets perdus sont alors découpés par personnage.",
+      "layouts": {
+        "single": "Un personnage",
+        "characters": "Trois personnages"
+      },
       "weaponGrouping": "Regroupement des armes",
       "armorGrouping": "Regroupement des armures",
       "groupingHint": "Le coffre est toujours séparé par emplacement ; ce réglage choisit le sous-groupe, un seul à la fois.",

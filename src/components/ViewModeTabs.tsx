@@ -6,7 +6,7 @@ import {NAV_VIEW_MODES, navViewModeOf, navViewTarget} from "@/lib/settings/const
 import { useSettings } from "@/lib/settings/store";
 import { useGroupSelection } from "@/lib/loadouts/groups/selection";
 import {LoadoutsIcon, VaultIcon} from "@/components/icons";
-import {DestinySymbol} from "@/components/DestinySymbol";
+import {Hint} from "@/components/ui/Hint";
 
 /**
  * Bascule entre les deux destinations de la navigation : l'inventaire et les
@@ -28,6 +28,7 @@ import {DestinySymbol} from "@/components/DestinySymbol";
  */
 export function ViewModeTabs() {
     const t = useTranslations();
+    const tCommon = useTranslations("common");
     const viewMode = useSettings((s) => s.viewMode);
     const setViewMode = useSettings((s) => s.setViewMode);
     const toggleViewMode = useSettings((s) => s.toggleViewMode);
@@ -59,22 +60,21 @@ export function ViewModeTabs() {
 
     return (
         <div className="view-mode-tabs" role="tablist" aria-label={t("inventory.viewMode")}>
-            {/*<div className="view-mode-tabs__hint"><DestinySymbol name={"tab"}/></div>*/}
             {NAV_VIEW_MODES.map((mode) => (
-                <button
-                    key={mode}
-                    type="button"
-                    role="tab"
-                    aria-selected={mode === current}
-                    className={`btn btn--small view-mode-tabs__tab${
-                        mode === current ? " view-mode-tabs__tab--active" : ""
-                    }`}
-                    onClick={() => setViewMode(navViewTarget(mode))}
-                >
-                    {mode === "inventory" &&  <VaultIcon/> }
-                    {mode === "loadouts" &&  <LoadoutsIcon/> }
-                    {/*<span>{t(`common.${mode}`)}</span>*/}
-                </button>   
+                <Hint key={mode} actions={[{label: tCommon(mode), keys: ["tab"]}]}>
+                    <button
+                        type="button"
+                        role="tab"
+                        aria-selected={mode === current}
+                        className={`btn btn--small view-mode-tabs__tab${
+                            mode === current ? " view-mode-tabs__tab--active" : ""
+                        }`}
+                        onClick={() => setViewMode(navViewTarget(mode))}
+                    >
+                        {mode === "inventory" &&  <VaultIcon/> }
+                        {mode === "loadouts" &&  <LoadoutsIcon/> }
+                    </button>
+                </Hint>
             ))}
         </div>
     );

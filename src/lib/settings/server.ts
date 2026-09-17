@@ -19,6 +19,7 @@ interface PersistedShape {
     theme?: ThemePreference;
     visualEffects?: boolean;
     iconSize?: number;
+    columnsIconSize?: number;
     vaultIconSize?: number;
     loadoutIconSize?: number;
     plugSize?: number;
@@ -38,6 +39,7 @@ export interface ServerPreferences {
      */
     visualEffects: boolean;
     iconSize?: number;
+    columnsIconSize?: number;
     vaultIconSize?: number;
     loadoutIconSize?: number;
     plugSize?: number;
@@ -83,6 +85,7 @@ function pick(state: PersistedShape): Omit<ServerPreferences, "synced"> {
         // et l'application se comportait alors comme s'ils étaient allumés.
         visualEffects: state.visualEffects !== false,
         iconSize: readIconSize(state.iconSize),
+        columnsIconSize: readIconSize(state.columnsIconSize),
         vaultIconSize: readIconSize(state.vaultIconSize),
         loadoutIconSize: readIconSize(state.loadoutIconSize),
         plugSize: readPlugSize(state.plugSize),

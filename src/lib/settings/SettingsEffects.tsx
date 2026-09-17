@@ -15,6 +15,7 @@ export function SettingsEffects() {
     const theme = useSettings((s) => s.theme);
     const visualEffects = useSettings((s) => s.visualEffects);
     const iconSize = useSettings((s) => s.iconSize);
+    const columnsIconSize = useSettings((s) => s.columnsIconSize);
     const vaultIconSize = useSettings((s) => s.vaultIconSize);
     const loadoutIconSize = useSettings((s) => s.loadoutIconSize);
     const plugSize = useSettings((s) => s.plugSize);
@@ -42,6 +43,13 @@ export function SettingsEffects() {
     useEffect(() => {
         document.documentElement.style.setProperty("--item-size", `${iconSize}px`);
     }, [iconSize]);
+
+    useEffect(() => {
+        document.documentElement.style.setProperty(
+            "--columns-item-size",
+            `${columnsIconSize}px`,
+        );
+    }, [columnsIconSize]);
 
     useEffect(() => {
         document.documentElement.style.setProperty(

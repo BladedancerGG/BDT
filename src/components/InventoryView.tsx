@@ -23,6 +23,7 @@ import {
     type DisplayProperties,
 } from "@/lib/manifest/use-definition";
 import type {ItemCategory} from "@/lib/settings/constants";
+import {useCharacterNames} from "@/lib/destiny/use-character-names";
 import {useSettings} from "@/lib/settings/store";
 import {useDisplayableItems} from "@/lib/destiny/use-displayable-items";
 import {useLoadoutItems} from "@/lib/destiny/use-loadout-items";
@@ -31,6 +32,7 @@ import {SearchProvider} from "@/lib/search/provider";
 import {SearchActionsBridge} from "./search/SearchActionsBridge";
 import {useActionRunner} from "@/lib/actions/use-action-runner";
 import {CharacterPicker} from "./CharacterPicker";
+import {CharacterColumns} from "./CharacterColumns";
 import {HeaderActions} from "./HeaderActions";
 import {SearchBar} from "./search/SearchBar";
 import {MainMenuButton} from "./nav/MainMenuButton";
@@ -45,7 +47,7 @@ import {LoadoutTitle} from "./loadouts/LoadoutTitle";
 import {GroupsModeView} from "./groups/GroupsModeView";
 import {GroupSelectionBar} from "./groups/GroupSelectionBar";
 import {useGroupSelection} from "@/lib/loadouts/groups/selection";
-import {VirtualItemGrid, type LeadSection} from "./VirtualItemGrid";
+import {VirtualItemGrid, type LeadGroup, type LeadSection} from "./VirtualItemGrid";
 import {ActionsPanel} from "./actions/ActionsPanel";
 import {DropZones} from "./dnd/DropZones";
 import {DragScopeProvider, MoveDnd, type DragScope} from "./dnd/MoveDnd";
@@ -143,7 +145,11 @@ function SlotColumn({
  * personnage, mais dans le bucket « Objets perdus ». Le libellé vient du
  * manifeste, donc traduit.
  */
-function usePostmasterSection(items: DestinyItemComponent[]): LeadSection {
+function usePostmasterSection(
+    items: DestinyItemComponent[],
+    /** Découpage par personnage — voir `LeadSection.groups` */
+    groups?: LeadGroup[],
+): LeadSection {
     const bucket = useDefinition<{ displayProperties: DisplayProperties }>(
         "DestinyInventoryBucketDefinition",
         BUCKET.Postmaster,
@@ -156,8 +162,9 @@ function usePostmasterSection(items: DestinyItemComponent[]): LeadSection {
             label,
             icon: {kind: "postmaster"},
             items,
+            groups,
         }),
-        [label, items],
+        [label, items, groups],
     );
 }
 
@@ -203,6 +210,14 @@ function Inventory({
      */
     const category = useSettings((s) => s.itemCategory);
 
+    /**
+     * Disposition : le seul personnage affiché, ou les trois côte à côte.
+     *
+     * Le rangement partagé s'y soustrait — il n'appartient à personne, et la vue
+     * y montre déjà deux colonnes sans aucun emplacement de personnage.
+     */
+    const layout = useSettings((s) => s.inventoryLayout);
+
     // Armes, armures, doctrines et artéfacts uniquement. Cette liste-ci ne suit
     // PAS l'onglet : elle sert aussi les modes « équipements » et « groupes »,
     // montés en même temps, où un emblème n'a rien à faire.
@@ -232,11 +247,25 @@ function Inventory({
     // colonnes : sous l'onglet du rangement partagé il n'y a aucune colonne, et
     // tout l'inventaire du personnage se serait retrouvé sous l'en-tête
     // « Objets perdus ».
-    const leftovers = useMemo(
+    const ownLeftovers = useMemo(
         () => shownInventory.filter((i) => i.bucketHash === BUCKET.Postmaster),
         [shownInventory],
     );
-    const postmaster = usePostmasterSection(leftovers);
+
+    // Les objets perdus des TROIS personnages, pour la disposition en colonnes :
+    // elle les montre tous, découpés par personnage. Toujours calculés — une
+    // liste de quelques dizaines d'objets, et un hook ne se monte pas
+    // conditionnellement.
+    const allLeftovers = useMemo(
+        () =>
+            data.characters.flatMap((c) =>
+                (data.inventory[c.characterId] ?? NO_ITEMS).filter(
+                    (i) => i.bucketHash === BUCKET.Postmaster,
+                ),
+            ),
+        [data.characters, data.inventory],
+    );
+    const shownLeftovers = useDisplayableItems(allLeftovers, category);
 
     /**
      * Sous l'onglet du rangement partagé, la vue se coupe en deux : ce qui est
@@ -250,6 +279,37 @@ function Inventory({
      * retiré, il a déjà sa section.
      */
     const shared = category === "inventory";
+
+    /**
+     * Les trois colonnes sont-elles montées ?
+     *
+     * Le rangement partagé s'en exclut : il n'appartient à aucun personnage, et
+     * la vue y montre déjà deux grilles sans le moindre emplacement.
+     */
+    const columnsLayout = layout === "characters" && !shared;
+
+    // Les objets perdus montrés : ceux du personnage affiché, ou ceux des trois
+    // quand les colonnes sont montées — chacun sous son en-tête.
+    const names = useCharacterNames(data.characters);
+    const postmasterGroups = useMemo(() => {
+        if (!columnsLayout) return undefined;
+        // Les sous-groupes se taillent dans les listes d'origine, pas dans la
+        // liste filtrée : celle-ci ne dit plus de qui vient chaque objet.
+        const kept = new Set(shownLeftovers);
+        return data.characters.map((c): LeadGroup => ({
+            key: c.characterId,
+            label: names.get(c.characterId) ?? "",
+            icon: {kind: "class", classType: c.classType},
+            items: (data.inventory[c.characterId] ?? NO_ITEMS).filter(
+                (i) => i.bucketHash === BUCKET.Postmaster && kept.has(i),
+            ),
+        }));
+    }, [columnsLayout, data.characters, data.inventory, names, shownLeftovers]);
+    const postmaster = usePostmasterSection(
+        columnsLayout ? shownLeftovers : ownLeftovers,
+        postmasterGroups,
+    );
+
     const pouchItems = useMemo(
         () =>
             shared
@@ -393,7 +453,7 @@ function Inventory({
                     <div
                         className={`inventory__body${
                             shared ? " inventory__body--shared" : ""
-                        }`}
+                        }${columnsLayout ? " inventory__body--columns" : ""}`}
                     >
                         {/* Colonne de gauche du rangement partagé : ce que
                             le personnage porte sur lui, modificateurs et
@@ -411,10 +471,22 @@ function Inventory({
                             </div>
                         )}
 
+                        {/* Disposition « trois personnages » : une colonne
+                            chacun, dans l'ordre du profil. */}
+                        {columnsLayout && (
+                            <CharacterColumns
+                                characters={data.characters}
+                                data={data}
+                                category={category}
+                                selectedId={current}
+                                onSelect={setSelectedId}
+                            />
+                        )}
+
                         {/* Emplacements du personnage : deux colonnes.
                             Absentes du rangement partagé, qui n'appartient à
                             personne — le coffre prend alors toute la place. */}
-                        {!shared && (
+                        {!shared && !columnsLayout && (
                             <section
                                 className={`equipment${
                                     category === "customization"
@@ -480,6 +552,7 @@ function Inventory({
                             characters={data.characters}
                             selectedCharacterId={current}
                             category={category}
+                            columns={columnsLayout}
                         />
                     </div>
                 </section>

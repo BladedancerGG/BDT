@@ -788,6 +788,37 @@ once and what holds for one does not hold for the other.
 > position it holds in the other mode the moment the gesture started. Hence
 > `DragScope.idPrefix`.
 
+### Inventory layouts
+
+The inventory mode itself has two layouts, chosen in the settings and stored in
+the same cookie (`inventoryLayout`, `lib/settings/constants.ts`):
+
+- **`single`** — the historical one: the slots of the *displayed* character, in
+  two columns facing each other, and the vault on the right.
+- **`characters`** — the three characters side by side, one column each
+  (`components/CharacterColumns.tsx`), and the vault on the right. Each row is
+  `EquipmentSlot side="right"`, the armour column of the other layout reused as
+  is: the equipped item on the left, its slot inventory unfolding to the right.
+
+Three things follow from the second one, and none of them is cosmetic:
+
+- **The column order is the profile's, never the selection's.** The drop zones
+  line up on that same order (`DropZones`, `columns`): reordering them would
+  drop items onto the wrong character, and nothing would say so until the
+  transfer went through.
+- **The gutter between columns is the unfolding grid's overhang**, derived in
+  CSS from `--item-size` and the `--slot-reduced` factor
+  (`components/character-columns.scss`). A slot inventory grows by a
+  `transform`, so it overlays its neighbour; the gutter is what keeps it from
+  covering it.
+- **Lost items are split per character.** They come from all three at once, and
+  nothing on a tile says whose Postmaster it sleeps in — hence
+  `LeadSection.groups` (`VirtualItemGrid`), one sub-header per character, class
+  symbol included.
+
+The shared storage tab (`itemCategory: "inventory"`) ignores the setting: it
+belongs to no character, and already shows two grids without a single slot.
+
 ### Where the plug icons come from
 
 `lib/destiny/use-equipped-plugs.ts` builds every row in **one** grouped
@@ -1745,14 +1776,15 @@ In "system" mode no `data-theme` attribute is set, and the CSS
 > constant exported from a `"use client"` module arrives `undefined` on the
 > server, which silently broke the cookie read.
 
-### Four icon sizes
+### Five icon sizes
 
-Four independent sizes, each carried by its own CSS variable on `<html>`. The
-first three are bounded to `ICON_SIZE`, the plug one to `PLUG_SIZE`:
+Five independent sizes, each carried by its own CSS variable on `<html>`. The
+first four are bounded to `ICON_SIZE`, the plug one to `PLUG_SIZE`:
 
 | Variable | Setting | Where it applies |
 | --- | --- | --- |
-| `--item-size` | *Icon size* | equipped items and character inventory |
+| `--item-size` | *Icon size* | equipped items and inventory of the displayed character, `single` layout |
+| `--columns-item-size` | *Column icon size* | the same, in the `characters` layout — `.character-columns` redefines `--item-size` from it, as does the drop-zone layer that covers them |
 | `--vault-item-size` | *Vault icon size* | vault and postmaster — `.inventory__storage` redefines `--item-size` from it for its whole subtree |
 | `--loadout-item-size` | *Loadout slot size* | loadout slot tiles (`.loadout-slot`, the group grids), i.e. the *loadouts* and *groups* views |
 | `--plug-size` | *Perk and mod size* | every `PlugIcon`, round or square, plus what is measured against it: the socket picker grid and the tooltip skeletons |
@@ -1764,6 +1796,11 @@ first paint of a client with no cookie. `.loadout-identifiers` deliberately
 resets `--plug-size` to that fallback: it borrows the picker's chrome but its
 choices are manifest images, not plugs, and letting them drift would break the
 grid they sit in.
+
+The two inventory layouts are sized apart for the same kind of reason: three
+columns live in the width one used to take, so the size that suits one is too
+large for the other. Everything else stays shared — vault, loadout slots and
+plugs do not change with the layout.
 
 Loadout slots used to follow the vault size, which conflated two different
 things: a slot shows a game slot (background + glyph), not an item, and its
@@ -2707,6 +2744,39 @@ un contexte à lui plutôt qu'un drapeau dans `MoveActionsValue`, les deux modes
 > servait d'origine au calque de déplacement — un objet équipé sautait à
 > l'emplacement qu'il occupe dans l'autre mode dès le début du geste. D'où
 > `DragScope.idPrefix`.
+
+### Dispositions de l'inventaire
+
+Le mode inventaire a lui-même deux dispositions, réglées dans les paramètres et
+rangées dans le même cookie (`inventoryLayout`, `lib/settings/constants.ts`) :
+
+- **`single`** — l'historique : les emplacements du *seul* personnage affiché,
+  en deux colonnes qui se font face, et le coffre à droite.
+- **`characters`** — les trois personnages côte à côte, une colonne chacun
+  (`components/CharacterColumns.tsx`), et le coffre à droite. Chaque ligne est
+  un `EquipmentSlot side="right"`, la colonne des armures de l'autre
+  disposition réemployée telle quelle : l'objet équipé à gauche, l'inventaire
+  de son emplacement se dépliant vers la droite.
+
+Trois conséquences à la seconde, et aucune n'est cosmétique :
+
+- **L'ordre des colonnes est celui du profil, jamais celui de la sélection.**
+  Les zones de dépôt se calent sur ce même ordre (`DropZones`, `columns`) : les
+  réarranger ferait déposer les objets sur le mauvais personnage, et rien ne le
+  dirait avant que le transfert ne passe.
+- **La gouttière entre colonnes est le débordement de la grille dépliée**,
+  dérivé en CSS de `--item-size` et du facteur `--slot-reduced`
+  (`components/character-columns.scss`). L'inventaire d'un emplacement grandit
+  par un `transform` : il passe donc par-dessus sa voisine, et c'est la
+  gouttière qui l'empêche de la recouvrir.
+- **Les objets perdus sont découpés par personnage.** Ils viennent des trois à
+  la fois, et rien dans une vignette ne dit chez qui elle dort — d'où
+  `LeadSection.groups` (`VirtualItemGrid`), un sous-en-tête par personnage,
+  symbole de classe compris.
+
+L'onglet du rangement partagé (`itemCategory: "inventory"`) ignore le réglage :
+il n'appartient à aucun personnage, et montre déjà deux grilles sans le moindre
+emplacement.
 
 ### D'où viennent les icônes d'attributs
 
@@ -3736,15 +3806,16 @@ En mode « système », aucun attribut `data-theme` n'est posé et la règle CSS
 > constante exportée depuis un module `"use client"` arrive `undefined` côté
 > serveur, ce qui rendait la lecture du cookie silencieusement inopérante.
 
-### Quatre tailles d'icônes
+### Cinq tailles d'icônes
 
-Quatre tailles indépendantes, chacune portée par sa propre variable CSS sur
-`<html>`. Les trois premières sont bornées par `ICON_SIZE`, celle des plugs par
+Cinq tailles indépendantes, chacune portée par sa propre variable CSS sur
+`<html>`. Les quatre premières sont bornées par `ICON_SIZE`, celle des plugs par
 `PLUG_SIZE` :
 
 | Variable | Réglage | Où elle s'applique |
 | --- | --- | --- |
-| `--item-size` | « Taille des icônes » | objets équipés et inventaire du personnage |
+| `--item-size` | « Taille des icônes » | objets équipés et inventaire du personnage affiché, disposition `single` |
+| `--columns-item-size` | « Taille des icônes en colonnes » | les mêmes, en disposition `characters` — `.character-columns` en redéfinit `--item-size`, comme le calque de dépôt qui les recouvre |
 | `--vault-item-size` | « Taille des icônes du coffre » | coffre et objets perdus — `.inventory__storage` en redéfinit `--item-size` pour tout son sous-arbre |
 | `--loadout-item-size` | « Taille des emplacements d'équipement » | vignettes d'emplacement (`.loadout-slot`, les grilles de groupes), soit les vues « équipements » et « groupes » |
 | `--plug-size` | « Taille des attributs et mods » | toutes les `PlugIcon`, rondes comme carrées, et ce qui se mesure sur elles : la grille du sélecteur de sockets et les squelettes d'infobulle |
@@ -3757,6 +3828,12 @@ que comme repli du `var()`, pour le premier rendu d'un client sans cookie.
 emprunte l'habillage du sélecteur, mais ses choix sont des images du manifeste et
 non des plugs — les laisser suivre le réglage désaccorderait la grille qui les
 contient.
+
+Les deux dispositions de l'inventaire se règlent à part pour une raison du même
+ordre : trois colonnes tiennent dans la largeur qu'une seule occupait, et la
+taille qui convient à l'une est trop grande pour l'autre. Tout le reste demeure
+partagé — coffre, emplacements d'équipement et plugs ne changent pas avec la
+disposition.
 
 Les emplacements suivaient auparavant la taille du coffre, ce qui confondait deux
 choses différentes : un emplacement montre un emplacement du jeu (fond + glyphe)

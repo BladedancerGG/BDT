@@ -121,3 +121,27 @@ export function parseItemCategory(raw: unknown): ItemCategory | undefined {
         ? (raw as ItemCategory)
         : undefined;
 }
+
+/**
+ * Dispositions de la vue d'inventaire.
+ *
+ *  - `single`     : la disposition historique — les emplacements du **seul**
+ *                   personnage affiché, en deux colonnes qui se font face, et
+ *                   le coffre à droite ;
+ *  - `characters` : les trois personnages côte à côte, une colonne chacun, et
+ *                   le coffre à droite. Les objets perdus y sont découpés par
+ *                   personnage, puisqu'ils viennent alors de tous.
+ *
+ * Le rangement partagé (`itemCategory: "inventory"`) n'appartient à aucun
+ * personnage : il ignore ce réglage et garde ses deux colonnes.
+ */
+export const INVENTORY_LAYOUTS = ["single", "characters"] as const;
+export type InventoryLayout = (typeof INVENTORY_LAYOUTS)[number];
+
+export const DEFAULT_INVENTORY_LAYOUT: InventoryLayout = "single";
+
+export function parseInventoryLayout(raw: unknown): InventoryLayout | undefined {
+    return INVENTORY_LAYOUTS.includes(raw as InventoryLayout)
+        ? (raw as InventoryLayout)
+        : undefined;
+}

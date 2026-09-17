@@ -11,11 +11,14 @@ import {
     clampIconSize,
     clampPlugSize,
     clampSearchHistorySize,
+    DEFAULT_INVENTORY_LAYOUT,
     DEFAULT_ITEM_CATEGORY,
     DEFAULT_VIEW_MODE,
+    parseInventoryLayout,
     parseItemCategory,
     parseSearchMissMode,
     parseViewMode,
+    type InventoryLayout,
     type ItemCategory,
     type SearchMissMode,
     type ThemePreference,
@@ -39,12 +42,19 @@ import {
 } from "@/lib/destiny/grouping";
 
 export {ICON_SIZE, PLUG_SIZE, SEARCH_HISTORY_SIZE, clampIconSize, clampPlugSize};
-export type {ItemCategory, SearchMissMode, ThemePreference, ViewMode};
+export type {InventoryLayout, ItemCategory, SearchMissMode, ThemePreference, ViewMode};
 
 export interface SettingsState {
     theme: ThemePreference;
     /** Taille des icônes d'inventaire et d'équipement en px, bornée à [40, 96] */
     iconSize: number;
+    /**
+     * Taille des icônes de la disposition « trois personnages », en px, bornée
+     * à [40, 96]. Elle ne suit pas celle de la disposition historique : trois
+     * colonnes tiennent dans la largeur qu'une seule occupait, et la taille qui
+     * convient à l'une est trop grande pour l'autre.
+     */
+    columnsIconSize: number;
     /** Taille des icônes du coffre et des objets perdus en px, bornée à [40, 96] */
     vaultIconSize: number;
     /**
@@ -82,6 +92,12 @@ export interface SettingsState {
      * on retrouve l'onglet quitté au rechargement.
      */
     itemCategory: ItemCategory;
+    /**
+     * Disposition de la vue d'inventaire : le seul personnage affiché, ou les
+     * trois côte à côte. Persistée comme la famille d'objets — c'est un choix
+     * qu'on fait une fois, pas à chaque visite.
+     */
+    inventoryLayout: InventoryLayout;
     /** Critères de tri du coffre, du plus important au moins important */
     sortRules: SortRule[];
     /** Sous-groupe des sections d'armes du coffre — un seul critère à la fois */
@@ -115,6 +131,7 @@ export interface SettingsState {
 
     setTheme: (theme: ThemePreference) => void;
     setIconSize: (size: number) => void;
+    setColumnsIconSize: (size: number) => void;
     setVaultIconSize: (size: number) => void;
     setLoadoutIconSize: (size: number) => void;
     setPlugSize: (size: number) => void;
@@ -122,6 +139,7 @@ export interface SettingsState {
     setShowOrnaments: (show: boolean) => void;
     setShowOriginalOnHover: (show: boolean) => void;
     setItemCategory: (category: ItemCategory) => void;
+    setInventoryLayout: (layout: InventoryLayout) => void;
     setWeaponGrouping: (grouping: WeaponGrouping) => void;
     setArmorGrouping: (grouping: ArmorGrouping) => void;
     setSearchHistorySize: (size: number) => void;
@@ -153,12 +171,14 @@ export function persistedSettings(state: SettingsState) {
         theme: state.theme,
         visualEffects: state.visualEffects,
         iconSize: state.iconSize,
+        columnsIconSize: state.columnsIconSize,
         vaultIconSize: state.vaultIconSize,
         loadoutIconSize: state.loadoutIconSize,
         plugSize: state.plugSize,
         showOrnaments: state.showOrnaments,
         showOriginalOnHover: state.showOriginalOnHover,
         itemCategory: state.itemCategory,
+        inventoryLayout: state.inventoryLayout,
         sorts: serializeSortRules(state.sortRules),
         weaponGrouping: state.weaponGrouping,
         armorGrouping: state.armorGrouping,
@@ -193,6 +213,7 @@ export function mergeSettings(
         searchMissMode,
         viewMode,
         itemCategory,
+        inventoryLayout,
         syncEnabled,
         ...rest
     } = (persisted ?? {}) as Partial<SettingsState> & {sorts?: unknown};
@@ -210,6 +231,8 @@ export function mergeSettings(
         searchMissMode: parseSearchMissMode(searchMissMode) ?? current.searchMissMode,
         viewMode: parseViewMode(viewMode) ?? current.viewMode,
         itemCategory: parseItemCategory(itemCategory) ?? current.itemCategory,
+        inventoryLayout:
+            parseInventoryLayout(inventoryLayout) ?? current.inventoryLayout,
         syncEnabled: syncEnabled === true,
     };
 }
@@ -220,12 +243,14 @@ export const useSettings = create<SettingsState>()(
             theme: "system",
             visualEffects: true,
             iconSize: ICON_SIZE.default,
+            columnsIconSize: ICON_SIZE.default,
             vaultIconSize: ICON_SIZE.default,
             loadoutIconSize: ICON_SIZE.default,
             plugSize: PLUG_SIZE.default,
             showOrnaments: true,
             showOriginalOnHover: true,
             itemCategory: DEFAULT_ITEM_CATEGORY,
+            inventoryLayout: DEFAULT_INVENTORY_LAYOUT,
             sortRules: [...DEFAULT_SORT_RULES],
             weaponGrouping: DEFAULT_WEAPON_GROUPING,
             armorGrouping: DEFAULT_ARMOR_GROUPING,
@@ -237,6 +262,8 @@ export const useSettings = create<SettingsState>()(
             setTheme: (theme) => set({theme}),
             setVisualEffects: (visualEffects) => set({visualEffects}),
             setIconSize: (size) => set({iconSize: clampIconSize(size)}),
+            setColumnsIconSize: (size) =>
+                set({columnsIconSize: clampIconSize(size)}),
             setVaultIconSize: (size) => set({vaultIconSize: clampIconSize(size)}),
             setLoadoutIconSize: (size) =>
                 set({loadoutIconSize: clampIconSize(size)}),
@@ -245,6 +272,7 @@ export const useSettings = create<SettingsState>()(
             setShowOriginalOnHover: (showOriginalOnHover) =>
                 set({showOriginalOnHover}),
             setItemCategory: (itemCategory) => set({itemCategory}),
+            setInventoryLayout: (inventoryLayout) => set({inventoryLayout}),
             setWeaponGrouping: (weaponGrouping) => set({weaponGrouping}),
             setArmorGrouping: (armorGrouping) => set({armorGrouping}),
             setSearchHistorySize: (size) =>

@@ -150,6 +150,7 @@ export function SizePreview() {
                 details={profile?.items ?? {}}
                 labels={{
                     icons: t("iconSize"),
+                    columns: t("columnsIconSize"),
                     vault: t("vaultIconSize"),
                     loadouts: t("loadoutIconSize"),
                     plugs: t("plugSize"),
@@ -174,7 +175,13 @@ function PreviewRow({
     loadout: DestinyLoadout | undefined;
     equipped: DestinyItemComponent[];
     details: ProfileData["items"];
-    labels: {icons: string; vault: string; loadouts: string; plugs: string};
+    labels: {
+        icons: string;
+        columns: string;
+        vault: string;
+        loadouts: string;
+        plugs: string;
+    };
 }) {
     // Le tirage ramène aussi ce que les grilles n'affichent pas (matériaux,
     // consommables, modules) : l'aperçu montre exactement ce qu'elles montrent.
@@ -211,8 +218,17 @@ function PreviewRow({
                 </div>
             </div>
 
-            {/* Le coffre suit son propre réglage : redéfinir --item-size sur le
-                groupe suffit, `.item` et `.item-thumb` la lisent déjà. */}
+            {/* Chaque groupe qui suit redéfinit --item-size pour lui seul :
+                `.item` et `.item-thumb` la lisent déjà. */}
+            <div className="size-preview__group size-preview__group--columns">
+                <span className="size-preview__caption">{labels.columns}</span>
+                <div className="size-preview__items">
+                    {items.map((item) => (
+                        <PreviewItem key={item.itemHash} item={item}/>
+                    ))}
+                </div>
+            </div>
+
             <div className="size-preview__group size-preview__group--vault">
                 <span className="size-preview__caption">{labels.vault}</span>
                 <div className="size-preview__items">

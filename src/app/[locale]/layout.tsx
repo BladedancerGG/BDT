@@ -50,6 +50,9 @@ export const metadata: Metadata = {
 function rootSizeStyle(prefs: ServerPreferences): CSSProperties | undefined {
     const style: Record<string, string> = {};
     if (prefs.iconSize) style["--item-size"] = `${prefs.iconSize}px`;
+    if (prefs.columnsIconSize) {
+        style["--columns-item-size"] = `${prefs.columnsIconSize}px`;
+    }
     if (prefs.vaultIconSize) {
         style["--vault-item-size"] = `${prefs.vaultIconSize}px`;
     }

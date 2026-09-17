@@ -154,6 +154,32 @@ export const CUSTOMIZATION_BUCKETS: ReadonlySet<number> = new Set([
 ]);
 
 /**
+ * Ordre d'une colonne de personnage, disposition « trois personnages » : la
+ * doctrine, les armes, l'artéfact, puis les armures — les deux colonnes de la
+ * disposition historique mises bout à bout, puisqu'il n'y en a plus qu'une par
+ * personnage.
+ */
+export const EQUIPMENT_STACK: readonly number[] = [
+  ...WEAPON_COLUMN,
+  ...ARMOR_COLUMN,
+];
+
+/**
+ * Idem pour la personnalisation. L'ordre n'est PAS celui des deux colonnes
+ * (`CUSTOMIZATION_LEFT` puis `CUSTOMIZATION_RIGHT`), qui les entrelace : mises
+ * bout à bout, elles donneraient emblème, vaisseau, passereau, coque… alors que
+ * la colonne unique suit celui du jeu.
+ */
+export const CUSTOMIZATION_STACK: readonly number[] = [
+  BUCKET.GhostShells,
+  BUCKET.Ships,
+  BUCKET.Sparrows,
+  BUCKET.Emblems,
+  BUCKET.Finishers,
+  BUCKET.Emotes,
+];
+
+/**
  * Rang d'affichage d'un emplacement, celui des deux colonnes d'équipement —
  * lui-même issu du `bucketOrder` du manifeste. Sert à ordonner les sections du
  * coffre ; un emplacement absent d'ici passe en dernier.

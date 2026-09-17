@@ -14,6 +14,7 @@ import {
     persistedSettings,
     SEARCH_HISTORY_SIZE,
     useSettings,
+    type InventoryLayout,
     type SearchMissMode,
     type ThemePreference,
 } from "@/lib/settings/store";
@@ -33,6 +34,7 @@ import {
     pushGroups,
 } from "@/lib/loadouts/groups/sync-client";
 import {useLoadoutGroups} from "@/lib/loadouts/groups/store";
+import {INVENTORY_LAYOUTS} from "@/lib/settings/constants";
 import {APP_VERSION, SUPPORT_EMAIL, BUNGIE_PROFILE_URL} from "@/lib/app-info";
 import {BackupRows} from "./BackupRows";
 import {RecoveryRow} from "./RecoveryRow";
@@ -261,6 +263,8 @@ function AppearancePanel() {
     const setTheme = useSettings((s) => s.setTheme);
     const iconSize = useSettings((s) => s.iconSize);
     const setIconSize = useSettings((s) => s.setIconSize);
+    const columnsIconSize = useSettings((s) => s.columnsIconSize);
+    const setColumnsIconSize = useSettings((s) => s.setColumnsIconSize);
     const vaultIconSize = useSettings((s) => s.vaultIconSize);
     const setVaultIconSize = useSettings((s) => s.setVaultIconSize);
     const loadoutIconSize = useSettings((s) => s.loadoutIconSize);
@@ -365,6 +369,21 @@ function AppearancePanel() {
                 />
             </SettingRow>
 
+            {/* La disposition « trois personnages » a la sienne : trois
+                colonnes tiennent dans la largeur qu'une seule occupait. */}
+            <SettingRow
+                label={t("columnsIconSize")}
+                hint={t("columnsIconSizeHint")}
+                htmlFor="setting-columns-icon-size"
+            >
+                <IconSizeControl
+                    id="setting-columns-icon-size"
+                    value={columnsIconSize}
+                    onChange={setColumnsIconSize}
+                    unitLabel={t("columnsIconSize")}
+                />
+            </SettingRow>
+
             <SettingRow
                 label={t("vaultIconSize")}
                 hint={t("vaultIconSizeHint")}
@@ -423,6 +442,8 @@ function InventoryPanel() {
     const t = useTranslations("settings.inventory");
     const tCriteria = useTranslations("criteria");
     const resetSorts = useSettings((s) => s.resetSorts);
+    const inventoryLayout = useSettings((s) => s.inventoryLayout);
+    const setInventoryLayout = useSettings((s) => s.setInventoryLayout);
     const weaponGrouping = useSettings((s) => s.weaponGrouping);
     const setWeaponGrouping = useSettings((s) => s.setWeaponGrouping);
     const armorGrouping = useSettings((s) => s.armorGrouping);
@@ -430,6 +451,25 @@ function InventoryPanel() {
 
     return (
         <div className="settings__group">
+            {/* Disposition de la vue : un personnage, ou les trois côte à
+                côte. Le rangement partagé n'en tient pas compte — il
+                n'appartient à personne (voir INVENTORY_LAYOUTS). */}
+            <SettingRow
+                label={t("layout")}
+                hint={t("layoutHint")}
+                htmlFor="setting-inventory-layout"
+            >
+                <Select<InventoryLayout>
+                    id="setting-inventory-layout"
+                    value={inventoryLayout}
+                    onChange={setInventoryLayout}
+                    options={INVENTORY_LAYOUTS.map((value) => ({
+                        value,
+                        label: t(`layouts.${value}`),
+                    }))}
+                />
+            </SettingRow>
+
             {/* Regroupement : le coffre est toujours découpé par emplacement,
                 seul le sous-groupe se règle — et un seul à la fois. */}
             <SettingRow

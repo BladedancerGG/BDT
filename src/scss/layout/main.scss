@@ -8,6 +8,11 @@
   // À garder en px : elles sont lues via parseFloat côté JS.
   // --item-size est surchargée à l'exécution par le réglage utilisateur.
   --item-size: #{v.$item-size};
+  // Taille propre à la disposition « trois personnages » : trois colonnes
+  // tiennent dans la largeur qu'une seule occupait, et la taille qui convient à
+  // l'une est trop grande pour l'autre. Même mécanique que le coffre — elle ne
+  // s'applique que sous .character-columns, qui y redéfinit --item-size.
+  --columns-item-size: #{v.$item-size};
   // Taille propre au coffre et aux objets perdus : réglée à part dans les
   // paramètres, elle ne s'applique que sous .inventory__storage, qui y
   // redéfinit --item-size pour tout son sous-arbre.
