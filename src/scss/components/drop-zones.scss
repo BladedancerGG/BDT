@@ -258,14 +258,16 @@ $duration: 250ms;
     flex-shrink: 0;
   }
 
-  // Mise en avant au survol, en CSS et non en JavaScript.
+  // Mise en avant de la zone visée.
   //
-  // dnd-kit range la zone survolée dans un contexte que lit **tout** objet
-  // déplaçable : la désigner re-rendait la centaine de vignettes montées à
-  // chaque entrée et sortie de zone. Le navigateur, lui, ne repeint que la
-  // zone concernée. Le geste n'utilise aucune capture de pointeur, `:hover`
-  // suit donc bien le curseur pendant le déplacement.
-  &:hover:not(&--disabled) {
+  // Deux chemins pour un même état. `:hover` suit le curseur pendant le geste,
+  // sans rien coûter — le déplacement n'utilise aucune capture de pointeur. Mais
+  // un doigt ne survole pas : au tactile, aucune zone ne s'allumait, et rien ne
+  // disait où le dépôt tomberait. `--over` est donc posée pendant le geste par
+  // `markOverZone` (MoveDnd), directement dans le DOM pour ne re-rendre aucune
+  // vignette.
+  &:hover:not(&--disabled),
+  &--over:not(&--disabled) {
     border-style: solid;
     border-color: var(--color-accent);
     background-color: var(--color-panel-alt-semi-transparent);
@@ -291,4 +293,61 @@ $duration: 250ms;
 // L'original reste en place, estompé : sa case ne se referme pas derrière lui
 .item--dragging {
   opacity: 0.35;
+}
+
+// —— Le rail du téléphone ————————————————————————————————————
+//
+// Les zones y recouvrent la page qu'on regarde, et reprennent sa géométrie :
+// « Équiper » contre la colonne étroite des objets équipés, « Transférer dans
+// l'inventaire » sur la grille à trois colonnes qui la suit, et le coffre en
+// bandeau sur toute la largeur, au pouce. Chacune tombe donc là où se trouve
+// déjà ce qu'elle désigne.
+//
+// Le corps de la vue n'est plus une grille dans ce mode (voir
+// `.inventory__body--rail`) : les placements de grille des calques n'y valent
+// rien, et c'est `inset` qui les découpe.
+.inventory__body--rail {
+  // Hauteur du bandeau du coffre. Une cible de pouce, et ce qui reste au-dessus
+  // pour les deux autres.
+  --vault-band: 8rem;
+
+  .drop-zones__characters {
+    inset: 0 0 var(--vault-band) 0;
+    flex-direction: column;
+  }
+
+  .drop-zones__vault {
+    inset: auto 0 0 0;
+    height: calc(var(--vault-band) - var(--item-gap));
+  }
+
+  // Page du coffre : aucun personnage à recouvrir, donc pas de géométrie à
+  // épouser. Les trois destinations s'y partagent la hauteur en bandeaux, et le
+  // calque du coffre — vide, l'objet en venant — libère la sienne.
+  .drop-zones__characters--vault {
+    // Le calque du coffre est vide ici : sa bande revient aux personnages.
+    inset: 0;
+  }
+
+  // La paire du personnage regardé : la colonne des objets équipés fait
+  // exactement une vignette de large, comme la page en dessous.
+  .drop-zones__row {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    gap: 0.5rem;
+
+    .drop-zone--equip {
+      // La largeur de la vignette équipée qu'elle recouvre, et non celle du
+      // réglage : sur le rail, les colonnes de personnage prennent la taille
+      // qui remplit l'écran (voir --item-size-fit dans layout/main.scss), et
+      // `--item-size` vaut encore ici le réglage de bureau.
+      flex: 0 0 var(--item-size-fit);
+    }
+
+    .drop-zone--inventory {
+      flex: 1;
+      min-width: 0;
+    }
+  }
 }

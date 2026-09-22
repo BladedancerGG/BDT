@@ -1,0 +1,104 @@
+@use "../abstracts/variables" as v;
+@use "../abstracts/mixins" as m;
+
+// Ce qu'on peut faire de l'objet, en pied de son infobulle : l'équiper d'un
+// côté, le transférer de l'autre (voir components/tooltip/ItemActions.tsx).
+//
+// Des emblèmes et non des phrases : quatre destinations en toutes lettres
+// prenaient la moitié de l'infobulle. Le texte demeure en `aria-label` et en
+// `title` — c'est lui que lisent le lecteur d'écran et le survol.
+
+.item-actions {
+  // Les deux groupes l'un sous l'autre : chacun peut aligner les trois
+  // personnages, et côte à côte ils se seraient partagé la largeur au point de
+  // passer à la ligne au bout de deux emblèmes.
+  display: flex;
+  //flex-direction: column;
+  gap: 1rem;
+  padding: 0.6rem;
+  border-top: 1px solid var(--color-border);
+
+  &__group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+    min-width: 0;
+  }
+
+  // En toutes lettres, et non en petites capitales comme les titres de section :
+  // ce ne sont pas des sections mais deux verbes, et l'un d'eux est long.
+  &__title {
+    font-size: 0.8125rem;
+    color: var(--color-text-muted);
+    @include m.truncate;
+  }
+
+  &__targets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.375rem;
+  }
+
+  // Une destination : l'emblème du personnage, son symbole de classe par-dessus
+  // — le même couple que le sélecteur de personnage, et que les zones de dépôt.
+  // L'emblème seul ne dit pas la classe, et c'est elle qu'on cherche du regard.
+  &__target {
+    position: relative; // bloc conteneur de l'emblème, posé en fond
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 3rem;
+    height: 3rem;
+    padding: 0.4375rem;
+    flex-shrink: 0;
+
+    border: 1px solid var(--color-border-strong);
+    color: var(--color-text);
+    cursor: pointer;
+    transition: border-color 120ms ease;
+
+    // Sur écran tactile la teinte resterait collée après l'appui
+    @media (hover: hover) {
+      &:hover {
+        border-color: var(--color-accent);
+      }
+    }
+  }
+
+  &__emblem {
+    position: absolute;
+    inset: 0;
+    background-image: var(--emblem-url);
+    background-size: cover;
+    background-position: center;
+  }
+
+  // Le symbole, au-dessus de l'emblème. Son encre est figée claire, comme dans
+  // le sélecteur : l'emblème est une image toujours sombre, et suivre
+  // --color-text l'aurait effacé en thème clair. Le voile le détache d'une
+  // image dont on ne maîtrise pas les couleurs — certains emblèmes sont vifs,
+  // et le symbole s'y perdait.
+  &__symbol {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    padding: 0.125rem;
+    color: #f2f2f2;
+    // Voile figé, et non celui du thème : le thème clair l'allège à peine
+    // (15 % contre 35 %), et le symbole se noyait dans les emblèmes vifs —
+    // lesquels ne changent pas, eux, selon le thème.
+    background-color: rgba(0, 0, 0, 0.35);
+  }
+
+  // Le coffre n'a pas d'emblème derrière lui : son fond est noir en propre, et
+  // non celui du thème — il tient sa place dans une rangée d'images toujours
+  // sombres, où un carré clair serait le seul à jurer.
+  &__target--vault {
+    background-color: #14161a;
+    padding: 0;
+
+    svg {
+      padding: 0.4375rem;
+    }
+  }
+}

@@ -2,25 +2,88 @@
 @use "../abstracts/variables" as v;
 @use "../abstracts/mixins" as m;
 
+// —— La taille d'une vignette est une valeur calculée ————————————
+//
+// `--item-size` est lue en JavaScript par la virtualisation du coffre
+// (lib/destiny/use-grid-metrics.ts, `parseFloat`). Sans cet enregistrement,
+// `getComputedStyle` rendrait le `min()` ci-dessous tel quel — « min(75px,
+// 22vw) » — dont `parseFloat` ne tire rien : la grille retomberait sur sa
+// valeur de repli et compterait ses colonnes de travers. Déclarée, la propriété
+// est résolue en longueur avant d'être lue.
+@property --item-size {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: #{v.$item-size};
+}
+
 :root {
-  // Dimensions de la grille d'objets, exposées en CSS pour que la
-  // virtualisation puisse les lire (source unique : abstracts/variables.scss).
-  // À garder en px : elles sont lues via parseFloat côté JS.
-  // --item-size est surchargée à l'exécution par le réglage utilisateur.
-  --item-size: #{v.$item-size};
+  // —— Réglage de l'utilisateur ————————————————————————————
+  //
+  // Ce sont CES variables-là que le serveur écrit sur <html> d'après le cookie
+  // (voir rootSizeStyle dans app/[locale]/layout.tsx) et que les paramètres
+  // mettent à jour en session (lib/settings/SettingsEffects.tsx). Les tailles
+  // réellement appliquées s'en déduisent juste en dessous.
+  //
+  // Le détour est ce qui rend le plafond possible : une déclaration en style
+  // inline sur <html> l'emporte sur n'importe quelle règle, media query
+  // comprise — corriger directement `--item-size` était sans effet.
+  --item-size-pref: #{v.$item-size};
   // Taille propre à la disposition « trois personnages » : trois colonnes
   // tiennent dans la largeur qu'une seule occupait, et la taille qui convient à
   // l'une est trop grande pour l'autre. Même mécanique que le coffre — elle ne
   // s'applique que sous .character-columns, qui y redéfinit --item-size.
-  --columns-item-size: #{v.$item-size};
+  --columns-item-size-pref: #{v.$item-size};
   // Taille propre au coffre et aux objets perdus : réglée à part dans les
   // paramètres, elle ne s'applique que sous .inventory__storage, qui y
   // redéfinit --item-size pour tout son sous-arbre.
-  --vault-item-size: #{v.$item-size};
+  --vault-item-size-pref: #{v.$item-size};
   // Taille des vignettes d'emplacement d'équipement (vues « équipements » et
   // « groupes ») : elles ne montrent pas un objet mais un emplacement du jeu,
   // et se règlent donc à part — voir components/loadout-panel.scss.
-  --loadout-item-size: #{v.$item-size};
+  --loadout-item-size-pref: #{v.$item-size};
+
+  // —— Ce qui est réellement appliqué ————————————————————————
+  //
+  // Le réglage, plafonné à une part de la largeur de fenêtre. Une taille
+  // choisie pour un écran large ne laisse plus tenir assez de colonnes sur un
+  // téléphone — et deux des grilles ne comptent même pas leurs colonnes, elles
+  // en imposent quatre, et débordaient donc franchement.
+  //
+  // `min()` se suffit à lui-même, sans media query : passé ~440 px de large, le
+  // plafond dépasse déjà la borne haute du réglage (96 px, voir ICON_SIZE dans
+  // lib/settings/constants.ts) et c'est toujours le réglage qui l'emporte. Rien
+  // ne change donc sur un écran d'ordinateur.
+  //
+  // —— Les tailles qui remplissent la vue ————————————————————
+  //
+  // Largeur exacte d'une vignette pour qu'une ligne d'emplacement d'équipement
+  // — la vignette équipée et les trois colonnes de son inventaire — remplisse
+  // la vue, marges comprises (`.view` en réserve 1 rem de chaque côté).
+  //
+  // Elle sert deux fois : ici comme PLAFOND du réglage, et telle quelle dans le
+  // rail du téléphone, où elle s'y substitue — voir
+  // components/inventory-rail.scss. Le coffre, lui, ne peut pas se calculer
+  // ainsi : sa barre de défilement lui retire une largeur que la fenêtre ne dit
+  // pas, et c'est la grille qui mesure (voir `fixedColumns`).
+  --item-size-fit: calc((100vw - 2rem - 3 * var(--item-gap)) / 4);
+
+  --item-size: min(var(--item-size-pref), var(--item-size-fit));
+  --columns-item-size: min(var(--columns-item-size-pref), 22vw);
+  --vault-item-size: min(var(--vault-item-size-pref), 22vw);
+  // Quatre par rangée, toujours : les grilles d'emplacements sont en
+  // `repeat(4, …)` (components/loadout-panel.scss, components/group-list.scss)
+  // et n'ont aucune façon de se replier.
+  --loadout-item-size: min(var(--loadout-item-size-pref), 20vw);
+
+  // Attributs, mods et aspects. Ils ne vivaient jusqu'ici que dans le style
+  // écrit sur <html>, le SCSS se rabattant sur un repli (`var(--plug-size,
+  // 45px)`) le temps du premier rendu d'un client sans cookie. Le plafond
+  // demande une déclaration en propre ; les replis restent, sans plus d'objet.
+  --plug-size-pref: #{v.$plug-size};
+  // Six par rangée dans le sélecteur d'attributs (components/socket-picker.scss),
+  // d'où un plafond plus serré que celui des vignettes.
+  --plug-size: min(var(--plug-size-pref), 12vw);
+
   --item-gap: 8px;
   // Hauteur des en-têtes de groupe du coffre (voir components/item-group.scss).
   // Lues elles aussi par la virtualisation : les en-têtes sont des lignes de la
@@ -107,8 +170,15 @@ button {
 .app-main {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  // `dvh` et non `vh` : sur mobile, `vh` se mesure sur la fenêtre barre d'URL
+  // rétractée, si bien que la page dépasse toujours d'une hauteur de barre et
+  // se laisse faire défiler pour rien.
+  min-height: 100dvh;
   margin-inline: auto;
+  // La page s'étend sous les encoches (viewport-fit=cover, voir layout.tsx) :
+  // en paysage, l'en-tête et les colonnes passeraient dessous.
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
 
   // —— Mise en page « application » sur grand écran ——————————
   // La page occupe exactement la hauteur de la fenêtre et ne défile plus :
@@ -124,6 +194,31 @@ button {
     height: 100dvh;
     min-height: 0;
     overflow: hidden;
+  }
+}
+
+// —— Mise en page « application » sur téléphone ————————————————
+//
+// Le rail d'inventaire (components/inventory-rail.scss) réclame la même chaîne
+// de hauteurs que le grand écran : la page ne défile pas, ce sont les pages du
+// rail qui défilent. L'attribut est posé sur <html> par `InventoryView`, et
+// seulement tant que la vue d'inventaire est celle qu'on regarde — les autres
+// gardent le défilement de page, faute de quoi elles seraient tronquées.
+:root[data-rail] {
+  .app-main {
+    height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .views {
+    flex: 1;
+    min-height: 0;
+    grid-template-rows: minmax(0, 1fr);
+  }
+
+  .view {
+    min-height: 0;
   }
 }
 

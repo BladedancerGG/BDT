@@ -28,4 +28,5 @@ export { default as PostmasterIcon } from "./inventory/PostmasterIcon";
 export { default as LoadoutsIcon } from "./inventory/LoadoutsIcon";
 export { default as BorderIcon } from "./ui/BorderIcon";
 export { default as EmptySlotIcon } from "./ui/EmptySlotIcon";
+export { default as SearchIcon } from "./ui/SearchIcon";
 export { default as EnhancedPerkIcon } from "./ui/EnhancedPerkIcon";

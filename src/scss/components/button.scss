@@ -16,14 +16,18 @@
     background-color 120ms ease,
     border-color 120ms ease;
 
-  &:hover {
-    // Éclaircit ou assombrit selon le thème courant
-    background-color: color-mix(
-      in srgb,
-      var(--color-panel-alt) 80%,
-      var(--color-text)
-    );
-    border-color: var(--color-text-muted);
+  // Sur écran tactile il n'y a pas de survol : la teinte resterait collée au
+  // bouton après l'appui, jusqu'à ce qu'on touche ailleurs.
+  @media (hover: hover) {
+    &:hover {
+      // Éclaircit ou assombrit selon le thème courant
+      background-color: color-mix(
+        in srgb,
+        var(--color-panel-alt) 80%,
+        var(--color-text)
+      );
+      border-color: var(--color-text-muted);
+    }
   }
 
   // Action principale (connexion)
@@ -35,13 +39,15 @@
     font-size: 1rem;
     font-weight: 600;
 
-    &:hover {
-      background-color: color-mix(
-        in srgb,
-        var(--color-accent) 85%,
-        var(--color-text)
-      );
-      border-color: transparent;
+    @media (hover: hover) {
+      &:hover {
+        background-color: color-mix(
+          in srgb,
+          var(--color-accent) 85%,
+          var(--color-text)
+        );
+        border-color: transparent;
+      }
     }
   }
 
@@ -52,9 +58,11 @@
     color: var(--color-danger);
     border-color: color-mix(in srgb, var(--color-danger) 50%, transparent);
 
-    &:hover {
-      background-color: color-mix(in srgb, var(--color-danger) 12%, var(--color-panel-alt));
-      border-color: var(--color-danger);
+    @media (hover: hover) {
+      &:hover {
+        background-color: color-mix(in srgb, var(--color-danger) 12%, var(--color-panel-alt));
+        border-color: var(--color-danger);
+      }
     }
 
     &:disabled {
@@ -75,8 +83,10 @@
     svg {
       transition: transform 120ms ease-in-out;
     }
-    &:hover svg {
-      transform: rotate(30deg);
+    @media (hover: hover) {
+      &:hover svg {
+        transform: rotate(30deg);
+      }
     }
   }
   &--refresh {
@@ -89,8 +99,10 @@
         animation: refreshing 2s linear infinite;
       }
     }
-    &:hover svg:not(.refreshing) {
-      transform: rotate(45deg);
+    @media (hover: hover) {
+      &:hover svg:not(.refreshing) {
+        transform: rotate(45deg);
+      }
     }
   }
 
@@ -141,5 +153,16 @@ $hold-duration: 1000ms;
   }
   to {
     width: 100%;
+  }
+}
+
+// Au doigt, un bouton se vise sans précision : 44 px est le minimum utilisable,
+// et plusieurs des nôtres — icône seule, `--small` — tombent à trente. La règle
+// est bornée au pointeur grossier : elle ne touche pas la densité au bureau.
+@media (pointer: coarse) {
+  .btn {
+    min-height: 2.75rem;
+    min-width: 2.75rem;
+    justify-content: center;
   }
 }

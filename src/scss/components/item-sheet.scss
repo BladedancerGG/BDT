@@ -1,0 +1,149 @@
+@use "../abstracts/variables" as v;
+@use "../abstracts/mixins" as m;
+
+// Feuille basse : l'infobulle d'objet sur téléphone.
+//
+// L'infobulle fait 365 px de large et s'ancre à la vignette cliquée. Sur un
+// écran de 360 px, les deux exigences sont inconciliables : elle recouvrait
+// l'écran entier sans jamais tomber au bon endroit, et son sélecteur
+// d'attributs par-dessus elle. Elle monte donc du bas, pleine largeur, et
+// défile pour son compte — c'est le même composant, seul le contenant change
+// (voir `ItemIcon`, qui choisit l'un ou l'autre).
+//
+// Le seuil est $bp-sm, écrit une seconde fois dans lib/ui/use-media-query.ts.
+
+$duration: 220ms;
+$ease: cubic-bezier(0.16, 1, 0.3, 1); // décélération franche, sans rebond
+
+.item-sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 50;
+
+  display: flex;
+  flex-direction: column;
+  // Le plafond de la modale : il laisse voir la grille d'où l'objet vient, ce
+  // qui dit du même coup que la feuille se referme en touchant à côté.
+  max-height: 85dvh;
+  // La feuille ne défile pas : c'est le CORPS de l'infobulle qui s'en charge
+  // (voir plus bas). L'en-tête, qui dit de quel objet il s'agit, et le pied,
+  // qui dit ce qu'on peut en faire, restent donc en place quoi qu'on parcoure.
+  overflow: hidden;
+
+  // La barre de geste du téléphone passe sous la feuille
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+
+  background-color: var(--color-panel);
+  border-top: 1px solid var(--color-border-strong);
+  box-shadow: 0 -8px 24px var(--color-overlay-semi-transparent);
+
+  animation: item-sheet-enter $duration $ease;
+
+  // L'infobulle ne s'impose plus sa largeur : c'est la feuille qui la donne.
+  // Elle devient une colonne à trois étages — en-tête, corps, pied — dont seul
+  // celui du milieu défile.
+  .item-tooltip {
+    width: 100%;
+    box-shadow: none;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  // L'étage qui défile, et le seul.
+  .item-tooltip__body {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-border-strong) transparent;
+
+    // ⚠ Le corps est lui-même une colonne flex, et `.socket-section` y porte un
+    // `overflow-x: scroll` — que le navigateur accompagne d'un `overflow-y:
+    // auto`, une valeur `visible` ne pouvant pas cohabiter avec un axe qui
+    // défile. Un enfant flex qui déborde perd du même coup sa taille minimale
+    // automatique : les sections se laissaient comprimer, et c'était CHACUNE
+    // d'elles qui défilait à la place du corps.
+    //
+    // On leur rend leur hauteur : le corps déborde alors, et c'est lui qui
+    // défile — un seul défilement pour toute la feuille.
+    > * {
+      flex-shrink: 0;
+    }
+  }
+
+  // Les deux étages fixes. `flex-shrink: 0` : sans lui, un corps long les
+  // comprimerait au lieu de défiler.
+  .tooltip-header,
+  .item-actions {
+    flex-shrink: 0;
+  }
+
+  // Le sélecteur d'attributs, empilé à la suite plutôt que flottant
+  .socket-picker {
+    max-width: none;
+    width: 100%;
+    // Sa hauteur lui venait du calcul de placement (`--picker-max-height`), qui
+    // n'a plus cours ici : il n'est plus placé, il suit.
+    max-height: none;
+
+    // Il n'est plus un panneau posé par-dessus l'infobulle mais un bloc DANS
+    // son corps : ni cadre, ni ombre portée, ni surface à lui — celle de
+    // l'infobulle sert aux deux, et un carré plus clair au milieu du corps se
+    // lisait comme une fenêtre de plus.
+    border: 0;
+    box-shadow: none;
+    backdrop-filter: none;
+    background-color: transparent;
+
+    // Les marges latérales viennent déjà du corps (`.item-tooltip__body > *`) :
+    // les siennes s'y ajoutaient, et sa grille rentrait d'un demi-centimètre
+    // par rapport à tout ce qui la précède. Ne restent que les verticales, à la
+    // mesure du corps.
+    padding: var(--tooltip-pad) 0;
+    gap: var(--tooltip-pad);
+
+    // Un seul défilement dans la feuille : le sien. Sans cela la grille
+    // d'attributs gardait le sien et absorbait toute la contrainte — elle se
+    // réduisait à UNE rangée au fond de l'écran, pendant que la feuille, elle,
+    // ne débordait de rien et ne défilait donc pas.
+    &__grid {
+      max-height: none;
+      overflow-y: visible;
+    }
+  }
+
+  // Respecte la préférence système : la feuille paraît sans glisser.
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+// Voile : il assombrit la vue et recueille l'appui qui referme (c'est
+// `useDismiss` qui le traite, tout ce qui n'est pas la feuille étant au-dehors).
+.item-sheet__scrim {
+  z-index: 49;
+  background-color: var(--color-overlay);
+  animation: item-sheet-scrim $duration ease;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+@keyframes item-sheet-enter {
+  from {
+    translate: 0 100%;
+  }
+}
+
+@keyframes item-sheet-scrim {
+  from {
+    opacity: 0;
+  }
+}

@@ -2,6 +2,9 @@
 @use "../abstracts/mixins" as m;
 
 // Barre de recherche de l'en-tête : champ, actions de masse, historique.
+//
+// Sur téléphone elle est repliée derrière une loupe — voir `.search-toggle` en
+// bas de ce fichier, et le placement dans layout/header.scss.
 
 .search-bar {
   position: relative; // bloc conteneur des deux menus
@@ -167,5 +170,28 @@
     &--muted {
       color: var(--color-text-muted);
     }
+  }
+}
+
+// —— La loupe qui déplie la barre ————————————————————————————
+//
+// Elle ne paraît que sur téléphone : au-delà du seuil, la barre est toujours
+// affichée et il n'y a rien à déplier (layout/header.scss).
+.search-toggle {
+  // Carrée : elle ne porte qu'une icône, la marge en long de `--small` la
+  // déséquilibrerait.
+  padding: 0.3rem;
+
+  svg {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+
+  // Une requête est en cours alors que la barre est repliée. Sans cette marque,
+  // le coffre cacherait des objets (réglage « masquer ») sans que rien à
+  // l'écran ne dise d'où vient le filtre.
+  &--active {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
   }
 }

@@ -21,9 +21,16 @@
 
     transition: 120ms ease-in-out box-shadow;
 
-    &:hover,
     &[aria-expanded="true"] {
       box-shadow: 0 0 2px 1px var(--color-accent);
+    }
+
+    // Sans garde, le liseré resterait allumé après la fermeture du menu et
+    // ferait croire qu'il est encore ouvert.
+    @media (hover: hover) {
+      &:hover {
+        box-shadow: 0 0 2px 1px var(--color-accent);
+      }
     }
   }
 

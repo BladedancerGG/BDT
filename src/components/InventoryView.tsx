@@ -1,6 +1,6 @@
 "use client";
 
-import {useMemo, useState} from "react";
+import {useEffect, useMemo, useState} from "react";
 import {useTranslations} from "next-intl";
 import {useProfile, type ProfileData} from "@/lib/bungie/use-profile";
 import type {DestinyItemComponent, DestinyLoadout} from "@/lib/bungie/profile";
@@ -32,9 +32,12 @@ import {SearchProvider} from "@/lib/search/provider";
 import {SearchActionsBridge} from "./search/SearchActionsBridge";
 import {useActionRunner} from "@/lib/actions/use-action-runner";
 import {CharacterPicker} from "./CharacterPicker";
-import {CharacterColumns} from "./CharacterColumns";
+import {CharacterColumns, CharacterColumn} from "./CharacterColumns";
 import {HeaderActions} from "./HeaderActions";
 import {SearchBar} from "./search/SearchBar";
+import {SearchToggle} from "./search/SearchToggle";
+import {InventoryRail} from "./InventoryRail";
+import {useRailLayout} from "@/lib/ui/use-media-query";
 import {MainMenuButton} from "./nav/MainMenuButton";
 import {EquipmentSlot} from "./EquipmentSlot";
 import {ViewModeTabs} from "./ViewModeTabs";
@@ -183,6 +186,21 @@ function Inventory({
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const current = selectedId ?? data.characters[0]?.characterId ?? null;
 
+    // Le rail remplace les deux colonnes de la vue sur téléphone : une page
+    // par personnage, le coffre en dernière. C'est une question de largeur de
+    // fenêtre, que seul le client connaît — la vue n'est de toute façon montée
+    // qu'après le manifeste, donc jamais rendue par le serveur.
+    const rail = useRailLayout();
+
+    // Barre de recherche dépliée ? La question ne se pose que sur téléphone,
+    // où elle est repliée derrière une loupe faute de place ; au-delà du seuil
+    // elle est toujours affichée et cet état ne commande plus rien.
+    const [searchOpen, setSearchOpen] = useState(false);
+
+    // Page du rail sous les yeux : les zones de dépôt ne peuvent viser que
+    // celle-là, le rail ne défilant pas pendant un geste.
+    const [railPage, setRailPage] = useState(0);
+
     /**
      * Une sélection d'équipement **impose** le mode inventaire : c'est là qu'on
      * choisit les objets, dans les grilles qui les montrent déjà.
@@ -286,7 +304,10 @@ function Inventory({
      * Le rangement partagé s'en exclut : il n'appartient à aucun personnage, et
      * la vue y montre déjà deux grilles sans le moindre emplacement.
      */
-    const columnsLayout = layout === "characters" && !shared;
+    // Le rail impose les colonnes : ses pages SONT les personnages, quel que
+    // soit le réglage de disposition — lequel ne décrit qu'un arrangement
+    // côte à côte, sans objet quand on n'en voit qu'une à la fois.
+    const columnsLayout = rail ? !shared : layout === "characters" && !shared;
 
     // Les objets perdus montrés : ceux du personnage affiché, ou ceux des trois
     // quand les colonnes sont montées — chacun sous son en-tête.
@@ -392,6 +413,57 @@ function Inventory({
     const equipmentMode = viewMode === "loadouts";
     const groupsMode = viewMode === "groups";
 
+    // —— La chaîne de hauteurs du rail ————————————————————————
+    //
+    // Le rail demande la même mise en page « application » que le grand écran :
+    // la page ne défile pas, ce sont ses pages qui défilent. La règle vit sur
+    // <html> parce qu'elle commande `.app-main`, bien au-dessus d'ici, et elle
+    // ne vaut que tant qu'on REGARDE l'inventaire : les autres vues, elles,
+    // défilent de haut en bas comme n'importe quelle page.
+    useEffect(() => {
+        const root = document.documentElement;
+        if (!rail || viewMode !== "inventory") {
+            delete root.dataset.rail;
+            return;
+        }
+        root.dataset.rail = "";
+        return () => {
+            delete root.dataset.rail;
+        };
+    }, [rail, viewMode]);
+
+    // Les deux grilles virtualisées, montées une seule fois : le rail et la
+    // disposition historique montrent les mêmes, à des places différentes.
+    const pouchGrid = (
+        <div className="inventory__storage">
+            <VirtualItemGrid
+                title={tCommon("inventory")}
+                items={pouchItems}
+                details={data.items}
+                fixedColumns={rail ? 5 : undefined}
+                lead={postmaster}
+                category={category}
+            />
+        </div>
+    );
+    const vaultGrid = (
+        <div className="inventory__storage">
+            <VirtualItemGrid
+                title={t("vault")}
+                items={vaultItems}
+                details={data.items}
+                // Cinq par ligne sur téléphone, la taille s'y ajustant : c'est
+                // la grille qui mesure sa largeur, la fenêtre ne disant rien de
+                // la barre de défilement.
+                fixedColumns={rail ? 5 : undefined}
+                // Le Courrier est passé à gauche quand la vue est coupée : il
+                // tient au personnage, pas au coffre.
+                lead={shared ? undefined : postmaster}
+                category={category}
+            />
+        </div>
+    );
+
     return (
         <EquippedSetsProvider counts={equippedSetCounts}>
             {/* La recherche englobe toute la vue : les vignettes de
@@ -405,14 +477,23 @@ function Inventory({
                 seconde. Les deux barres se sont longtemps succédé dans deux
                 éléments distincts, pour rien — elles ne commandent qu'une même
                 chose, ce que la page montre. */}
-            <header className="header">
+            <header
+                className={`header${searchOpen ? " header--search-open" : ""}`}
+            >
                 <MainMenuButton/>
                 <CharacterPicker
                     characters={data.characters}
                     selectedId={current}
                     onSelect={setSelectedId}
                 />
-                <SearchBar/>
+                {/* La loupe précède la barre qu'elle commande : c'est l'ordre
+                    de lecture, et la grille de l'en-tête la place ailleurs
+                    sans toucher au document. */}
+                <SearchToggle
+                    open={searchOpen}
+                    onToggle={() => setSearchOpen((o) => !o)}
+                />
+                <SearchBar expanded={searchOpen}/>
                 {/* La sélection prend la place des onglets : elle est un mode,
                     exclusif des autres, et ses deux boutons en sont la seule
                     sortie — de quoi ne pas laisser une sélection à moitié faite
@@ -453,106 +534,131 @@ function Inventory({
                     <div
                         className={`inventory__body${
                             shared ? " inventory__body--shared" : ""
-                        }${columnsLayout ? " inventory__body--columns" : ""}`}
+                        }${
+                            // Le modificateur « colonnes » décrit trois colonnes
+                            // côte à côte : le rail n'en montre qu'une à la
+                            // fois, et ses zones de dépôt ont leur propre
+                            // géométrie. Les deux classes ensemble, c'étaient
+                            // les règles des colonnes qui l'emportaient.
+                            columnsLayout && !rail
+                                ? " inventory__body--columns"
+                                : ""
+                        }${rail ? " inventory__body--rail" : ""}`}
                     >
-                        {/* Colonne de gauche du rangement partagé : ce que
-                            le personnage porte sur lui, modificateurs et
-                            objets à usage unique séparés par leurs
-                            sections. */}
-                        {shared && (
-                            <div className="inventory__storage">
-                                <VirtualItemGrid
-                                    title={tCommon("inventory")}
-                                    items={pouchItems}
-                                    details={data.items}
-                                    lead={postmaster}
-                                    category={category}
-                                />
-                            </div>
-                        )}
+                        {/* —— Le rail du téléphone ————————————————
+                            Une page par personnage, le coffre en dernière, et
+                            rien d'autre : ni les deux colonnes d'emplacements,
+                            qui ne tiennent pas dans cette largeur, ni les zones
+                            de dépôt, qui s'accrochent aux colonnes d'une grille
+                            que le rail n'a plus. Le déplacement au doigt passe
+                            par les actions de l'infobulle. */}
+                        {rail ? (
+                            <InventoryRail onPageChange={setRailPage}>
+                                {shared ? (
+                                    pouchGrid
+                                ) : (
+                                    data.characters.map((c) => (
+                                        <CharacterColumn
+                                            key={c.characterId}
+                                            character={c}
+                                            data={data}
+                                            category={category}
+                                            selected={c.characterId === current}
+                                            onSelect={setSelectedId}
+                                        />
+                                    ))
+                                )}
+                                {vaultGrid}
+                            </InventoryRail>
+                        ) : (
+                            <>
+                                {/* Colonne de gauche du rangement partagé : ce que
+                                    le personnage porte sur lui, modificateurs et
+                                    objets à usage unique séparés par leurs
+                                    sections. */}
+                                {shared && pouchGrid}
 
-                        {/* Disposition « trois personnages » : une colonne
-                            chacun, dans l'ordre du profil. */}
-                        {columnsLayout && (
-                            <CharacterColumns
-                                characters={data.characters}
-                                data={data}
-                                category={category}
-                                selectedId={current}
-                                onSelect={setSelectedId}
-                            />
-                        )}
-
-                        {/* Emplacements du personnage : deux colonnes.
-                            Absentes du rangement partagé, qui n'appartient à
-                            personne — le coffre prend alors toute la place. */}
-                        {!shared && !columnsLayout && (
-                            <section
-                                className={`equipment${
-                                    category === "customization"
-                                        ? " equipment--customization"
-                                        : ""
-                                }`}
-                            >
-                                <div className="equipment__columns">
-                                    <SlotColumn
-                                        buckets={columns.left}
-                                        side="left"
-                                        equipped={equippedByBucket}
-                                        inventory={inventoryByBucket}
-                                        details={data.items}
-                                        // Les emplacements de personnalisation ont
-                                        // eux aussi une capacité de dix, mais on
-                                        // n'y range rien : des rangées de cases
-                                        // vides n'apprendraient rien.
-                                        pad={category === "equipment"}
-                                    />
-                                    <SlotColumn
-                                        buckets={columns.right}
-                                        side="right"
-                                        equipped={equippedByBucket}
-                                        inventory={inventoryByBucket}
-                                        details={data.items}
-                                        pad={category === "equipment"}
-                                    />
-                                </div>
-                                {/* Les statistiques décrivent l'armure portée :
-                                    elles n'ont de sens que sous cet onglet. */}
-                                {category === "equipment" && (
-                                    <CharacterSummary
-                                        stats={character?.stats ?? {}}
-                                        setCounts={equippedSetCounts}
+                                {/* Disposition « trois personnages » : une colonne
+                                    chacun, dans l'ordre du profil. */}
+                                {columnsLayout && (
+                                    <CharacterColumns
+                                        characters={data.characters}
+                                        data={data}
+                                        category={category}
+                                        selectedId={current}
+                                        onSelect={setSelectedId}
                                     />
                                 )}
-                            </section>
+
+                                {/* Emplacements du personnage : deux colonnes.
+                                    Absentes du rangement partagé, qui n'appartient à
+                                    personne — le coffre prend alors toute la place. */}
+                                {!shared && !columnsLayout && (
+                                    <section
+                                        className={`equipment${
+                                            category === "customization"
+                                                ? " equipment--customization"
+                                                : ""
+                                        }`}
+                                    >
+                                        <div className="equipment__columns">
+                                            <SlotColumn
+                                                buckets={columns.left}
+                                                side="left"
+                                                equipped={equippedByBucket}
+                                                inventory={inventoryByBucket}
+                                                details={data.items}
+                                                // Les emplacements de personnalisation ont
+                                                // eux aussi une capacité de dix, mais on
+                                                // n'y range rien : des rangées de cases
+                                                // vides n'apprendraient rien.
+                                                pad={category === "equipment"}
+                                            />
+                                            <SlotColumn
+                                                buckets={columns.right}
+                                                side="right"
+                                                equipped={equippedByBucket}
+                                                inventory={inventoryByBucket}
+                                                details={data.items}
+                                                pad={category === "equipment"}
+                                            />
+                                        </div>
+                                        {/* Les statistiques décrivent l'armure portée :
+                                            elles n'ont de sens que sous cet onglet. */}
+                                        {category === "equipment" && (
+                                            <CharacterSummary
+                                                stats={character?.stats ?? {}}
+                                                setCounts={equippedSetCounts}
+                                            />
+                                        )}
+                                    </section>
+                                )}
+
+                                {/* Colonne de droite : le Courrier et le coffre, dans un
+                                    seul défilement virtualisé. Le coffre est commun à tous
+                                    les personnages et contient environ un millier d'objets. */}
+                                {vaultGrid}
+
+                            </>
                         )}
 
-                        {/* Colonne de droite : le Courrier et le coffre, dans un
-                            seul défilement virtualisé. Le coffre est commun à tous
-                            les personnages et contient environ un millier d'objets. */}
-                        <div className="inventory__storage">
-                            <VirtualItemGrid
-                                title={t("vault")}
-                                items={vaultItems}
-                                details={data.items}
-                                // Le Courrier est passé à gauche quand la
-                                // vue est coupée : il tient au personnage,
-                                // pas au coffre.
-                                lead={shared ? undefined : postmaster}
-                                category={category}
-                            />
-                        </div>
-
                         {/* Zones de dépôt : trois calques, enfants DIRECTS de
-                            __body. Ils s'accrochent à ses colonnes pour épouser
-                            exactement l'équipement et le stockage — les imbriquer
-                            romprait ce lien. Leur découpage suit l'onglet :
-                            voir DropZones. */}
+                            __body. Hors rail, ils s'accrochent à ses colonnes
+                            pour épouser exactement l'équipement et le stockage
+                            — les imbriquer romprait ce lien. Sur le rail, ils
+                            recouvrent la page regardée : « Équiper » contre la
+                            colonne des objets équipés, « Transférer dans
+                            l'inventaire » sur sa grille, le coffre en bandeau
+                            bas. Leur découpage suit l'onglet : voir DropZones. */}
                         <DropZones
                             characters={data.characters}
                             selectedCharacterId={current}
                             category={category}
                             columns={columnsLayout}
+                            rail={rail}
+                            railCharacterId={
+                                data.characters[railPage]?.characterId ?? null
+                            }
                         />
                     </div>
                 </section>

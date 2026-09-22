@@ -102,3 +102,16 @@
     gap: 0.5rem;
   }
 }
+
+// —— La hauteur annoncée ————————————————————————————————————
+//
+// Un squelette qui ne fait pas la taille de ce qu'il remplace ne remplit pas son
+// office : l'infobulle passait de 108 px à 428 à l'arrivée des données, soit le
+// saut qu'il était censé absorber. La valeur est celle qu'on mesure sur une
+// infobulle pleine, en-tête déduit (~80 px) — pas au pixel près, mais à un
+// cheveu, ce qui suffit à ce que rien ne saute sous le curseur.
+//
+// Seulement là où un corps est attendu : voir `reserve` dans TooltipSkeleton.
+.tooltip-skeleton--reserved {
+  min-height: 21rem;
+}

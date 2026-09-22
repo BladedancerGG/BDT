@@ -361,25 +361,45 @@ async function buildColumns(
 }
 
 /** Colonnes de plugs d'une catégorie de sockets — voir `buildColumns`. */
+/**
+ * Les colonnes d'une catégorie, **et** l'attente qui les précède.
+ *
+ * Les deux ne se distinguent pas d'une simple liste vide : une catégorie sans
+ * socket et une requête en cours rendent toutes deux `[]`, et une rangée qui
+ * s'efface sur ce critère (`if (equipped.length === 0) return null`) disparaît
+ * donc le temps de la lecture. C'est ce qui faisait grandir l'infobulle en
+ * trois temps sous le curseur — mesuré : 80 px, puis 180, puis 428 en soixante
+ * millisecondes, avec un replacement de l'ancrage à chaque fois.
+ *
+ * `useLiveQuery` rend `undefined` tant qu'il n'a pas répondu : c'est cette
+ * valeur-là, et non le repli, qui dit l'attente.
+ */
+export function useSocketColumnsState(
+    def: InventoryItemDefinition | undefined,
+    detail: ItemDetail | undefined,
+    categoryHash: number,
+    available?: PlugAvailability,
+): {columns: SocketColumn[]; pending: boolean} {
+    const result = useLiveQuery(
+        async () => {
+            const category = def?.sockets?.socketCategories?.find(
+                (c) => c.socketCategoryHash === categoryHash,
+            );
+            if (!category) return [];
+            return buildColumns(def, detail, category.socketIndexes, available);
+        },
+        [def, detail, categoryHash, available],
+    );
+    return {columns: result ?? [], pending: result === undefined};
+}
+
 export function useSocketColumns(
     def: InventoryItemDefinition | undefined,
     detail: ItemDetail | undefined,
     categoryHash: number,
     available?: PlugAvailability,
 ): SocketColumn[] {
-    return (
-        useLiveQuery(
-            async () => {
-                const category = def?.sockets?.socketCategories?.find(
-                    (c) => c.socketCategoryHash === categoryHash,
-                );
-                if (!category) return [];
-                return buildColumns(def, detail, category.socketIndexes, available);
-            },
-            [def, detail, categoryHash, available],
-            [] as SocketColumn[],
-        ) ?? []
-    );
+    return useSocketColumnsState(def, detail, categoryHash, available).columns;
 }
 
 /**

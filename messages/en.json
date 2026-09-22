@@ -219,6 +219,7 @@
       "inventoryHere": "Move to inventory",
       "inventoryOf": "Move to {character}'s inventory",
       "toCharacter": "Transfer to {character}",
+      "transferTo": "Transfer to",
       "vault": "Transfer to the vault"
     },
     "failure": {
@@ -277,6 +278,7 @@
     "setPieces": "{count} pieces",
     "weaponLevel": "Weapon Lv. {level}",
     "browsePlugs": "Browse similar items",
+    "tapTwiceToEquip": "Tap twice to equip",
     "fragmentSlots": "{count, plural, one {# fragment slot} other {# fragment slots}}",
     "searchPlugs": "Search…",
     "tunedStat": "Tuned stat"

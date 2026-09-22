@@ -5,6 +5,13 @@ import {useLayoutEffect, useState, type RefObject} from "react";
 export interface GridMetrics {
     /** Nombre d'objets par ligne, selon la largeur disponible */
     columns: number;
+    /**
+     * Taille d'une vignette, en pixels, quand c'est la grille qui la décide.
+     *
+     * Absente dans le cas ordinaire : la taille vient du réglage, et le CSS s'en
+     * charge seul. Elle n'est renseignée qu'avec un nombre de colonnes imposé.
+     */
+    itemSize?: number;
     /** Hauteur d'une ligne, gouttière incluse */
     rowHeight: number;
     /** Hauteur d'un en-tête de premier niveau (objets perdus, coffre), gouttière incluse */
@@ -37,6 +44,17 @@ export function useGridMetrics(
      * déclenche pas quand seule la taille des icônes change (largeur inchangée).
      */
     sizeKey?: number,
+    /**
+     * Nombre d'objets par ligne imposé. La grille en déduit alors la taille des
+     * vignettes au lieu de la recevoir.
+     *
+     * C'est ce qu'il faut sur téléphone : une largeur de fenêtre ne suffit pas à
+     * calculer une taille qui tienne, la barre de défilement en retirant une
+     * dizaine de pixels que le CSS ne connaît pas — cinq colonnes devenaient
+     * quatre, et une bande vide restait à droite. Mesurée ici, la largeur est
+     * celle dont la grille dispose vraiment.
+     */
+    fixedColumns?: number,
 ): GridMetrics {
     const [metrics, setMetrics] = useState<GridMetrics>(FALLBACK);
 
@@ -64,11 +82,18 @@ export function useGridMetrics(
             // n objets et (n-1) gouttières doivent tenir dans la largeur :
             // n * size + (n - 1) * gap <= width  →  n <= (width + gap) / (size + gap)
             const width = element.clientWidth;
-            const columns = Math.max(1, Math.floor((width + gap) / (size + gap)));
+            const columns =
+                fixedColumns ?? Math.max(1, Math.floor((width + gap) / (size + gap)));
+            // Colonnes imposées : c'est la taille qui s'ajuste, au pixel près.
+            const itemSize = fixedColumns
+                ? Math.max(1, (width - (columns - 1) * gap) / columns)
+                : undefined;
+            const rowSize = itemSize ?? size;
 
             const next: GridMetrics = {
                 columns,
-                rowHeight: size + gap,
+                itemSize,
+                rowHeight: rowSize + gap,
                 rootHeight: root + gap,
                 sectionHeight: section + gap,
                 groupHeight: group + gap,
@@ -76,6 +101,7 @@ export function useGridMetrics(
 
             setMetrics((previous) =>
                 previous.columns === next.columns &&
+                previous.itemSize === next.itemSize &&
                 previous.rowHeight === next.rowHeight &&
                 previous.rootHeight === next.rootHeight &&
                 previous.sectionHeight === next.sectionHeight &&
@@ -89,7 +115,7 @@ export function useGridMetrics(
         const observer = new ResizeObserver(measure);
         observer.observe(element);
         return () => observer.disconnect();
-    }, [ref, sizeKey]);
+    }, [ref, sizeKey, fixedColumns]);
 
     return metrics;
 }

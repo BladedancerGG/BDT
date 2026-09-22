@@ -56,6 +56,21 @@
     }
   }
 
+  // Mode rail : le corps n'a plus de colonnes à répartir, il n'a qu'à laisser
+  // toute sa hauteur au rail qui les remplace (voir components/inventory-rail).
+  &__body--rail {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    gap: 0;
+    // Le corps aligne ses colonnes sur leur haut (`align-items: start`), ce qui
+    // laisse chacune prendre la hauteur de son contenu. Le rail, lui, doit
+    // prendre TOUTE la hauteur : sans cela il mesurait quinze mille pixels —
+    // celle de la plus longue de ses pages — et tout ce qui dépassait l'écran
+    // était rogné par `.app-main`, donc inatteignable.
+    align-items: stretch;
+  }
+
   // Colonne de droite : le stockage, Courrier et coffre dans un seul défilement
   &__storage {
     // Le coffre et les objets perdus suivent leur propre réglage de taille :

@@ -16,6 +16,7 @@ import {
     autoUpdate,
     FloatingPortal,
 } from "@floating-ui/react";
+import {useHoverless} from "@/lib/ui/use-media-query";
 
 /** Une action annoncée dans l'infobulle, et la touche qui la déclenche. */
 export interface HintAction {
@@ -55,7 +56,17 @@ export function Hint({
         whileElementsMounted: autoUpdate,
     });
 
-    const hover = useHover(context, {move: false, delay: {open: 100, close: 0}});
+    // Un rappel de raccourci CLAVIER n'a rien à dire à un doigt, et l'ouvrir à
+    // l'appui serait pire que de le taire : il se superposerait à l'action même
+    // du bouton qu'il commente — on rafraîchirait en demandant à lire. Sur un
+    // pointeur sans survol, il ne s'ouvre donc pas ; le focus, lui, le garde,
+    // pour le clavier auquel il s'adresse.
+    const hoverless = useHoverless();
+    const hover = useHover(context, {
+        move: false,
+        delay: {open: 100, close: 0},
+        enabled: !hoverless,
+    });
     const focus = useFocus(context);
     const dismiss = useDismiss(context);
     const role = useRole(context, {role: "tooltip"});

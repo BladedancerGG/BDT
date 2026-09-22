@@ -1,23 +1,39 @@
 @use "../abstracts/variables" as v;
 @use "../abstracts/mixins" as m;
 
-// Équipement du personnage : deux colonnes d'emplacements.
+// Équipement du personnage.
 //
-// Chaque ligne porte, de l'extérieur vers le centre : le libellé, l'inventaire
-// de l'emplacement, puis l'objet équipé. Les objets équipés des deux colonnes se
-// font ainsi face, et l'inventaire s'agrandit vers l'extérieur.
+// Deux présentations, et non une seule qu'on rétrécirait :
+//
+// • Sur grand écran, deux colonnes d'emplacements. Chaque ligne porte, de
+//   l'extérieur vers le centre : le libellé, l'inventaire de l'emplacement,
+//   puis l'objet équipé. Les objets équipés des deux colonnes se font ainsi
+//   face, et l'inventaire, réduit au repos, s'agrandit vers l'extérieur au
+//   survol.
+//
+// • En dessous, une seule colonne, et les inventaires restent DÉPLIÉS. Il n'y a
+//   pas de survol au doigt, et une grille au tiers donnerait des vignettes de
+//   vingt-deux pixels — intouchables. La page s'allonge d'autant, ce qui est le
+//   prix assumé : elle défile normalement sous ce seuil (voir .app-main).
+//
+// Le seuil est celui du reste de la vue : sous 1024 px, `.inventory__body`
+// empile déjà l'équipement au-dessus du coffre et lui donne toute la largeur.
 
 .equipment {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
   padding-top: 0.75rem;
-  padding-left: calc(var(--item-size) * 2.3);
-  padding-right: calc(var(--item-size) * 2.3);
 
-  // La page ne défilant plus sur grand écran, cette colonne défile pour son
-  // propre compte si la fenêtre est trop courte — sinon elle serait tronquée.
   @include m.from(v.$bp-lg) {
+    // Réserve latérale de l'agrandissement au survol : la grille déborde de son
+    // empreinte vers l'extérieur de la page. Sans elle, elle sortirait de la
+    // section. Rien à réserver en dessous, où elle est dépliée dans le flux.
+    padding-left: calc(var(--item-size) * 2.3);
+    padding-right: calc(var(--item-size) * 2.3);
+
+    // La page ne défilant plus sur grand écran, cette colonne défile pour son
+    // propre compte si la fenêtre est trop courte — sinon elle serait tronquée.
     min-height: 0;
     overflow-y: auto;
     scrollbar-width: thin;
@@ -30,16 +46,26 @@
 
   &__columns {
     display: flex;
-    gap: 2.5rem;
-    justify-content: center;
-    flex-wrap: wrap;
+    // Une seule colonne : les dix emplacements à la suite. Deux colonnes de
+    // quatre vignettes de large ne tiennent pas dans un téléphone.
+    flex-direction: column;
+    gap: var(--slot-row-gap);
+
+    @include m.from(v.$bp-lg) {
+      flex-direction: row;
+      gap: 2.5rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
   }
 
   // Onglet « personnalisation » : rien ne suit les colonnes — pas de résumé du
   // personnage — et l'inventaire d'un emplacement grandit vers le bas au
   // survol. Sans cette réserve, la dernière ligne déborde de la section.
   &--customization {
-    padding-bottom: calc(var(--item-size) * 2.3);
+    @include m.from(v.$bp-lg) {
+      padding-bottom: calc(var(--item-size) * 2.3);
+    }
   }
 }
 
@@ -49,20 +75,29 @@
   // Source unique : --equipment-columns-height s'en déduit (voir layout/main)
   gap: var(--slot-row-gap);
 
-  // La colonne des armes est collée à droite, celle des armures à gauche :
-  // les vignettes des deux colonnes se font ainsi face.
-  &--left {
-    align-items: flex-end;
-  }
+  @include m.from(v.$bp-lg) {
+    // La colonne des armes est collée à droite, celle des armures à gauche :
+    // les vignettes des deux colonnes se font ainsi face. Seule une colonne à
+    // côté d'une autre a un sens à avoir un côté ; empilées, elles n'en ont pas.
+    &--left {
+      align-items: flex-end;
+    }
 
-  &--right {
-    align-items: flex-start;
+    &--right {
+      align-items: flex-start;
+    }
   }
 }
 
 .equipment-slot {
   display: flex;
   gap: var(--item-gap);
+  // Toutes les lignes comme la colonne des armures : l'objet équipé à gauche,
+  // son inventaire à sa droite. Le miroir des deux colonnes n'a de sens qu'en
+  // face l'une de l'autre — seul, il ferait commencer une ligne sur deux par sa
+  // fin. Le DOM porte l'inventaire en premier (voir EquipmentSlot).
+  flex-direction: row-reverse;
+  justify-content: flex-end;
 
   &__label {
     font-size: 0.8125rem;
@@ -78,28 +113,34 @@
     flex-shrink: 0;
   }
 
-  // Colonne des armes : libellé à gauche, aligné à droite contre la vignette
-  &--left {
-    .equipment-slot__label {
-      text-align: right;
+  @include m.from(v.$bp-lg) {
+    justify-content: flex-start;
+
+    // Colonne des armes : libellé à gauche, aligné à droite contre la vignette
+    &--left {
+      flex-direction: row;
+
+      .equipment-slot__label {
+        text-align: right;
+      }
     }
-  }
 
-  // Colonne des armures : ordre inversé, l'objet équipé reste côté centre
-  &--right {
-    flex-direction: row-reverse;
-
-    .equipment-slot__label {
-      text-align: left;
+    // Colonne des armures : ordre inversé, l'objet équipé reste côté centre
+    &--right {
+      .equipment-slot__label {
+        text-align: left;
+      }
     }
   }
 }
 
 // —— Inventaire d'un emplacement ————————————————————————————
 //
-// Toujours affiché, en réduit. Au survol il retrouve sa taille réelle en 125 ms.
+// Déplié dans le flux sous le seuil : la ligne fait la hauteur de la grille, et
+// la section s'allonge. C'est la seule forme utilisable au doigt.
 //
-// Deux éléments imbriqués, pour que l'agrandissement ne déplace rien :
+// Au-delà, il est réduit au repos et retrouve sa taille réelle au survol, en
+// 125 ms. Deux éléments imbriqués, pour que l'agrandissement ne déplace rien :
 //   .slot-inventory       occupe dans la mise en page la taille RÉDUITE
 //   .slot-inventory__grid est en position absolue, à taille RÉELLE, et rétréci
 //                         par un transform — donc hors du calcul de mise en page
@@ -110,85 +151,94 @@
 $slot-columns: 3;
 
 .slot-inventory {
-  // Facteur de réduction hors survol
-  --slot-reduced: 0.3;
-
   position: relative;
   flex-shrink: 0;
 
-  // Empreinte réduite : la grille réelle multipliée par le facteur
-  --grid-width: calc(
-    #{$slot-columns} * var(--item-size) + #{$slot-columns - 1} * var(--item-gap)
-  );
-  width: calc(var(--grid-width) * var(--slot-reduced));
-  // La hauteur suit celle de la ligne : l'agrandissement débordera par-dessus
-  // les lignes voisines, ce qui est voulu.
-  height: calc(var(--item-size) * var(--slot-reduced) * 3);
-
   &__grid {
-    position: absolute;
-    top: 0;
     display: grid;
     grid-template-columns: repeat(#{$slot-columns}, var(--item-size));
     gap: var(--item-gap);
-    transform: scale(var(--slot-reduced));
-    transition: transform 100ms ease-in-out;
-    backdrop-filter: var(--blur-md);
-
-    // Respecte la préférence système : pas d'animation, mais l'effet demeure
-    @media (prefers-reduced-motion: reduce) {
-      transition: none;
-    }
-
-    span, .item span {
-      opacity: 0;
-      transition: opacity 100ms ease-in-out;
-    }
   }
 
-  // Point d'ancrage : la grille grandit vers l'extérieur de la page, jamais
-  // vers le centre — elle ne recouvre donc pas l'autre colonne.
-  .equipment-slot--left & {
+  @include m.from(v.$bp-lg) {
+    // Facteur de réduction hors survol
+    --slot-reduced: 0.3;
+
+    // Empreinte réduite : la grille réelle multipliée par le facteur
+    --grid-width: calc(
+      #{$slot-columns} * var(--item-size) + #{$slot-columns - 1} *
+        var(--item-gap)
+    );
+    width: calc(var(--grid-width) * var(--slot-reduced));
+    // La hauteur suit celle de la ligne : l'agrandissement débordera par-dessus
+    // les lignes voisines, ce qui est voulu.
+    height: calc(var(--item-size) * var(--slot-reduced) * 3);
+
     &__grid {
-      right: 0;
-      transform-origin: top right;
+      position: absolute;
+      top: 0;
+      transform: scale(var(--slot-reduced));
+      transition: transform 100ms ease-in-out;
+      backdrop-filter: var(--blur-md);
 
-      // Remplissage de droite à gauche : les premiers objets se placent donc
-      // près de la vignette équipée, et les cases vides s'accumulent au loin.
-      // C'est l'axe d'écriture de la grille qu'on inverse, pas l'ordre du DOM :
-      // l'ordre de tabulation et de lecture reste celui de l'inventaire.
-      direction: rtl;
+      // Respecte la préférence système : pas d'animation, mais l'effet demeure
+      @media (prefers-reduced-motion: reduce) {
+        transition: none;
+      }
+
+      span, .item span {
+        opacity: 0;
+        transition: opacity 100ms ease-in-out;
+      }
     }
-  }
 
-  // L'inversion ci-dessus se transmet par héritage ; on la borne à la grille
-  // pour ne pas retourner le contenu des vignettes.
-  &__grid > * {
-    direction: ltr;
-  }
+    // Point d'ancrage : la grille grandit vers l'extérieur de la page, jamais
+    // vers le centre — elle ne recouvre donc pas l'autre colonne.
+    .equipment-slot--left & {
+      &__grid {
+        right: 0;
+        transform-origin: top right;
 
-  .equipment-slot--right & {
-    &__grid {
-      left: 0;
-      transform-origin: top left;
+        // Remplissage de droite à gauche : les premiers objets se placent donc
+        // près de la vignette équipée, et les cases vides s'accumulent au loin.
+        // C'est l'axe d'écriture de la grille qu'on inverse, pas l'ordre du DOM :
+        // l'ordre de tabulation et de lecture reste celui de l'inventaire.
+        direction: rtl;
+      }
+    }
+
+    // L'inversion ci-dessus se transmet par héritage ; on la borne à la grille
+    // pour ne pas retourner le contenu des vignettes.
+    &__grid > * {
+      direction: ltr;
+    }
+
+    .equipment-slot--right & {
+      &__grid {
+        left: 0;
+        transform-origin: top left;
+      }
     }
   }
 }
 
 // Au survol de la ligne entière : la grille reprend sa taille réelle et passe
-// au-dessus de ses voisines.
+// au-dessus de ses voisines. Sous le seuil elle n'a jamais été réduite, et il
+// n'y a de toute façon pas de survol à attendre.
 //
 // Une infobulle ouverte l'y maintient (`.item--pinned`). Elle est rendue dans
 // un portail, donc hors de la ligne : sans cette règle, aller la lire — ou y
 // cliquer un attribut — replierait la grille sous son ancre, et l'infobulle
 // sauterait avec elle.
-.equipment-slot:hover .slot-inventory__grid,
-.equipment-slot:focus-within .slot-inventory__grid,
-.slot-inventory__grid:has(.item--pinned) {
-  transform: scale(1);
-  z-index: 5;
-  span, .item span {
-    opacity: 1;
+@include m.from(v.$bp-lg) {
+  .equipment-slot:hover .slot-inventory__grid,
+  .equipment-slot:focus-within .slot-inventory__grid,
+  .slot-inventory__grid:has(.item--pinned) {
+    transform: scale(1);
+    z-index: 5;
+    span, .item span {
+      opacity: 1;
+    }
   }
 }
 

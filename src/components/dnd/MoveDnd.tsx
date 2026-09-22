@@ -12,7 +12,8 @@ import {
 import {
   DndContext,
   DragOverlay,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   useSensor,
   useSensors,
   type DragEndEvent,
@@ -95,6 +96,38 @@ function dropTargetAt(x: number, y: number): MoveTarget | null {
 
   const id = zone.getAttribute(DROP_TARGET_ATTR);
   return id ? parseZone(id) : null;
+}
+
+/**
+ * Marque la zone survolée pendant un geste.
+ *
+ * Écrit directement dans le DOM, sans passer par React : dnd-kit range la zone
+ * survolée dans un contexte que lit **tout** objet déplaçable, et la désigner
+ * re-rendait la centaine de vignettes montées à chaque entrée et sortie de
+ * zone. Une classe posée sur l'élément ne repeint que lui.
+ *
+ * `:hover` s'en chargeait jusqu'ici, mais il n'existe pas sous un doigt : au
+ * tactile, aucune zone ne s'allumait, et rien ne disait où le dépôt tomberait.
+ */
+let overZone: Element | null = null;
+
+function markOverZone(x: number | null, y: number | null) {
+  const zone =
+    x === null || y === null
+      ? null
+      : (document
+          .elementFromPoint(x, y)
+          ?.closest<HTMLElement>(`[${DROP_TARGET_ATTR}]`) ?? null);
+
+  // Une destination impossible ne s'allume pas : elle n'accepterait pas le
+  // dépôt (voir `dropTargetAt`), le dire deux fois vaut mieux qu'une.
+  const next =
+    zone && (zone as HTMLElement).dataset.dropDisabled === "true" ? null : zone;
+
+  if (next === overZone) return;
+  overZone?.classList.remove("drop-zone--over");
+  next?.classList.add("drop-zone--over");
+  overZone = next;
 }
 
 /**
@@ -208,18 +241,45 @@ export function MoveDnd({
   const sensors = useSensors(
     // Sans seuil, un clic sur une vignette (qui épingle l'infobulle) passerait
     // pour un début de déplacement.
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
+    // Au doigt, le seuil de distance ne convient pas : il fait d'un début de
+    // défilement un début de déplacement, et le coffre devenait impossible à
+    // parcourir — chaque geste posé sur un objet le saisissait. C'est donc la
+    // DURÉE qui saisit. En deçà, le geste appartient à la page ; la tolérance
+    // l'annule si le doigt part avant la fin de l'attente.
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 250, tolerance: 6 },
+    }),
   );
 
   // Le suivi n'est branché que pendant un geste : hors déplacement, ce serait
   // un écouteur de plus sur chaque mouvement de souris de l'application.
+  //
+  // `touchmove` en plus de `pointermove` : une fois le geste tactile saisi,
+  // dnd-kit absorbe les événements de défilement, et les événements de pointeur
+  // dérivés cessent d'arriver sur certains moteurs. Sans cette seconde source,
+  // le dépôt se serait fait à l'endroit du premier contact.
   useEffect(() => {
     if (!dragged) return;
-    const track = (event: PointerEvent) => {
-      pointer.current = { x: event.clientX, y: event.clientY };
+
+    const moveTo = (x: number, y: number) => {
+      pointer.current = { x, y };
+      markOverZone(x, y);
     };
-    document.addEventListener("pointermove", track, { passive: true });
-    return () => document.removeEventListener("pointermove", track);
+    const trackPointer = (event: PointerEvent) =>
+      moveTo(event.clientX, event.clientY);
+    const trackTouch = (event: TouchEvent) => {
+      const touch = event.touches[0];
+      if (touch) moveTo(touch.clientX, touch.clientY);
+    };
+
+    document.addEventListener("pointermove", trackPointer, { passive: true });
+    document.addEventListener("touchmove", trackTouch, { passive: true });
+    return () => {
+      document.removeEventListener("pointermove", trackPointer);
+      document.removeEventListener("touchmove", trackTouch);
+      markOverZone(null, null);
+    };
   }, [dragged]);
 
   // Filet : si l'inventaire disparaît en plein geste, l'attribut resterait posé

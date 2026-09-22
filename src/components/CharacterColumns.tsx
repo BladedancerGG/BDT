@@ -36,8 +36,11 @@ const STACKS: Partial<Record<ItemCategory, readonly number[]>> = {
  * Un composant par personnage, et non une boucle dans le parent : le filtrage
  * par famille d'objets est un hook, et il lui faut sa propre mémoïsation par
  * personnage — sans quoi changer d'onglet referait le travail des trois.
+ *
+ * Exporté : le rail du téléphone monte les mêmes colonnes, mais une par page et
+ * sans l'enveloppe qui les range côte à côte (voir `InventoryRail`).
  */
-function CharacterColumn({
+export function CharacterColumn({
                              character,
                              data,
                              category,

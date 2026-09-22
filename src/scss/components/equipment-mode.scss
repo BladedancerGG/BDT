@@ -49,11 +49,20 @@
 
   // Deux moitiés de largeur égale : les vignettes tombent ainsi exactement au
   // centre, d'une ligne à l'autre, quel que soit le nombre d'attributs.
+  //
+  // Une seule colonne sous le seuil : la symétrie suppose deux moitiés de part
+  // et d'autre d'un centre, et il n'y a pas la place pour deux vignettes et
+  // leurs attributs dans la largeur d'un téléphone. Les deux emplacements d'une
+  // ligne s'y suivent donc, alignés à gauche comme n'importe quelle liste.
   &__row {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
     align-items: center;
     gap: var(--slot-row-gap);
+
+    @include m.from(v.$bp-sm) {
+      grid-template-columns: 1fr 1fr;
+    }
   }
 
   &__side {
@@ -61,14 +70,17 @@
     align-items: center;
     gap: 0.5rem;
     min-width: 0;
+    justify-content: flex-start;
 
-    // La vignette est toujours du côté du centre
-    &--left {
-      justify-content: flex-end;
-    }
+    @include m.from(v.$bp-sm) {
+      // La vignette est toujours du côté du centre
+      &--left {
+        justify-content: flex-end;
+      }
 
-    &--right {
-      justify-content: flex-start;
+      &--right {
+        justify-content: flex-start;
+      }
     }
   }
 

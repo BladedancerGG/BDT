@@ -45,6 +45,9 @@ $ease: cubic-bezier(0.16, 1, 0.3, 1); // décélération franche, sans rebond
   flex-direction: column;
   width: min(24rem, 100vw);
   height: 100dvh;
+  // Même réserve que le menu principal, du côté où ce panneau s'ancre.
+  padding-right: env(safe-area-inset-right, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
   background-color: var(--color-panel);
   border-left: 1px solid var(--color-border);
   box-shadow: var(--shadow-panel);

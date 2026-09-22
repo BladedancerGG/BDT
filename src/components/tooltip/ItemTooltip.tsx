@@ -14,9 +14,11 @@ import {
 import {useLiveQuery} from "dexie-react-hooks";
 import {manifestDb} from "@/lib/manifest/db";
 import {useDefinition} from "@/lib/manifest/use-definition";
+import {useSheetLayout} from "@/lib/ui/use-media-query";
 import {useItemData} from "@/lib/bungie/use-item-data";
 import {
     useSocketColumns,
+    useSocketColumnsState,
     useSocketOptions,
     useTrackerPlugs,
 } from "@/lib/destiny/use-sockets";
@@ -60,10 +62,12 @@ import {usePlugActionState, type QueuedItem} from "@/lib/actions/store";
 import {useSnapshotEdit} from "@/lib/loadouts/groups/snapshot-edit";
 import {PlugIcon} from "./PlugIcon";
 import {StatBar} from "./StatBar";
+import {useSharedDefinition} from "@/lib/destiny/item-defs";
 import {TooltipSkeleton} from "./TooltipSkeleton";
 import {SubclassSockets} from "./SubclassSockets";
 import {SetBonus} from "./SetBonus";
 import {TooltipHeader} from "./TooltipHeader";
+import {ItemActions} from "./ItemActions";
 import {WeaponSummary} from "./WeaponSummary";
 import {WeaponArchetype} from "./WeaponArchetype";
 import {ArmorArchetype} from "./ArmorArchetype";
@@ -510,18 +514,33 @@ export function ItemTooltip({
                                 state,
                                 versionNumber,
                                 gearTier,
+                                onClose,
                             }: {
     itemHash: number;
     itemInstanceId?: string;
     state?: number;
     versionNumber?: number;
     gearTier?: number;
+    /** Referme l'infobulle — voir `ItemActions.onDone`. */
+    onClose?: () => void;
 }) {
     const t = useTranslations("item");
-    const def = useDefinition<InventoryItemDefinition>(
+    // —— La définition vient du LOT, pas d'une requête à elle ————
+    //
+    // Le lot partagé (ItemDefsProvider) porte déjà la définition de tout ce que
+    // l'arbre affiche : la lire là est synchrone. Une requête Dexie par
+    // infobulle, elle, faisait paraître un « Chargement… » d'une ligne, puis
+    // l'infobulle entière — soit un saut de plusieurs centaines de pixels à
+    // chaque ouverture, et un replacement de l'ancrage dans la foulée.
+    //
+    // La lecture à l'unité ne subsiste que pour ce que le lot n'a pas : un objet
+    // hors profil, comme ceux d'un partage public.
+    const shared = useSharedDefinition(itemHash);
+    const fetched = useDefinition<InventoryItemDefinition>(
         "DestinyInventoryItemDefinition",
-        itemHash,
+        shared ? null : itemHash,
     );
+    const def = shared ?? fetched;
     // Servi depuis le préchargement du profil dans le cas normal — donc sans
     // attente. Le squelette ne s'affiche que pour un objet absent du profil,
     // qu'il faut alors aller chercher à l'unité.
@@ -552,7 +571,14 @@ export function ItemTooltip({
                 : liveDetail,
         [snapshotEdit, liveDetail],
     );
-    const intrinsic = useSocketColumns(def, detail, SOCKET_CATEGORY.INTRINSIC);
+    // L'attente sert au squelette : toutes les lectures de sockets partent du
+    // même rendu et reviennent de la même transaction Dexie, celle-ci dit donc
+    // l'état des autres.
+    const {columns: intrinsic, pending: awaitingSockets} = useSocketColumnsState(
+        def,
+        detail,
+        SOCKET_CATEGORY.INTRINSIC,
+    );
     // Niveau d'arme façonnée et compte-frags (composant 309)
     const progress = useItemProgress(detail);
     // Part des statistiques due à la pièce maîtresse et à l'archétype, pour la
@@ -606,6 +632,11 @@ export function ItemTooltip({
     // Le panneau s'ancre à l'infobulle, pas à l'icône cliquée : il la longe sur
     // toute sa hauteur, comme dans la maquette. `size` la lui impose comme
     // plafond — au-delà, il défile.
+    // En feuille basse, le sélecteur ne flotte plus : il n'y a pas de place à
+    // côté de l'infobulle, elle occupe déjà toute la largeur. Il s'empile donc
+    // à sa suite, dans son propre défilement.
+    const sheet = useSheetLayout();
+
     const {refs, floatingStyles} = useFloating({
         open: Boolean(picker),
         placement: "right-end",
@@ -627,16 +658,40 @@ export function ItemTooltip({
                 },
             }),
         ],
-        whileElementsMounted: autoUpdate,
+        whileElementsMounted: sheet ? undefined : autoUpdate,
     });
 
+    // Reste le cas où la définition n'est pas encore là — un objet hors lot.
+    // L'infobulle garde alors sa forme : même largeur, un en-tête et un corps
+    // au squelette. Une ligne de texte à la place, c'était la boîte d'un
+    // centimètre qui devenait une infobulle pleine sous le curseur.
     if (!def) {
         return (
-            <div className="item-tooltip">
-                <p className="item-tooltip__loading">{t("loading")}</p>
+            <div className="item-tooltip item-tooltip--loading">
+                <span className="visually-hidden">{t("loading")}</span>
+                <div className="item-tooltip__body">
+                    <TooltipSkeleton kind="other"/>
+                </div>
             </div>
         );
     }
+
+    // Le squelette tient tant que le CORPS n'a rien à montrer, et pas seulement
+    // pendant la requête qui va chercher le détail. Entre le premier rendu de
+    // l'infobulle et l'arrivée du détail — même préchargé — il y a une image où
+    // le corps est vide : mesuré, un en-tête seul de 80 px, puis 428 d'un coup
+    // une frame plus tard, et l'ancrage qui se replace dans la foulée.
+    //
+    // Un objet sans instance (une pile de matériaux) n'a pas de détail à
+    // attendre : il n'y a rien à couvrir.
+    // Un objet sans emplacement — matériau, clé, monnaie — n'a pas de corps à
+    // attendre : l'infobulle s'y réduit à son en-tête, et la lecture des
+    // sockets, qui ne rendra rien, n'a pas à la faire patienter.
+    const hasSockets = Boolean(def.sockets?.socketEntries?.length);
+    const awaitingBody =
+        awaitingDetail ||
+        (Boolean(itemInstanceId) && !detail) ||
+        (hasSockets && awaitingSockets);
 
     const isWeapon = def.itemType === ITEM_TYPE.Weapon;
     const isArmor = def.itemType === ITEM_TYPE.Armor;
@@ -754,9 +809,10 @@ export function ItemTooltip({
             />
 
             <div className="item-tooltip__body">
-                {awaitingDetail ? (
+                {awaitingBody ? (
                     <TooltipSkeleton
                         kind={isWeapon ? "weapon" : isArmor ? "armor" : "other"}
+                        reserve={hasSockets}
                     />
                 ) : (
                     <>
@@ -927,13 +983,28 @@ export function ItemTooltip({
                     </>
                 )}
 
+                {/* En feuille basse, le sélecteur est un bloc de plus DANS le
+                    corps : c'est lui qui défile, l'en-tête et le pied d'actions
+                    restant en place quoi qu'il arrive. */}
+                {target && sheet && (
+                    <div className="item-tooltip__picker">
+                        <SocketPicker target={target} error={error} failure={failure}/>
+                    </div>
+                )}
             </div>
+
+            {/* Où envoyer l'objet, en pied : après ce qu'il EST vient ce qu'on
+                peut en faire. Absent de l'édition d'un instantané, où rien ne
+                se déplace — on y désigne ce qu'un groupe portera. */}
+            {queued && !snapshotEdit && (
+                <ItemActions item={queued} onDone={onClose}/>
+            )}
         </div>
 
             {/* Deuxième infobulle : les options du socket cliqué. Dans un
                 portail, comme l'infobulle d'objet — elle ne doit pas être
                 rognée par elle. */}
-            {target && (
+            {target && !sheet && (
                 <FloatingPortal>
                     <div
                         // setFloating est un callback ref stable de Floating UI

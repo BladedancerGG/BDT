@@ -24,14 +24,17 @@
 @use "components/equipment-mode";
 @use "components/intrinsic-row";
 @use "components/inventory";
+@use "components/inventory-rail";
 @use "components/character-columns";
 @use "components/character-picker";
 @use "components/character-tab";
 @use "components/class-icon";
 @use "components/item";
+@use "components/item-actions";
 @use "components/item-group";
 @use "components/item-thumb";
 @use "components/item-tooltip";
+@use "components/item-sheet";
 @use "components/group-edit";
 @use "components/group-preview";
 @use "components/group-list";

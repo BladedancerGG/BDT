@@ -15,6 +15,7 @@ import { isExoticCatalystPlug } from "@/lib/destiny/sockets";
 import { fragmentSlots } from "@/lib/destiny/subclass";
 import { BUNGIE_ROOT } from "@/lib/destiny/display";
 import { DestinySymbol } from "@/components/DestinySymbol";
+import { useHoverless } from "@/lib/ui/use-media-query";
 
 /** Une ligne « +10 Stabilité » / « -5 Maniement ». */
 function StatLine({ statHash, value }: { statHash: number; value: number }) {
@@ -74,6 +75,7 @@ export function PlugTooltip({
   browseLabel?: string;
 }) {
   const t = useTranslations("item");
+  const hoverless = useHoverless();
   const tCommon = useTranslations("common");
   const def = useDefinition<InventoryItemDefinition>(table, hash);
   const modifiers = plugStatModifiers(def);
@@ -151,9 +153,18 @@ export function PlugTooltip({
 
       {(equippable || browseLabel) && (
         <p className="plug-tooltip__action">
-          <DestinySymbol name="mouseLeft" className="plug-tooltip__action-key" />
+          {/* Le bouton de souris n'a rien à montrer à un doigt. Et au doigt,
+              équiper demande un SECOND appui — le premier ouvre cette
+              infobulle, faute de survol pour la porter — ce que seule cette
+              ligne peut dire : rien d'autre à l'écran ne l'annonce. Ouvrir un
+              sélecteur, lui, se fait du premier coup et garde son libellé. */}
+          {!hoverless && (
+            <DestinySymbol name="mouseLeft" className="plug-tooltip__action-key" />
+          )}
           {equippable
-            ? tCommon("equip")
+            ? hoverless
+              ? t("tapTwiceToEquip")
+              : tCommon("equip")
             : t("browsePlugs")}
         </p>
       )}

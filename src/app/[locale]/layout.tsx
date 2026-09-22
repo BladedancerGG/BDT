@@ -1,4 +1,4 @@
-import type {Metadata} from "next";
+import type {Metadata, Viewport} from "next";
 import type {CSSProperties} from "react";
 import {NextIntlClientProvider, hasLocale} from "next-intl";
 import {notFound} from "next/navigation";
@@ -44,22 +44,43 @@ export const metadata: Metadata = {
 };
 
 /**
+ * `viewport-fit=cover` : la page s'étend sous les encoches et la barre de geste
+ * plutôt que d'être encadrée de bandes noires. C'est ce qui rend les variables
+ * `env(safe-area-inset-*)` non nulles — les surfaces qui touchent un bord
+ * (en-tête, menu principal, panneau d'actions, modale) s'en servent pour
+ * réserver la place.
+ *
+ * Les deux autres valeurs sont celles que Next pose par défaut ; déclarer cet
+ * export les remplace toutes, il faut donc les redonner.
+ */
+export const viewport: Viewport = {
+    width: "device-width",
+    initialScale: 1,
+    viewportFit: "cover",
+};
+
+/**
  * Variables de taille d'icônes à poser sur <html>, ou `undefined` si aucune
  * préférence n'est enregistrée — le SCSS garde alors ses valeurs par défaut.
+ *
+ * Ce sont les tailles *voulues*, non celles qui s'appliquent : le SCSS les
+ * plafonne à la largeur de la fenêtre (voir scss/layout/main.scss). Écrire
+ * directement la taille finale interdirait ce plafond — un style inline sur
+ * <html> l'emporte sur toute règle.
  */
 function rootSizeStyle(prefs: ServerPreferences): CSSProperties | undefined {
     const style: Record<string, string> = {};
-    if (prefs.iconSize) style["--item-size"] = `${prefs.iconSize}px`;
+    if (prefs.iconSize) style["--item-size-pref"] = `${prefs.iconSize}px`;
     if (prefs.columnsIconSize) {
-        style["--columns-item-size"] = `${prefs.columnsIconSize}px`;
+        style["--columns-item-size-pref"] = `${prefs.columnsIconSize}px`;
     }
     if (prefs.vaultIconSize) {
-        style["--vault-item-size"] = `${prefs.vaultIconSize}px`;
+        style["--vault-item-size-pref"] = `${prefs.vaultIconSize}px`;
     }
     if (prefs.loadoutIconSize) {
-        style["--loadout-item-size"] = `${prefs.loadoutIconSize}px`;
+        style["--loadout-item-size-pref"] = `${prefs.loadoutIconSize}px`;
     }
-    if (prefs.plugSize) style["--plug-size"] = `${prefs.plugSize}px`;
+    if (prefs.plugSize) style["--plug-size-pref"] = `${prefs.plugSize}px`;
     return Object.keys(style).length ? (style as CSSProperties) : undefined;
 }
 

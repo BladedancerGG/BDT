@@ -112,11 +112,22 @@ export function DropZones({
   selectedCharacterId,
   category,
   columns = false,
+  rail = false,
+  railCharacterId = null,
 }: {
   characters: readonly Character[];
   selectedCharacterId: string | null;
   /** Famille affichée : elle décide du découpage — voir plus bas */
   category: ItemCategory;
+  /**
+   * Rail du téléphone : une seule paire de zones, celle du personnage dont la
+   * page est sous les yeux. Le rail ne défile pas pendant un geste — les autres
+   * personnages sont hors de l'écran, et une zone qu'on ne peut pas atteindre
+   * n'est qu'une cible de moins pour celles qu'on vise.
+   */
+  rail?: boolean;
+  /** Le personnage de la page regardée (voir `InventoryRail.onPageChange`). */
+  railCharacterId?: string | null;
   /**
    * Disposition « trois personnages » : les paires de zones se rangent alors
    * côte à côte, chacune sous la colonne de son personnage, au lieu de
@@ -146,14 +157,22 @@ export function DropZones({
   // qu'elles recouvrent (voir `CharacterColumns`). Réordonner ferait tomber les
   // zones sous le mauvais personnage — l'erreur ne se verrait qu'au dépôt.
   const ordered = useMemo(
-    () =>
-      columns
+    () => {
+      if (rail) {
+        // Le personnage de la page regardée, et lui seul. Sur la page du
+        // coffre il n'y en a pas : les trois y sont alors des destinations,
+        // chacune sur son bandeau (voir `railVault` plus bas).
+        const shown = characters.find((c) => c.characterId === railCharacterId);
+        return shown ? [shown] : characters;
+      }
+      return columns
         ? characters
         : [
             ...characters.filter((c) => c.characterId === selectedCharacterId),
             ...characters.filter((c) => c.characterId !== selectedCharacterId),
-          ],
-    [characters, selectedCharacterId, columns],
+          ];
+    },
+    [characters, selectedCharacterId, columns, rail, railCharacterId],
   );
 
   /**
@@ -165,6 +184,10 @@ export function DropZones({
    * réclame pourtant un pour tout transfert — c'est le personnage affiché qui
    * sert de porte d'entrée.
    */
+  // Page du coffre du rail : aucun personnage sous les yeux, donc les trois en
+  // destinations — et pas de zone « coffre », c'est de là que l'objet part.
+  const railVault = rail && !railCharacterId;
+
   const shared = category === "inventory";
   const holder = ordered[0]?.characterId;
   const sharedTarget: MoveTarget | null = useMemo(
@@ -211,7 +234,11 @@ export function DropZones({
           survole, ce qui aide à viser. */}
       <div className={layer("scrim")} aria-hidden />
 
-      <div className={layer("characters")}>
+      <div
+        className={`${layer("characters")}${
+          railVault ? " drop-zones__characters--vault" : ""
+        }`}
+      >
         {/* Rangement partagé : une seule zone, en face de celle du coffre. */}
         {sharedTarget && (
           <div className="drop-zones__row drop-zones__row--single">
@@ -241,7 +268,9 @@ export function DropZones({
             // position le désigne déjà, et trois fois « Transférer vers
             // l'inventaire de Chasseur » ne dirait rien de plus — deux
             // personnages de même classe portent d'ailleurs le même nom.
-            const named = !columns && !current;
+            // Sur le rail, une seule paire de zones est montée et elle
+            // recouvre la page qu'on regarde : la nommer serait redondant.
+            const named = !columns && !rail && !current;
 
             return (
               <div
@@ -251,23 +280,32 @@ export function DropZones({
                 // s'empilent : en colonnes, chacune occupe toute la hauteur du
                 // calque, sous la colonne qu'elle recouvre.
                 className={`drop-zones__row${
-                  current && !columns ? " drop-zones__row--current" : ""
+                  current && !columns && !rail ? " drop-zones__row--current" : ""
                 }`}
               >
-                <DropZone
-                  variant="equip"
-                  target={equip}
-                  plan={planOf(equip)}
-                  label={named ? t("equipOn", { character: name }) : tCommon("equip")}
-                >
-                  <CharacterMark character={character} />
-                </DropZone>
+                {/* Depuis le coffre, une seule destination par personnage, et
+                    elle se nomme : les trois bandeaux se ressemblent, seul
+                    l'emblème et le nom les distinguent. */}
+                {!railVault && (
+                  <DropZone
+                    variant="equip"
+                    target={equip}
+                    plan={planOf(equip)}
+                    label={
+                      named ? t("equipOn", { character: name }) : tCommon("equip")
+                    }
+                  >
+                    <CharacterMark character={character} />
+                  </DropZone>
+                )}
                 <DropZone
                   variant="inventory"
                   target={inventory}
                   plan={planOf(inventory)}
                   label={
-                    named ? t("inventoryOf", { character: name }) : t("inventoryHere")
+                    named || railVault
+                      ? t("toCharacter", { character: name })
+                      : t("inventoryHere")
                   }
                 >
                   <CharacterMark character={character} />
@@ -277,17 +315,22 @@ export function DropZones({
           })}
       </div>
 
+      {/* Depuis la page du coffre, le coffre n'est pas une destination : c'est
+          d'où l'objet part. Son calque reste monté — il porte le fondu — mais
+          vide de zone. */}
       <div className={layer("vault")}>
-        <DropZone
-          variant="vault"
-          target={{ kind: "vault" }}
-          plan={planOf({ kind: "vault" })}
-          label={t("vault")}
-        >
-          <span className="drop-zone__icons">
-            <VaultIcon className="drop-zone__sigil" />
-          </span>
-        </DropZone>
+        {!railVault && (
+          <DropZone
+            variant="vault"
+            target={{ kind: "vault" }}
+            plan={planOf({ kind: "vault" })}
+            label={t("vault")}
+          >
+            <span className="drop-zone__icons">
+              <VaultIcon className="drop-zone__sigil" />
+            </span>
+          </DropZone>
+        )}
       </div>
     </>
   );

@@ -41,6 +41,10 @@ $ease: cubic-bezier(0.16, 1, 0.3, 1); // décélération franche, sans rebond
   flex-direction: column;
   width: min(25rem, 100vw);
   height: 100dvh;
+  // Le panneau touche le bord gauche et le bas de l'écran : sans ces réserves,
+  // ses entrées passent sous l'encoche en paysage et sous la barre de geste.
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
   background-color: var(--color-panel);
   border-right: 1px solid var(--color-border);
   box-shadow: var(--shadow-panel);
@@ -87,6 +91,7 @@ $ease: cubic-bezier(0.16, 1, 0.3, 1); // décélération franche, sans rebond
     padding: 0.5rem 1rem;
     border: 0;
     background: none;
+    min-height: 2.75rem;
     font: inherit;
     font-size: 0.9375rem;
     text-align: left;
@@ -95,8 +100,12 @@ $ease: cubic-bezier(0.16, 1, 0.3, 1); // décélération franche, sans rebond
     cursor: pointer;
     transition: background-color 120ms ease;
 
-    &:hover {
-      background-color: var(--color-panel-alt);
+    // Pas de survol au doigt : la teinte resterait sur la dernière entrée
+    // touchée, qui passerait pour la page courante.
+    @media (hover: hover) {
+      &:hover {
+        background-color: var(--color-panel-alt);
+      }
     }
 
     // La page courante : marquée par un liseré, pas seulement par la couleur
@@ -109,8 +118,10 @@ $ease: cubic-bezier(0.16, 1, 0.3, 1); // décélération franche, sans rebond
       color: var(--color-text-muted);
       cursor: default;
 
-      &:hover {
-        background-color: transparent;
+      @media (hover: hover) {
+        &:hover {
+          background-color: transparent;
+        }
       }
     }
 

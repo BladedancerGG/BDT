@@ -10,18 +10,118 @@
 // sont pas chargés.
 
 .header {
-  // Une seule colonne sur téléphone : les cinq blocs s'y empilent. L'en-tête
-  // en flex les faisait déjà passer à la ligne un à un — la barre de recherche
-  // s'y réserve toute la largeur (voir `min-width` dans search-bar.scss).
-  display: flex;
+  // Hauteur d'une rangée. Sur téléphone, c'est la cible tactile minimale
+  // (44 px) ; au-delà, les 40 px que les blocs tiraient de `height: 100%` dans
+  // une barre de 3,5 rem — la barre y est donc rendue à l'identique.
+  --header-row: 2.75rem;
+
+  // —— Téléphone : une grille de deux rangées ————————————————
+  //
+  // La barre de recherche se réserve déjà toute la largeur (voir `min-width`
+  // dans search-bar.scss), ce qu'un simple `flex-wrap` aurait payé d'une
+  // TROISIÈME rangée : le passage à la ligne étant séquentiel, les onglets et
+  // les boutons de compte, qui suivent la recherche dans le DOM, auraient été
+  // repoussés derrière elle. La grille les garde sur la première rangée sans
+  // toucher à l'ordre du document, dont dépendent la lecture et le clavier.
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  // Première rangée de hauteur DÉFINIE. Plusieurs blocs tirent la leur d'un
+  // `height: 100%` (`.main-menu-button`, `.header-actions`), lequel ne résout
+  // rien contre une rangée dimensionnée par son contenu : ils reprenaient alors
+  // la hauteur du plus grand d'entre eux, et l'en-tête enflait de 60 à 77 px.
+  // Les rangées suivantes — recherche, sélection — restent implicites, donc
+  // dimensionnées par leur contenu et absentes quand il n'y en a pas.
+  grid-template-rows: var(--header-row);
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem;
   // Ne se comprime pas au profit du coffre (voir la chaîne de .app-main)
   flex-shrink: 0;
-  height: 3.5rem;
 
   border-bottom: 1px solid var(--color-border);
+
+  // Les blocs tenaient leur hauteur de la barre (`height: 100%`). Dans une
+  // grille dont la rangée se mesure sur son contenu, ce pourcentage ne résout
+  // plus rien — et le sélecteur de personnage, carré par `aspect-ratio`,
+  // s'effondrait à la taille de ses marges intérieures.
+  > * {
+    height: var(--header-row);
+  }
+
+  .main-menu-button {
+    grid-area: 1 / 1;
+  }
+
+  // Masqué en attendant sa place dans la vue d'inventaire, qui reste à
+  // remanier : trois blocs suffisent à remplir la rangée, et le personnage
+  // courant se lit déjà sur chaque colonne d'équipement.
+  .character-picker {
+    display: none;
+  }
+
+  // Les deux modes d'affichage se changent au menu principal, qui les porte
+  // déjà (voir MainMenu) : leurs onglets ne feraient ici que prendre la place
+  // des blocs qui n'ont pas d'autre porte. Ils restent montés — c'est là que
+  // vit le raccourci clavier, sans objet au doigt mais sans coût non plus.
+  .view-mode-tabs {
+    display: none;
+  }
+
+  .search-toggle {
+    grid-area: 1 / 3;
+  }
+
+  .header-actions {
+    grid-area: 1 / 4;
+  }
+
+  // Repliée : le champ réclame toute la largeur (search-bar.scss), les quatre
+  // autres blocs ne la lui laissent pas. La loupe la déplie sur sa propre
+  // rangée — laquelle n'existe pas tant qu'elle est repliée.
+  .search-bar {
+    grid-area: 2 / 1 / 2 / -1;
+    display: none;
+  }
+
+  // La deuxième colonne, laissée vide, pousse la loupe et les boutons de
+  // compte contre le bord droit.
+
+  // La barre de sélection remplace les onglets, mais empile un libellé, une
+  // consigne et deux boutons : elle ne tient pas dans leur case. Sa rangée est
+  // implicite — elle n'existe donc pas hors sélection, et n'y laisse aucune
+  // gouttière vide derrière elle.
+  .group-selection {
+    grid-area: 3 / 1 / 3 / -1;
+    // Seul bloc dont la hauteur vient du contenu : deux lignes de texte ne
+    // tiennent pas dans une rangée.
+    height: auto;
+  }
+
+  // —— Au-delà : la barre d'origine, sur une seule ligne ——————
+  //
+  // Les placements ci-dessus sont sans effet dans un conteneur flex.
+  @include m.from(v.$bp-md) {
+    --header-row: 2.5rem;
+    display: flex;
+    height: 3.5rem;
+
+    .character-picker {
+      display: block;
+    }
+
+    .view-mode-tabs {
+      display: flex;
+    }
+
+    // La barre est toujours là : la loupe n'aurait rien à déplier.
+    .search-toggle {
+      display: none;
+    }
+
+    .search-bar {
+      display: block;
+    }
+  }
 
   &__title {
     font-size: 1.5rem;
@@ -39,6 +139,12 @@
     flex-wrap: wrap;
     height: 100%;
   }
+}
+
+// Barre dépliée. La règle a la même spécificité que celle qui la replie : elle
+// la suit, c'est ce qui la fait gagner.
+.header--search-open .search-bar {
+  display: block;
 }
 
 // Bloc "connecté en tant que … + déconnexion"
@@ -100,4 +206,9 @@
   align-items: center;
   justify-content: center;
   gap: 1rem;
+  // Gouttière : le titre et le résumé prennent toute la largeur qu'on leur
+  // laisse et venaient se coller aux bords sur un téléphone, faute de marge
+  // ailleurs dans la page — `.app-main` n'en pose aucune.
+  padding-inline: 1rem;
+  text-align: center;
 }

@@ -7,9 +7,13 @@ import {useSettings} from "./store";
  * Applique au document les changements de préférences faits en cours de session.
  *
  * Le rendu initial est déjà correct : le serveur lit le cookie et pose
- * `data-theme` / `--item-size` directement dans le HTML. Ce composant ne sert
- * donc qu'à refléter immédiatement une modification faite dans les paramètres,
- * sans rechargement.
+ * `data-theme` / `--item-size-pref` directement dans le HTML. Ce composant ne
+ * sert donc qu'à refléter immédiatement une modification faite dans les
+ * paramètres, sans rechargement.
+ *
+ * Les variables écrites ici sont celles du *réglage*, pas les tailles finales :
+ * le SCSS les plafonne à la largeur de la fenêtre (voir scss/layout/main.scss),
+ * et un style inline posé sur <html> l'emporterait sur ce plafond.
  */
 export function SettingsEffects() {
     const theme = useSettings((s) => s.theme);
@@ -41,32 +45,32 @@ export function SettingsEffects() {
     }, [visualEffects]);
 
     useEffect(() => {
-        document.documentElement.style.setProperty("--item-size", `${iconSize}px`);
+        document.documentElement.style.setProperty("--item-size-pref", `${iconSize}px`);
     }, [iconSize]);
 
     useEffect(() => {
         document.documentElement.style.setProperty(
-            "--columns-item-size",
+            "--columns-item-size-pref",
             `${columnsIconSize}px`,
         );
     }, [columnsIconSize]);
 
     useEffect(() => {
         document.documentElement.style.setProperty(
-            "--vault-item-size",
+            "--vault-item-size-pref",
             `${vaultIconSize}px`,
         );
     }, [vaultIconSize]);
 
     useEffect(() => {
         document.documentElement.style.setProperty(
-            "--loadout-item-size",
+            "--loadout-item-size-pref",
             `${loadoutIconSize}px`,
         );
     }, [loadoutIconSize]);
 
     useEffect(() => {
-        document.documentElement.style.setProperty("--plug-size", `${plugSize}px`);
+        document.documentElement.style.setProperty("--plug-size-pref", `${plugSize}px`);
     }, [plugSize]);
 
     return null;

@@ -1,0 +1,98 @@
+@use "../abstracts/variables" as v;
+@use "../abstracts/mixins" as m;
+
+// Rail d'inventaire du téléphone : une page par personnage, le coffre en
+// dernière, une seule visible à la fois (voir components/InventoryRail.tsx).
+//
+// Il remplace la grille à deux colonnes de `.inventory__body` sous $bp-md — le
+// seuil est écrit deux fois, ici par le JavaScript qui monte le rail, là par
+// `lib/ui/use-media-query.ts`.
+//
+// La boucle est affaire de `order`, posé en ligne par le composant : ce fichier
+// ne décrit que la géométrie.
+
+.inventory-rail {
+  display: flex;
+  // Maillon de la chaîne de hauteurs (voir :root[data-rail] dans layout/main) :
+  // le rail prend ce que la vue lui laisse, et ce sont ses pages qui défilent.
+  flex: 1;
+  min-height: 0;
+  gap: 2rem;
+
+  overflow-x: auto;
+  // Le vertical appartient aux pages, jamais au rail
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  // Le geste s'arrête au rail : sans ça, arrivé au bout, il fait reculer la
+  // page — ou la navigation du navigateur.
+  overscroll-behavior-x: contain;
+
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border-strong) transparent;
+
+  &__page {
+    // Pleine largeur, jamais comprimée : c'est ce qui fait une page
+    flex: 0 0 100%;
+    min-width: 0;
+    scroll-snap-align: start;
+    // Une page à la fois, même sur un geste ample : la rotation qui fait
+    // boucler le rail ne tient qu'une page d'avance de chaque côté, et un geste
+    // qui en franchirait trois tomberait dans le vide.
+    scroll-snap-stop: always;
+
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    // Chaque page défile pour son propre compte
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+  }
+
+  // —— Une colonne de personnage occupe la page ————————————
+  //
+  // Sa largeur ne vient plus du nombre de colonnes voisines : il n'y en a plus.
+  // La taille des vignettes suit du même coup le réglage principal et non celui
+  // de la disposition « trois personnages » — l'enveloppe `.character-columns`,
+  // qui y substituait `--columns-item-size`, n'est pas montée ici. C'est le bon
+  // réglage : une ligne d'emplacement dispose de toute la largeur de l'écran,
+  // exactement ce que `--item-size` plafonne (voir layout/main.scss).
+  .character-column {
+    width: 100%;
+    // Les vignettes remplissent la largeur au lieu de suivre le réglage. Une
+    // ligne d'emplacement a ici une largeur IMPOSÉE — quatre vignettes, ni plus
+    // ni moins — et un réglage pensé pour un écran large y laissait une bande
+    // vide à droite de chaque ligne. Le réglage de taille ne vaut donc que pour
+    // le bureau ; ici, c'est la largeur de l'écran qui décide.
+    --item-size: var(--item-size-fit);
+    // Les pages portent déjà l'accroche ; une seconde cible au même endroit ne
+    // ferait qu'ajouter du flou.
+    scroll-snap-align: none;
+  }
+
+  // Le coffre prend toute la hauteur de la page et défile pour son compte —
+  // plus de plafond en `vh`, la page lui donne sa hauteur.
+  .inventory__storage,
+  .item-grid {
+    flex: 1;
+    min-height: 0;
+  }
+
+  // Le coffre n'a plus de taille fixée ici : la grille mesure sa propre largeur
+  // et en déduit celle de ses vignettes, cinq par ligne (voir `fixedColumns`
+  // dans VirtualItemGrid). Un calcul en `100vw` ratait la barre de défilement —
+  // dix pixels de moins, et la cinquième colonne sautait.
+
+  .item-grid__viewport {
+    max-height: none;
+    flex: 1;
+    min-height: 0;
+
+    // Le coffre retient le défilement vertical — c'est le but — mais
+    // `overscroll-behavior: contain` (components/inventory.scss) vaut pour les
+    // DEUX axes : il coupait aussi la chaîne horizontale, et le rail restait
+    // sourd à tout balayage parti de sa page de coffre. Mesuré : le geste
+    // arrivait bien jusqu'à l'élément, et le défilement ne bougeait pas.
+    overscroll-behavior-x: auto;
+    overscroll-behavior-y: contain;
+  }
+}

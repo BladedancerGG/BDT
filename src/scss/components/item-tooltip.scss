@@ -32,6 +32,28 @@
   pointer-events: none;
 }
 
+// Infobulle ancrée : elle ne dépasse jamais la place que le placement lui
+// mesure (voir le middleware `size` dans ItemIcon). Bornée au calque flottant,
+// la feuille basse ayant sa propre hauteur.
+.floating-layer .item-tooltip {
+  max-height: var(--tooltip-max-height, none);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border-strong) transparent;
+}
+
+// État de chargement : même largeur et même forme que l'infobulle pleine, pour
+// qu'elle ne saute pas quand la définition arrive.
+.item-tooltip--loading {
+  min-height: 12rem;
+}
+
+// Sélecteur d'attributs empilé dans la feuille basse (voir components/item-sheet)
+.item-tooltip__picker {
+  border-top: 1px solid var(--color-border);
+}
+
 .item-tooltip {
   width: v.$tooltip-width;
   overflow: hidden;

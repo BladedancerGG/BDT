@@ -18,7 +18,12 @@ $ease: cubic-bezier(0.16, 1, 0.3, 1); // décélération franche, sans rebond
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 1rem;
+  // La gouttière d'un rem, augmentée des zones sûres : le voile couvre l'écran
+  // entier, encoches comprises, mais le panneau qu'il centre reste en deçà.
+  padding: calc(1rem + env(safe-area-inset-top, 0px))
+    calc(1rem + env(safe-area-inset-right, 0px))
+    calc(1rem + env(safe-area-inset-bottom, 0px))
+    calc(1rem + env(safe-area-inset-left, 0px));
   background-color: var(--color-overlay);
   z-index: 100;
 

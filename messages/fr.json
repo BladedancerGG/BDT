@@ -219,6 +219,7 @@
       "inventoryHere": "Transférer dans l’inventaire",
       "inventoryOf": "Transférer dans l’inventaire de {character}",
       "toCharacter": "Transférer vers {character}",
+      "transferTo": "Transférer vers",
       "vault": "Transférer vers le coffre"
     },
     "failure": {
@@ -277,6 +278,7 @@
     "setPieces": "{count} pièces",
     "weaponLevel": "Niv. d’arme {level}",
     "browsePlugs": "Voir les objets similaires",
+    "tapTwiceToEquip": "Appuyer deux fois pour équiper",
     "fragmentSlots": "{count, plural, one {# emplacement de fragment} other {# emplacements de fragments}}",
     "searchPlugs": "Rechercher…",
     "tunedStat": "Statistique ajustée"

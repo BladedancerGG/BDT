@@ -15,36 +15,48 @@
   // mécanique que `.inventory__storage` pour le coffre.
   --item-size: var(--columns-item-size);
 
-  // —— Débordement de la grille dépliée ————————————————————
-  //
-  // L'inventaire d'un emplacement est affiché en réduit et reprend sa taille
-  // réelle au survol, par un `transform` : il déborde donc de l'empreinte
-  // qu'il occupe dans la mise en page. En largeur, la colonne est taillée pour
-  // la grille dépliée (`.character-column`), il n'y a rien à réserver ; en
-  // hauteur, c'est la réserve du bas qui empêche la dernière ligne de sortir
-  // de la section.
-  //
-  // Le facteur est celui de `--slot-reduced` (components/equipment.scss) : les
-  // deux valeurs se lisent ensemble, changer l'une demande de changer l'autre.
-  // Il n'est pas hérité de la grille elle-même — une variable posée sur un
-  // descendant ne remonte pas jusqu'ici.
-  --slot-grid-width: calc(3 * var(--item-size) + 2 * var(--item-gap));
-  --slot-overhang: calc(var(--slot-grid-width) * (1 - 0.3));
-
   display: flex;
   align-items: flex-start;
-  justify-content: space-between;
-  padding: 0.5rem 0 calc(var(--slot-overhang) + 1rem) 0;
   gap: 2rem;
-  overflow: hidden;
+  padding: 0.5rem 0;
 
-  // La page ne défilant plus sur grand écran, cette colonne défile pour son
-  // propre compte si la fenêtre est trop courte — comme `.equipment`.
+  // Sous le seuil, les inventaires d'emplacement sont dépliés dans le flux
+  // (components/equipment.scss) : une colonne fait alors quatre vignettes de
+  // large, et trois ne tiennent plus dans un téléphone. Elles défilent donc
+  // latéralement, une à la fois — plutôt que d'être rognées, ce que faisait
+  // l'`overflow: hidden` d'avant, ou d'imposer la disposition à un personnage,
+  // qui est un réglage de l'utilisateur et non une conséquence de sa fenêtre.
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border-strong) transparent;
+
   @include m.from(v.$bp-lg) {
+    // —— Débordement de la grille réduite ————————————————————
+    //
+    // L'inventaire d'un emplacement est affiché en réduit et reprend sa taille
+    // réelle au survol, par un `transform` : il déborde donc de l'empreinte
+    // qu'il occupe dans la mise en page. En largeur, la colonne est taillée pour
+    // la grille dépliée (`.character-column`), il n'y a rien à réserver ; en
+    // hauteur, c'est la réserve du bas qui empêche la dernière ligne de sortir
+    // de la section.
+    //
+    // Le facteur est celui de `--slot-reduced` (components/equipment.scss) : les
+    // deux valeurs se lisent ensemble, changer l'une demande de changer l'autre.
+    // Il n'est pas hérité de la grille elle-même — une variable posée sur un
+    // descendant ne remonte pas jusqu'ici.
+    --slot-grid-width: calc(3 * var(--item-size) + 2 * var(--item-gap));
+    --slot-overhang: calc(var(--slot-grid-width) * (1 - 0.3));
+
+    justify-content: space-between;
+    padding-bottom: calc(var(--slot-overhang) + 1rem);
+    overflow-x: visible;
+    scroll-snap-type: none;
+
+    // La page ne défilant plus sur grand écran, cette colonne défile pour son
+    // propre compte si la fenêtre est trop courte — comme `.equipment`.
     min-height: 0;
     overflow-y: auto;
-    scrollbar-width: thin;
-    scrollbar-color: var(--color-border-strong) transparent;
   }
 }
 
@@ -57,6 +69,8 @@
   // La largeur vient des emplacements, pas de l'emblème : le bandeau du
   // sélecteur impose une largeur minimale qui n'a pas cours ici.
   flex-shrink: 0;
+  // Une colonne à la fois quand elles défilent latéralement (voir le parent)
+  scroll-snap-align: start;
 
 
   .character-tab {
@@ -100,7 +114,9 @@
   }
 
   &__slots {
-    padding-right: var(--slot-overhang);
+    // La réserve n'a cours que là où la grille est réduite : dépliée, elle
+    // occupe déjà sa vraie place (--slot-overhang n'y est même pas défini).
+    padding-right: var(--slot-overhang, 0);
     display: flex;
     flex-direction: column;
     // Même gouttière que les colonnes de la disposition historique : une ligne

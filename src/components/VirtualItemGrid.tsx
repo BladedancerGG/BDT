@@ -117,6 +117,7 @@ export function VirtualItemGrid({
                                     details,
                                     lead,
                                     category,
+                                    fixedColumns,
                                 }: {
     title: string;
     items: DestinyItemComponent[];
@@ -124,6 +125,15 @@ export function VirtualItemGrid({
     lead?: LeadSection;
     /** Famille d'objets à retenir — voir `useDisplayableItems` */
     category?: ItemCategory;
+    /**
+     * Nombre d'objets par ligne imposé, la taille des vignettes s'y ajustant.
+     *
+     * Sur téléphone : le réglage de taille y est sans objet — la largeur de
+     * l'écran ne laisse le choix qu'entre quelques dispositions — et la calculer
+     * en CSS depuis `100vw` ratait la barre de défilement (voir
+     * `useGridMetrics.fixedColumns`).
+     */
+    fixedColumns?: number;
 }) {
     const t = useTranslations("inventory");
     // La recherche s'applique avant le regroupement : les compteurs des
@@ -137,10 +147,8 @@ export function VirtualItemGrid({
     // largeur : on la passe pour forcer une re-mesure. C'est le réglage dédié au
     // coffre, celui dont --item-size hérite ici (voir inventory.scss).
     const vaultIconSize = useSettings((s) => s.vaultIconSize);
-    const {columns, rowHeight, rootHeight, sectionHeight, groupHeight} = useGridMetrics(
-        viewportRef,
-        vaultIconSize,
-    );
+    const {columns, itemSize, rowHeight, rootHeight, sectionHeight, groupHeight} =
+        useGridMetrics(viewportRef, vaultIconSize, fixedColumns);
 
     const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(
         () => new Set(),
@@ -300,7 +308,16 @@ export function VirtualItemGrid({
 
     return (
         // --fill : occupe la hauteur restante, pour être le seul élément à défiler
-        <section className="item-grid">
+        <section
+            className="item-grid"
+            // La taille mesurée descend par la même variable que le réglage :
+            // tout le sous-arbre la lit déjà, vignettes comme habillages.
+            style={
+                itemSize
+                    ? ({"--item-size": `${itemSize}px`} as CSSProperties)
+                    : undefined
+            }
+        >
             <div ref={viewportRef} className="item-grid__viewport">
                 <div
                     className="item-grid__canvas"

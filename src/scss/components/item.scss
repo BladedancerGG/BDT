@@ -12,9 +12,27 @@
   padding: -1px;
   background-color: var(--color-icon-surface);
   cursor: pointer;
-  // Exigé par dnd-kit sur tactile : sans ça le navigateur interprète le geste
-  // comme un défilement et le déplacement ne démarre jamais.
-  touch-action: none;
+  // Exigé par dnd-kit : sans ça le navigateur interprète le geste comme un
+  // défilement et le déplacement ne démarre jamais.
+  //
+  // Borné au pointeur fin, car au doigt c'est l'inverse qui compte. La règle
+  // couvre toute la surface des grilles : aucun geste posé sur un objet n'était
+  // rendu au navigateur, si bien que ni le coffre ne défilait, ni le rail ne se
+  // laissait balayer depuis sa page de coffre — mesuré, le défilement ne
+  // bougeait pas d'un pixel. Le déplacement au doigt passera par l'appui long
+  // et les actions de l'infobulle (étape 6) ; d'ici là le geste appartient à la
+  // page, ce qui est de toute façon le seul état utilisable.
+  @media (pointer: fine) {
+    touch-action: none;
+  }
+
+  // Au doigt, c'est la DURÉE qui saisit (voir le TouchSensor dans MoveDnd) : le
+  // navigateur garde donc le geste jusqu'à ce que dnd-kit le lui reprenne, et
+  // le coffre se parcourt. `manipulation` écarte seulement le double-appui de
+  // zoom, qui retardait chaque appui de trois cents millisecondes.
+  @media (pointer: coarse) {
+    touch-action: manipulation;
+  }
   transition: 150ms ease;
 
   // Le contenu (icône + habillages) est fourni par .item-thumb

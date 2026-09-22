@@ -9,8 +9,10 @@ import {
   offset,
   flip,
   shift,
+  size,
   autoUpdate,
   FloatingPortal,
+  FloatingOverlay,
 } from "@floating-ui/react";
 import { useDraggable } from "@dnd-kit/core";
 import { useSharedDefinition } from "@/lib/destiny/item-defs";
@@ -30,6 +32,7 @@ import {
 } from "./dnd/MoveDnd";
 import { ItemThumb, type ItemThumbProps } from "./ItemThumb";
 import { ItemTooltip } from "./tooltip/ItemTooltip";
+import { useSheetLayout } from "@/lib/ui/use-media-query";
 import { LoadingIcon } from "./icons";
 
 /** Forme de la vignette : les doctrines ne sont pas carrées. */
@@ -55,6 +58,27 @@ const SHAPE_CLASS = {
 // au lieu d'ouvrir son infobulle, et le geste de déplacement est coupé. C'est le
 // seul point de passage de toutes les vignettes de l'inventaire, donc le seul
 // endroit où cette bascule s'écrit une fois.
+/**
+ * Neutralise le prochain clic, où qu'il tombe.
+ *
+ * En capture et en `once` : il passe avant tout gestionnaire de la page, et ne
+ * vaut que pour un seul événement. Le minuteur est le filet — sans lui, un
+ * `pointerdown` non suivi d'un clic laisserait l'écouteur en place, et c'est le
+ * clic d'après, légitime celui-là, qui serait mangé.
+ */
+function swallowNextClick() {
+  const swallow = (event: MouseEvent) => {
+    event.stopPropagation();
+    event.preventDefault();
+  };
+  document.addEventListener("click", swallow, {capture: true, once: true});
+  window.setTimeout(
+    () => document.removeEventListener("click", swallow, {capture: true}),
+    400,
+  );
+}
+
+
 export function ItemIcon({
   itemHash,
   itemInstanceId,
@@ -170,12 +194,47 @@ export function ItemIcon({
   // grille où l'on choisit.
   const shown = open && !isDragging && !selecting;
 
+  // Sur téléphone l'infobulle n'est plus ancrée : elle monte du bas, pleine
+  // largeur. Elle fait 365 px et se place à droite de la vignette — deux
+  // exigences qu'un écran de 360 px ne peut pas tenir à la fois.
+  const sheet = useSheetLayout();
+
   const { refs, floatingStyles, context } = useFloating({
     open: shown,
     onOpenChange: setOpen,
     placement: "right-start",
-    middleware: [offset(8), flip(), shift({ padding: 8 })],
-    whileElementsMounted: autoUpdate,
+    middleware: [
+      offset(8),
+      // Les replis verticaux comptent autant que l'horizontal : une infobulle
+      // de 365 px n'entre à côté d'une vignette que si l'un des deux côtés a la
+      // place. Au milieu d'une fenêtre étroite, aucun des deux ne l'a — `shift`
+      // la ramenait alors dans l'écran par-dessus la vignette même qu'on venait
+      // de toucher. En haut ou en bas, la largeur entière est disponible.
+      flip({
+        fallbackPlacements: [
+          "left-start",
+          "bottom-start",
+          "top-start",
+          "bottom",
+          "top",
+        ],
+      }),
+      shift({ padding: 8 }),
+      // Et si elle est plus haute que la place restante, elle défile au lieu
+      // de sortir de l'écran par le bas.
+      size({
+        padding: 8,
+        apply({ availableHeight, elements }) {
+          elements.floating.style.setProperty(
+            "--tooltip-max-height",
+            `${availableHeight}px`,
+          );
+        },
+      }),
+    ],
+    // Rien à suivre quand elle ne s'ancre à rien : le recalcul permanent
+    // n'aurait ici qu'un coût.
+    whileElementsMounted: sheet ? undefined : autoUpdate,
   });
 
   // Fermeture au clic extérieur et à Échap — la seule façon de la refermer,
@@ -188,7 +247,17 @@ export function ItemIcon({
   const dismiss = useDismiss(context, {
     outsidePress: (event) => {
       const target = event.target;
-      return !(target instanceof Element && target.closest(".socket-picker"));
+      if (target instanceof Element && target.closest(".socket-picker")) {
+        return false;
+      }
+      // Le congé se décide sur le `pointerdown` ; le `click` qui le suit, lui,
+      // atteint ce qui se trouve dessous. Refermer une infobulle en touchant à
+      // côté déclenchait donc ce qu'on avait touché — la vignette voisine, ou
+      // l'un des boutons de son pied. On avale ce clic-là, et lui seul : le
+      // délai reprend l'écouteur si aucun ne vient (un appui maintenu, un
+      // glissement, un pointeur relâché ailleurs).
+      swallowNextClick();
+      return true;
     },
   });
   const role = useRole(context, { role: "dialog" });
@@ -205,6 +274,18 @@ export function ItemIcon({
       setDragRef(node);
     },
     [refs, setDragRef],
+  );
+
+  // Même infobulle des deux côtés : seul son contenant change.
+  const tooltip = (
+    <ItemTooltip
+      itemHash={itemHash}
+      itemInstanceId={itemInstanceId}
+      state={state}
+      versionNumber={versionNumber}
+      gearTier={gearTier}
+      onClose={() => setOpen(false)}
+    />
   );
 
   return (
@@ -269,23 +350,32 @@ export function ItemIcon({
 
       {shown && (
         <FloatingPortal>
-          <div
-            // setFloating est un callback ref stable fourni par Floating UI
-            // (API documentée), pas une lecture de ref pendant le rendu.
-            // eslint-disable-next-line react-hooks/refs
-            ref={refs.setFloating}
-            style={floatingStyles}
-            {...getFloatingProps()}
-            className="floating-layer"
-          >
-            <ItemTooltip
-              itemHash={itemHash}
-              itemInstanceId={itemInstanceId}
-              state={state}
-              versionNumber={versionNumber}
-              gearTier={gearTier}
-            />
-          </div>
+          {sheet ? (
+            // Le voile ferme au toucher — c'est `useDismiss` qui s'en charge,
+            // tout ce qui n'est pas la feuille étant « au-dehors ». Il bloque
+            // aussi le défilement derrière elle.
+            <FloatingOverlay className="item-sheet__scrim" lockScroll>
+              <div
+                ref={refs.setFloating}
+                {...getFloatingProps()}
+                className="item-sheet"
+              >
+                {tooltip}
+              </div>
+            </FloatingOverlay>
+          ) : (
+            <div
+              // setFloating est un callback ref stable fourni par Floating UI
+              // (API documentée), pas une lecture de ref pendant le rendu.
+              // eslint-disable-next-line react-hooks/refs
+              ref={refs.setFloating}
+              style={floatingStyles}
+              {...getFloatingProps()}
+              className="floating-layer"
+            >
+              {tooltip}
+            </div>
+          )}
         </FloatingPortal>
       )}
     </>

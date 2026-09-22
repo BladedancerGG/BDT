@@ -23,14 +23,26 @@ function SkeletonColumn({options}: { options: number }) {
  */
 export function TooltipSkeleton({
                                     kind,
+                                    reserve,
                                 }: {
     kind: "weapon" | "armor" | "other";
+    /**
+     * Réserver la hauteur d'un corps plein.
+     *
+     * Vrai dès que l'objet a des emplacements : c'est ce qui occupe la place.
+     * Faux pour un matériau ou une clé, dont l'infobulle se réduit à son
+     * en-tête — y réserver deux cents pixels, c'était créer le saut qu'on
+     * cherche à éviter, à l'envers.
+     */
+    reserve?: boolean;
 }) {
     const t = useTranslations("item");
 
     return (
         <div
-            className="tooltip-skeleton"
+            className={`tooltip-skeleton tooltip-skeleton--${kind}${
+                reserve ? " tooltip-skeleton--reserved" : ""
+            }`}
             role="status"
             aria-busy="true"
             aria-live="polite"
@@ -57,7 +69,6 @@ export function TooltipSkeleton({
                             <SkeletonColumn options={3}/>
                             <SkeletonColumn options={3}/>
                             <SkeletonColumn options={1}/>
-                            <SkeletonColumn options={2}/>
                         </div>
                     </div>
                 </>

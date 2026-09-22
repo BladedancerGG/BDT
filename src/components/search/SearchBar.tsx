@@ -20,6 +20,7 @@ import {
   type Suggestion,
 } from "@/lib/search/suggestions";
 import {DestinySymbol} from "@/components/DestinySymbol";
+import {SearchIcon} from "@/components/icons";
 
 /** Contexte neutre : la validité d'une requête ne dépend d'aucune donnée. */
 const NO_CONTEXT = {
@@ -49,7 +50,7 @@ type Menu = "history" | "actions" | null;
  * souvent corriger un filtre au milieu d'une requête. Les touches suivent DIM :
  * flèches pour parcourir, Tab pour insérer.
  */
-export function SearchBar() {
+export function SearchBar({expanded}: {expanded?: boolean}) {
   const t = useTranslations("search");
   const tMove = useTranslations("actions.move");
   const query = useSearchStore((s) => s.query);
@@ -120,6 +121,14 @@ export function SearchBar() {
     document.addEventListener("keydown", onGlobalKeyDown);
     return () => document.removeEventListener("keydown", onGlobalKeyDown);
   }, []);
+
+  // Sur téléphone la barre est repliée derrière une loupe (voir SearchToggle) :
+  // la déplier doit poser le curseur dans le champ, sans quoi il faudrait un
+  // second appui pour saisir quoi que ce soit. Au-delà du seuil la barre est
+  // toujours là, la prop est absente, et rien ne se déclenche.
+  useEffect(() => {
+    if (expanded) inputRef.current?.focus();
+  }, [expanded]);
 
   const suggestions = useMemo(
     () => (mounted && completing ? suggestionsFor(query, caret, history) : []),
@@ -215,31 +224,13 @@ export function SearchBar() {
 
   return (
     <div
+      // Désigné par le `aria-controls` de la loupe qui la déplie
+      id="header-search"
       className={`search-bar${invalid && mounted ? " search-bar--invalid" : ""}`}
       ref={rootRef}
     >
       <div className="search-bar__field">
-        <svg
-          className="search-bar__icon"
-          viewBox="0 0 16 16"
-          aria-hidden
-          focusable="false"
-        >
-          <circle
-            cx="7"
-            cy="7"
-            r="4.5"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.6"
-          />
-          <path
-            d="M10.5 10.5L14 14"
-            stroke="currentColor"
-            strokeWidth="1.6"
-            strokeLinecap="round"
-          />
-        </svg>
+        <SearchIcon className="search-bar__icon"/>
 
         <DestinySymbol name={"num_enter"}/>
 

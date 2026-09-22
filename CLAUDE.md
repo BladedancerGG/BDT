@@ -5,6 +5,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Application web de gestion d'équipements (« loadouts ») Destiny 2, adossée à l'API Bungie.
 Next.js 16 (App Router) + PostgreSQL, le tout en conteneurs Docker.
 
+## Général
+
+Si y a des points à clarifier dans les prompts utilisateurs, ne surtout pas hésiter à demander des précisions avant de modifier la moindre ligne de code. 
+
 ## Documents de référence
 
 Ne pas dupliquer leur contenu ici — y renvoyer.

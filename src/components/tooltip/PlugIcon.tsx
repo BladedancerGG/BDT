@@ -14,6 +14,7 @@ import {
     FloatingPortal,
 } from "@floating-ui/react";
 import {useDefinition} from "@/lib/manifest/use-definition";
+import {useHoverless} from "@/lib/ui/use-media-query";
 import type {InventoryItemDefinition} from "@/lib/destiny/types";
 import {BUNGIE_ROOT, TIER} from "@/lib/destiny/display";
 import {displayedEnergyCost, isEnhancedPlug} from "@/lib/destiny/sockets";
@@ -117,14 +118,37 @@ export function PlugIcon({
         onOpenChange: setOpen,
         placement: "top",
         middleware: [offset(6), flip(), shift({padding: 8})],
-        whileElementsMounted: autoUpdate,
+        // —— Suivi image par image, et non par observateurs ————
+        //
+        // L'ancre est une icône posée DANS l'infobulle d'un objet, laquelle
+        // grandit à mesure que ses données arrivent et défile pour son propre
+        // compte depuis qu'elle est plafonnée. L'icône s'y déplace donc sans
+        // changer de taille — un mouvement qu'aucun ResizeObserver ne signale.
+        // L'infobulle d'attribut restait alors accrochée à la position que
+        // l'icône occupait à l'ouverture, et ne se remettait en place qu'au
+        // premier défilement, qui lui déclenchait enfin un recalcul.
+        //
+        // Le coût est celui d'une boucle d'animation pendant qu'UNE infobulle
+        // est ouverte : `autoUpdate` ne tourne que tant que l'élément flottant
+        // est monté, et il n'y en a jamais qu'un.
+        whileElementsMounted: (reference, floating, update) =>
+            autoUpdate(reference, floating, update, {animationFrame: true}),
     });
+
+    // Au doigt, il n'y a pas de survol : le nom et la description d'un attribut
+    // n'avaient tout simplement aucune porte. Ils s'ouvrent donc au premier
+    // appui — voir plus bas comment le second sert alors à agir.
+    const hoverless = useHoverless();
 
     // Pas de safePolygon ici : l'infobulle est purement informative, on n'a pas
     // besoin d'aller la survoler. La ligne « Équiper » n'y déroge pas — c'est
     // l'icône qu'on clique, pas l'infobulle, qui n'aurait pas le temps d'être
     // atteinte.
-    const hover = useHover(context, {move: false, delay: {open: 0, close: 0}});
+    const hover = useHover(context, {
+        move: false,
+        delay: {open: 0, close: 0},
+        enabled: !hoverless,
+    });
     const dismiss = useDismiss(context);
     const role = useRole(context, {role: "tooltip"});
     const {getReferenceProps, getFloatingProps} = useInteractions([
@@ -163,15 +187,38 @@ export function PlugIcon({
             <div
                 ref={refs.setReference}
                 {...getReferenceProps({
-                    onClick: activate
-                        ? (event) => {
-                            // L'infobulle de l'objet se referme au clic extérieur : ce
-                            // clic-ci lui appartient, il ne doit pas remonter jusqu'à
-                            // la vignette qui la bascule.
-                            event.stopPropagation();
-                            if (clickable) activate();
+                    onClick: (event) => {
+                        // L'infobulle de l'objet se referme au clic extérieur : ce
+                        // clic-ci lui appartient, il ne doit pas remonter jusqu'à
+                        // la vignette qui la bascule.
+                        event.stopPropagation();
+
+                        // Au doigt, ce qui APPLIQUE demande deux appuis : le
+                        // premier montre ce que fait l'attribut, le second
+                        // l'insère. Sans ce détour on l'insérait au premier
+                        // contact sans avoir jamais pu le lire — le survol, qui
+                        // le disait, n'existe pas ici.
+                        //
+                        // Ce qui ne fait qu'OUVRIR un choix n'a rien à protéger
+                        // et y va tout droit : le sélecteur montre déjà tout, et
+                        // faire passer un revêtement par sa description avant de
+                        // l'atteindre donnait un premier appui pour rien.
+                        //
+                        // Le second appui referme aussi : l'infobulle flotte
+                        // au-dessus de tout et recouvrait la feuille — jusqu'au
+                        // sélecteur qu'on venait d'y ouvrir.
+                        const applies = Boolean(onEquip);
+                        if (hoverless && (applies || !clickable)) {
+                            if (!open) {
+                                setOpen(true);
+                                return;
+                            }
+                            setOpen(false);
+                            if (!applies) return;
                         }
-                        : undefined,
+
+                        if (clickable) activate?.();
+                    },
                 })}
                 className={classes}
                 role={clickable ? "button" : undefined}
@@ -237,7 +284,19 @@ export function PlugIcon({
                         // eslint-disable-next-line react-hooks/refs
                         ref={refs.setFloating}
                         style={floatingStyles}
-                        {...getFloatingProps()}
+                        {...getFloatingProps({
+                            // Au doigt, l'infobulle recouvre l'attribut qui l'a
+                            // ouverte : la refermer demandait de viser à côté,
+                            // alors que c'est elle qu'on a sous le pouce. Elle
+                            // ne porte rien de cliquable, l'appui n'a donc rien
+                            // d'autre à faire.
+                            onClick: hoverless
+                                ? (event) => {
+                                      event.stopPropagation();
+                                      setOpen(false);
+                                  }
+                                : undefined,
+                        })}
                         className="floating-layer floating-layer--nested"
                     >
                         <PlugTooltip

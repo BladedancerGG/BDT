@@ -177,6 +177,33 @@
       pointer-events: auto;
     }
   }
+
+  // —— Au doigt : les actions ne sont plus un calque ————————
+  //
+  // Sans survol, les deux règles ci-dessus ne se déclenchent jamais : les cinq
+  // actions du groupe — équiper, modifier, partager, dupliquer, supprimer —
+  // étaient purement et simplement inatteignables. `:focus-within` ne les
+  // rattrape pas : il faudrait tabuler jusqu'à elles, ce qu'un téléphone ne
+  // permet pas.
+  //
+  // Elles reprennent donc leur place dans le flux, sous l'aperçu du groupe. La
+  // carte grandit d'autant, mais elle est seule sur sa ligne à cette largeur.
+  @media (hover: none) {
+    &__actions {
+      position: static;
+      opacity: 1;
+      background-color: transparent;
+      flex-direction: row;
+      flex-wrap: wrap;
+      justify-content: flex-start;
+      padding: 0 0.75rem 0.75rem;
+    }
+
+    &__action {
+      width: auto;
+      pointer-events: auto;
+    }
+  }
   .group-card--dragging &__actions {
     opacity: 0 !important;
   }
