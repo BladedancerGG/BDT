@@ -5,6 +5,8 @@ import {useTranslations} from "next-intl";
 import {useDefinition} from "@/lib/manifest/use-definition";
 import type {InventoryItemDefinition} from "@/lib/destiny/types";
 import {usePlugCatalog, type SocketColumn} from "@/lib/destiny/use-sockets";
+import {isSearchablePlugFamily} from "@/lib/destiny/plug-families";
+import {useHoverless} from "@/lib/ui/use-media-query";
 import {
     isCompletedCatalystPlug,
     isExoticCatalystPlug,
@@ -337,6 +339,23 @@ export function SocketPicker({
 
     const [query, setQuery] = useState("");
 
+    // Le champ de recherche n'a de sens que devant des centaines d'options :
+    // revêtements, interactions, projections de Spectre, effets de
+    // téléportation et ornements d'armure (voir `isSearchablePlugFamily`).
+    // Ailleurs il repoussait la grille pour rien.
+    const searchable = useMemo(
+        () =>
+            target.options.some((hash) =>
+                isSearchablePlugFamily(defs.get(hash)?.plug?.plugCategoryIdentifier),
+            ),
+        [target.options, defs],
+    );
+
+    // Au doigt, donner le curseur au champ fait monter le clavier par-dessus la
+    // grille qu'on vient d'ouvrir. À la souris il n'en coûte rien, et la frappe
+    // peut commencer sans second clic.
+    const hoverless = useHoverless();
+
     // Le plug d'origine ouvre la grille : c'est lui qui vide l'emplacement — mod
     // retiré, revêtement d'origine rendu à l'objet. Vient ensuite ce qui est en
     // place, puis le reste dans l'ordre du jeu.
@@ -366,17 +385,20 @@ export function SocketPicker({
 
     return (
         <div className="socket-picker">
-            <input
-                type="search"
-                className="socket-picker__search"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder={tItem("searchPlugs")}
-                aria-label={tItem("searchPlugs")}
-                // Le panneau s'ouvre au clic sur l'emplacement : le curseur est
-                // déjà là, la frappe peut commencer sans second clic.
-                autoFocus
-            />
+            {searchable && (
+                <input
+                    type="search"
+                    className="socket-picker__search"
+                    value={query}
+                    onChange={(event) => setQuery(event.target.value)}
+                    placeholder={tItem("searchPlugs")}
+                    aria-label={tItem("searchPlugs")}
+                    // Le panneau s'ouvre au clic sur l'emplacement : à la souris
+                    // le curseur est déjà là, la frappe peut commencer sans
+                    // second clic. Au doigt, ce serait le clavier qui monterait.
+                    autoFocus={!hoverless}
+                />
+            )}
 
             <div className="socket-picker__grid">
                 {options.map((hash) => (

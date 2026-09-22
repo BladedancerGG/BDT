@@ -47,17 +47,10 @@
   }
 
   &__grid {
-    display: grid;
-    grid-template-columns: repeat(6, var(--plug-size, #{v.$plug-size}));
+    display: flex;
+    flex-wrap: wrap;
     gap: 0.32rem;
-    // `min-height: 0` : sans lui, une grille en contexte flex refuse de
-    // rétrécir sous sa hauteur de contenu et ne défile jamais.
-    min-height: 0;
     overflow-y: auto;
-    // La gouttière est réservée en permanence : sans elle, filtrer la
-    // recherche jusqu'à faire disparaître l'ascenseur décalerait la grille.
-    scrollbar-gutter: stable;
-    overscroll-behavior: contain;
   }
 
   // Refus renvoyé par Bungie : c'est ici qu'on vient de cliquer, le motif doit

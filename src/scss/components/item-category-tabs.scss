@@ -1,3 +1,7 @@
+// Styles globaux : reset minimal, palette et conteneur principal.
+@use "../abstracts/variables" as v;
+@use "../abstracts/mixins" as m;
+
 // Onglets de famille d'objets, en tête du mode inventaire.
 //
 // Ils reprennent la forme des onglets de mode d'affichage — même bouton, même
@@ -8,6 +12,10 @@
 .item-category-tabs {
   display: flex;
   gap: 0.5rem;
+
+  @include m.to(v.$bp-lg) {
+    padding: 1rem 1rem 0;
+  }
 
   &__tab {
     svg {

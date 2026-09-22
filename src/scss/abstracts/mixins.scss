@@ -7,6 +7,12 @@
   }
 }
 
+@mixin to($breakpoint) {
+  @media (max-width: $breakpoint) {
+    @content;
+  }
+}
+
 // Titre de section : petit, majuscules, espacé — style des menus du jeu
 @mixin section-title {
   font-size: 0.625rem;

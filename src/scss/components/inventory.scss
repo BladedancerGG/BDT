@@ -34,6 +34,11 @@
       min-height: 0;
       align-items: stretch; // les deux colonnes prennent toute la hauteur
     }
+
+    @include m.to(v.$bp-lg) {
+      padding: 0 1rem 1rem;
+    }
+
   }
 
   // Rangement partagé : deux grilles au lieu d'un équipement et d'une grille —

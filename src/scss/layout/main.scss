@@ -252,11 +252,11 @@ button {
   display: flex;
   flex-direction: column;
   min-width: 0;
-  padding: 1rem 1rem 0;
   transition: opacity 180ms ease-in-out;
 
   @include m.from(v.$bp-lg) {
     min-height: 0;
+    padding: 1rem 1rem 0;
   }
 
   &--hidden {

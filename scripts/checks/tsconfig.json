@@ -30,6 +30,7 @@
     "moves.check.ts",
     "sockets.check.ts",
     "share.check.ts",
-    "perk-upgrades.check.ts"
+    "perk-upgrades.check.ts",
+    "plug-families.check.ts"
   ]
 }

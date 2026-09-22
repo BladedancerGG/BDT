@@ -58,6 +58,10 @@
   // exactement ce que `--item-size` plafonne (voir layout/main.scss).
   .character-column {
     width: 100%;
+
+    .character-tab {
+      transform: scale(.8);
+    }
     // Les vignettes remplissent la largeur au lieu de suivre le réglage. Une
     // ligne d'emplacement a ici une largeur IMPOSÉE — quatre vignettes, ni plus
     // ni moins — et un réglage pensé pour un écran large y laissait une bande
