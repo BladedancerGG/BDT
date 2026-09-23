@@ -14,7 +14,10 @@ import {
     useLoadoutIdentifiers,
 } from "@/lib/loadouts/use-loadout-identifiers";
 import {useCharacterGroups, useLoadoutGroups} from "@/lib/loadouts/groups/store";
-import {useConfirmEquipGroup} from "@/lib/loadouts/groups/use-confirm-equip";
+import {
+    useConfirmCreateInGame,
+    useConfirmEquipGroup,
+} from "@/lib/loadouts/groups/use-confirm-equip";
 import {useRecordPlugs} from "@/lib/loadouts/groups/use-record-plugs";
 import {foreignItems, useGroupSelection} from "@/lib/loadouts/groups/selection";
 import {SnapshotEditProvider} from "@/lib/loadouts/groups/snapshot-edit";
@@ -39,9 +42,10 @@ import {EquipmentModeView} from "@/components/equipment/EquipmentModeView";
 import {LoadoutSlotHeading} from "@/components/loadouts/LoadoutSlotHeading";
 import {
     ArrowLeftIcon,
-    BoltIcon,
+    ArrowDownTrayIcon,
     ShareIcon,
     Squares2X2Icon,
+    XMarkIcon,
 } from "@heroicons/react/24/solid";
 import {GroupColorPicker} from "./GroupColorPicker";
 import {GroupNameField} from "./GroupNameField";
@@ -92,6 +96,7 @@ export function GroupEditor({
     const renameGroup = useLoadoutGroups((s) => s.renameGroup);
     const setGroupColor = useLoadoutGroups((s) => s.setGroupColor);
     const confirmEquip = useConfirmEquipGroup(group.characterId);
+    const confirmCreateInGame = useConfirmCreateInGame(group.characterId);
     const recordPlugs = useRecordPlugs();
     const startSelection = useGroupSelection((s) => s.start);
     const shareSource = useShareSource(data, defs);
@@ -118,6 +123,15 @@ export function GroupEditor({
      * main.
      */
     const [sourceGroupId, setSourceGroupId] = useState<string | null>(null);
+    /**
+     * L'emplacement sélectionné attend d'être recréé en jeu : la grille du bas
+     * montre alors le personnage, et un clic y désigne l'emplacement cible.
+     *
+     * Un mode et non un clic direct : la grille du bas sert d'ordinaire à
+     * prévisualiser, et un geste qui écrase un emplacement du jeu ne doit pas
+     * tomber sous le doigt de qui voulait seulement regarder.
+     */
+    const [targeting, setTargeting] = useState(false);
 
     // La liste normalisée à la taille du personnage. Toutes les écritures
     // partent de là : un groupe créé quand le compte possédait moins
@@ -328,6 +342,24 @@ export function GroupEditor({
         );
     };
 
+    /**
+     * Recrée l'emplacement sélectionné du groupe dans l'emplacement `target` du
+     * jeu. Un refus laisse le choix ouvert : on peut viser ailleurs, ou annuler.
+     */
+    const createInGame = async (target: number) => {
+        if (!current) return;
+        const occupant = loadouts[target];
+        const done = await confirmCreateInGame(
+            current,
+            target,
+            isEmptyLoadout(occupant)
+                ? undefined
+                : (identifiers.names.get(occupant.nameHash) ??
+                    tLoadouts("slot", {number: target + 1})),
+        );
+        if (done) setTargeting(false);
+    };
+
     return (
         <section
             className={`view group-edit${hidden ? " view--hidden" : ""}`}
@@ -373,7 +405,7 @@ export function GroupEditor({
                         className="btn btn--small btn--primary"
                         onClick={() => void confirmEquip(group)}
                     >
-                        <BoltIcon/>
+                        <ArrowDownTrayIcon/>
                         {tCommon("equip")}
                     </button>
                     <button
@@ -444,6 +476,23 @@ export function GroupEditor({
                     >
                         <ShareIcon/>
                         {t("shareLoadout")}
+                    </button>
+                    <button
+                        type="button"
+                        className="btn btn--small"
+                        // Rien à recréer depuis un emplacement vide, ni nulle
+                        // part où le poser sans emplacement en jeu.
+                        disabled={groupEmpty || loadouts.length === 0}
+                        aria-pressed={targeting}
+                        onClick={() => {
+                            setTargeting(true);
+                            // La grille du bas passe au personnage : une
+                            // prévisualisation ouverte y viserait autre chose.
+                            setSource(null);
+                        }}
+                    >
+                        <ArrowDownTrayIcon/>
+                        {t("createInGame")}
                     </button>
                     <button
                         type="button"
@@ -587,9 +636,27 @@ export function GroupEditor({
                         par défaut, ou l'un des autres groupes. Le sélecteur ne
                         paraît que s'il y a un choix à faire — seul, un groupe
                         n'a aucun voisin d'où recopier. */}
+                    {targeting && (
+                        <div className="group-edit__target">
+                            <p className="group-edit__hint">
+                                {t("createInGameHint", {number: selected + 1})}
+                            </p>
+                            <button
+                                type="button"
+                                className="btn btn--small"
+                                onClick={() => setTargeting(false)}
+                            >
+                                <XMarkIcon/>
+                                {tCommon("cancel")}
+                            </button>
+                        </div>
+                    )}
                     <GroupSlotGrid
                         title={
-                            others.length === 0 ? (
+                            // La cible est toujours un emplacement du
+                            // personnage : le sélecteur de source n'a pas
+                            // lieu d'être le temps du choix.
+                            targeting || others.length === 0 ? (
                                 t("characterSlots")
                             ) : (
                                 <select
@@ -619,14 +686,16 @@ export function GroupEditor({
                                 </select>
                             )
                         }
-                        loadouts={sourceLoadouts}
-                        slotCount={sourceLoadouts.length}
+                        loadouts={targeting ? loadouts : sourceLoadouts}
+                        slotCount={targeting ? loadouts.length : sourceLoadouts.length}
                         identifiers={identifiers}
-                        selected={source}
+                        selected={targeting ? null : source}
                         // Recliquer l'emplacement déjà ouvert le referme, et
                         // rend le panneau à l'emplacement du groupe.
                         onSelect={(index) =>
-                            setSource((current) => (current === index ? null : index))
+                            targeting
+                                ? void createInGame(index)
+                                : setSource((current) => (current === index ? null : index))
                         }
                         emptyHint={tLoadouts("noSlots")}
                     />

@@ -38,6 +38,36 @@
     gap: 1rem;
     min-height: 0;
     overflow-y: auto;
+
+    // Sur téléphone, la taille réglée ne décide plus de la largeur des cartes :
+    // c'est la disposition choisie — une carte par ligne, ou deux — et les
+    // vignettes s'étirent pour remplir ce qu'on leur laisse. Le `1rem` retiré
+    // est l'écart entre les deux cartes.
+    @include m.to(v.$bp-sm) {
+      > .group-card {
+        width: 100%;
+      }
+
+      &--two > .group-card {
+        width: calc((100% - 1rem) / 2);
+      }
+    }
+  }
+
+  // La bascule une / deux cartes par ligne n'a d'effet que sur téléphone.
+  &__columns {
+    svg {
+      width: 1rem;
+      height: 1rem;
+    }
+
+    &[aria-pressed="true"] {
+      border-color: var(--color-accent);
+    }
+
+    @include m.from(v.$bp-sm + 1px) {
+      display: none;
+    }
   }
 
   &__empty {
@@ -62,31 +92,38 @@
 // —— Une carte de groupe ————————————————————————————————————
 //
 // Quatre colonnes de vignettes, comme le panneau du personnage et comme le jeu.
-// La largeur suit donc la taille d'icône réglée dans les paramètres.
+// La largeur de la carte suit la taille d'icône réglée dans les paramètres
+// (sur téléphone, la disposition choisie — voir `__cards`), et les vignettes
+// se partagent ensuite TOUTE cette largeur : elles ne commandent plus la
+// carte, qui sans cela s'élargissait sous une rangée d'actions plus longue
+// que la grille en laissant un vide à droite des vignettes.
 
 .group-card {
   position: relative;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  //padding: 0.75rem;
-  border-top: 10px solid var(--group-color, transparent);
+  // La grille, ses trois écarts et ses marges (`__grid`).
+  width: calc(4 * var(--loadout-item-size) + 3 * var(--item-gap) + 1.5rem);
+  border-top: 0.5rem solid var(--group-color, transparent);
   background-color: var(--color-panel);
+  padding: 0.5rem;
 
   &__header {
     display: flex;
     align-items: center;
     gap: 0.375rem;
     min-width: 0;
-    margin: 0.75rem 0.75rem 0;
   }
 
-  // Bloc conteneur du calque d'actions, en excluant l'en-tête : voir le calque.
   &__body {
     min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
   }
 
-  // Le geste part de la poignée et non de la carte : celle-ci porte un calque
+  // Le geste part de la poignée et non de la carte : celle-ci porte une rangée
   // de boutons, qu'un seuil de déplacement ne protégerait pas d'un clic
   // interprété de travers.
   &__handle {
@@ -116,25 +153,31 @@
   &__name {
     @include m.truncate;
     margin: 0;
-    max-width: calc(4 * var(--loadout-item-size) + 3 * var(--item-gap));
+    max-width: 100%;
     font-size: 0.9375rem;
     font-weight: 600;
     color: var(--color-text);
   }
 
   &__grid {
-    margin: 0.75rem;
     display: grid;
-    grid-template-columns: repeat(4, var(--loadout-item-size));
+    // `minmax(0, …)` : sans lui, une colonne ne descend pas sous la largeur
+    // de son contenu, et deux cartes par ligne débordaient sur téléphone.
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: var(--item-gap);
-    justify-content: start;
 
     // `.loadout-slot` est dessiné pour le panneau du personnage, où chaque
-    // vignette est un bouton. Ici elles ne sont encore que l'aperçu du groupe :
-    // annoncer un clic qui ne fait rien tromperait sur ce qui est cliquable.
-    // Aucune réaction au survol, et les deux bordures de repos sont donc
-    // répétées ici : celle de la vignette pleine et le transparent du vide.
+    // vignette est un bouton de taille fixe. Ici elle remplit sa colonne, et
+    // reste carrée.
+    //
+    // Elles ne sont par ailleurs que l'aperçu du groupe : annoncer un clic qui
+    // ne fait rien tromperait sur ce qui est cliquable. Aucune réaction au
+    // survol, et les deux bordures de repos sont donc répétées ici : celle de
+    // la vignette pleine et le transparent du vide.
     .loadout-slot {
+      width: auto;
+      height: auto;
+      aspect-ratio: 1;
       cursor: default;
 
       &:hover {
@@ -147,108 +190,51 @@
     }
   }
 
-  // —— Le calque d'actions ————————————————————————————————
+  // —— Les actions, en icônes sous la grille ——————————————————
   //
-  // Les boutons restent dans le DOM et atteignables au clavier : c'est ce qui
-  // impose l'opacité plutôt que `display: none` ou `visibility: hidden`, qui
-  // les retireraient de la tabulation et empêcheraient `:focus-within` de les
-  // révéler.
-  //
-  // Il couvre `__body` et non la carte : sur la carte entière il recouvrait
-  // l'en-tête, donc la poignée de déplacement, dès que le survol l'activait —
-  // et réorganiser les cartes devenait impossible. Le calque lui-même ne capte
-  // par ailleurs **jamais** le pointeur : seuls ses boutons le font, comme le
-  // calque de création d'équipement (voir `loadout-create`).
+  // Toujours visibles : le calque révélé au survol les rendait inatteignables
+  // au doigt. Leur libellé est dans l'infobulle et dans `aria-label`.
   &__actions {
-    position: absolute;
-    inset: 0;
-    z-index: 1;
-
     display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    padding: 0.75rem;
-
-    background-color: var(--color-overlay);
-    opacity: 0;
-    // Jamais lui : ses boutons seulement, ci-dessous.
-    pointer-events: none;
-    transition: opacity 150ms ease-in-out;
+    flex-wrap: wrap;
+    gap: 0.25rem;
   }
 
-  &:hover &__actions,
-  &:focus-within &__actions {
-    opacity: 1;
-
-    .group-card__action {
-      pointer-events: auto;
-    }
-  }
-
-  // —— Au doigt : les actions ne sont plus un calque ————————
-  //
-  // Sans survol, les deux règles ci-dessus ne se déclenchent jamais : les cinq
-  // actions du groupe — équiper, modifier, partager, dupliquer, supprimer —
-  // étaient purement et simplement inatteignables. `:focus-within` ne les
-  // rattrape pas : il faudrait tabuler jusqu'à elles, ce qu'un téléphone ne
-  // permet pas.
-  //
-  // Elles reprennent donc leur place dans le flux, sous l'aperçu du groupe. La
-  // carte grandit d'autant, mais elle est seule sur sa ligne à cette largeur.
-  @media (hover: none) {
-    &__actions {
-      position: static;
-      opacity: 1;
-      background-color: transparent;
-      flex-direction: row;
-      flex-wrap: wrap;
-      justify-content: flex-start;
-      padding: 0 0.75rem 0.75rem;
-    }
-
-    &__action {
-      width: auto;
-      pointer-events: auto;
-    }
-  }
-  .group-card--dragging &__actions {
-    opacity: 0 !important;
+  // La suppression est tenue à l'écart des autres, à l'autre bout de la
+  // rangée : c'est la seule qui ne se rattrape pas.
+  &__actions > .hint:has(.group-card__action--danger) {
+    margin-left: auto;
   }
 
   &__action {
-    width: 100%;
-    max-width: 12rem;
-    pointer-events: none;
-    justify-content: center;
-    text-align: center;
-    white-space: normal;
+    padding: 0.375rem;
 
-    &:disabled {
-      opacity: 0.45;
-      cursor: not-allowed;
+    svg {
+      width: 1.3rem;
+      height: 1.3rem;
+    }
+
+    // « Équiper » reprend la teinte de l'action principale sans en prendre le
+    // gabarit : `.btn--primary` grossit le bouton et son texte.
+    // Le survol est répété : celui de `.btn`, plus spécifique, rendrait sinon
+    // au bouton le fond neutre.
+    &--primary {
+      border-color: transparent;
+      background-color: var(--color-accent);
+      color: var(--color-accent-contrast);
+
+      @media (hover: hover) {
+        &:hover {
+          border-color: transparent;
+          background-color: color-mix(in srgb, var(--color-accent) 85%, var(--color-text));
+        }
+      }
     }
   }
 
-  // La carte des équipements du jeu : rien à y déclencher, donc aucun calque et
-  // aucune réaction au survol.
-  // La carte des équipements du jeu : rien à y déclencher, et jamais de couleur.
+  // La carte des équipements du jeu : jamais de couleur.
   &--static {
     border-color: var(--color-border-strong);
-  }
-
-  // Celle-là mène au mode « équipements » : elle doit s'annoncer comme telle,
-  // n'ayant pas de calque d'actions pour le faire à sa place.
-  &--clickable {
-    &, & * {
-      cursor: pointer;
-    }
-
-    &:hover,
-    &:focus-visible {
-      border-color: var(--color-accent);
-    }
   }
 }
 

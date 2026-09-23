@@ -7,6 +7,14 @@ import type {DestinyLoadout} from "@/lib/bungie/profile";
 import {isEmptyLoadout} from "@/lib/loadouts/loadout";
 import type {LoadoutIdentifiers} from "@/lib/loadouts/use-loadout-identifiers";
 import {LoadoutSlotTile} from "@/components/loadouts/LoadoutSlotTile";
+import {Hint} from "@/components/ui/Hint";
+import {
+    ArrowDownTrayIcon,
+    DocumentDuplicateIcon,
+    PencilSquareIcon,
+    ShareIcon,
+    TrashIcon,
+} from "@heroicons/react/24/solid";
 
 interface GroupCardProps {
     name: string;
@@ -14,9 +22,9 @@ interface GroupCardProps {
     slotCount: number;
     identifiers: LoadoutIdentifiers;
     /**
-     * Absentes sur la carte des équipements du jeu : elle montre l'état courant
-     * du personnage, il n'y a rien à y équiper, modifier, partager, dupliquer
-     * ni supprimer.
+     * Chaque action absente n'est pas dessinée. La carte des équipements du jeu
+     * n'a ni « Équiper » — c'est déjà ce que porte le personnage — ni
+     * « Supprimer » : ce n'est pas un groupe.
      */
     onEquip?: () => void;
     onEdit?: () => void;
@@ -35,9 +43,10 @@ interface GroupCardProps {
  * plutôt que de les voir amputés. Les emplacements manquants sont simplement
  * absents du tableau, ce que `LoadoutSlotTile` dessine comme libre.
  *
- * Les actions sont dans un calque révélé au survol, comme le demande la
- * maquette. Elles restent dans le DOM et atteignables au clavier : c'est le CSS
- * qui les découvre, sur `:hover` comme sur `:focus-within`.
+ * Les actions sont une rangée d'icônes sous la grille, toujours visibles : le
+ * calque révélé au survol les rendait inatteignables au doigt, et masquait
+ * l'aperçu qu'on venait justement regarder. Leur libellé passe dans une
+ * infobulle, et dans `aria-label`.
  */
 export function GroupCard({
                               name,
@@ -57,9 +66,16 @@ export function GroupCard({
     const tLoadouts = useTranslations("loadouts");
     const tCommon = useTranslations("common");
 
-    const hasActions = Boolean(
-        onEquip || onEdit || onShare || onDuplicate || onDelete,
-    );
+    // Seules les actions fournies sont dessinées : la carte des équipements du
+    // jeu n'a ni « Équiper » ni « Supprimer », et des boutons grisés y
+    // laisseraient deviner pourquoi.
+    const actions = [
+        {label: tCommon("equip"), Icon: ArrowDownTrayIcon, onClick: onEquip, variant: "primary"},
+        {label: tCommon("edit"), Icon: PencilSquareIcon, onClick: onEdit},
+        {label: tCommon("share"), Icon: ShareIcon, onClick: onShare},
+        {label: tCommon("duplicate"), Icon: DocumentDuplicateIcon, onClick: onDuplicate},
+        {label: tCommon("delete"), Icon: TrashIcon, onClick: onDelete, variant: "danger"},
+    ].filter((action) => action.onClick);
 
     return (
         <>
@@ -68,12 +84,6 @@ export function GroupCard({
                 <h3 className="group-card__name">{name}</h3>
             </div>
 
-            {/* La grille et le calque d'actions dans un même bloc, dont
-                l'en-tête est EXCLU.
-                Le calque couvre `inset: 0` de son bloc conteneur : tant que
-                c'était la carte entière, il recouvrait la poignée de
-                déplacement dès que le survol l'activait — et le glisser-déposer
-                des cartes était tout bonnement impossible. */}
             <div className="group-card__body">
                 <div className="group-card__grid">
                     {Array.from({length: slotCount}, (_, index) => {
@@ -103,47 +113,29 @@ export function GroupCard({
                     })}
                 </div>
 
-                {hasActions && (
+                {actions.length > 0 && (
                     <div className="group-card__actions">
-                        <button
-                            type="button"
-                            className="btn btn--small btn--primary group-card__action"
-                            disabled={!onEquip}
-                            onClick={onEquip}
-                        >
-                            {tCommon("equip")}
-                        </button>
-                        <button
-                            type="button"
-                            className="btn btn--small group-card__action"
-                            disabled={!onEdit}
-                            onClick={onEdit}
-                        >
-                            {tCommon("edit")}
-                        </button>
-                        <button
-                            type="button"
-                            className="btn btn--small group-card__action"
-                            disabled={!onShare}
-                            onClick={onShare}
-                        >
-                            {tCommon("share")}
-                        </button>
-                        <button
-                            type="button"
-                            className="btn btn--small group-card__action"
-                            disabled={!onDuplicate}
-                            onClick={onDuplicate}
-                        >
-                            {tCommon("duplicate")}
-                        </button>
-                        <button
-                            type="button"
-                            className="btn btn--small btn--danger group-card__action"
-                            onClick={onDelete}
-                        >
-                            {tCommon("delete")}
-                        </button>
+                        {actions.map((action) => (
+                            <Hint key={action.label} actions={[{label: action.label}]}>
+                                <button
+                                    type="button"
+                                    className={[
+                                        "btn btn--small group-card__action",
+                                        action.variant === "danger" && "btn--danger",
+                                        action.variant && `group-card__action--${action.variant}`,
+                                    ]
+                                        .filter(Boolean)
+                                        .join(" ")}
+                                    // L'icône seule ne dit rien à un lecteur
+                                    // d'écran, ni à un doigt : l'infobulle ne
+                                    // s'ouvre pas sans survol.
+                                    aria-label={action.label}
+                                    onClick={action.onClick}
+                                >
+                                    <action.Icon aria-hidden/>
+                                </button>
+                            </Hint>
+                        ))}
                     </div>
                 )}
             </div>
@@ -159,8 +151,8 @@ export function GroupCard({
  * est un hook — l'appeler sous condition est interdit, et l'appeler pour rien
  * l'inscrirait tout de même dans les nœuds déplaçables de dnd-kit.
  *
- * Le geste part d'une **poignée** et non de la carte entière : celle-ci porte un
- * calque de boutons, qu'un seuil de déplacement ne suffirait pas à protéger d'un
+ * Le geste part d'une **poignée** et non de la carte entière : celle-ci porte une
+ * rangée de boutons, qu'un seuil de déplacement ne suffirait pas à protéger d'un
  * clic interprété de travers.
  */
 export function SortableGroupCard({
@@ -228,42 +220,16 @@ export function SortableGroupCard({
 }
 
 /**
- * La carte des équipements du jeu : ni déplaçable, ni porteuse d'actions.
+ * La carte des équipements du jeu : ni déplaçable, ni colorée.
  *
- * Elle est en revanche **cliquable** : elle mène au mode « équipements », où
- * ces emplacements-là se manipulent pour de bon. C'est la seule carte dont le
- * contenu existe ailleurs dans l'application.
- *
- * `role="button"` sur une `<section>` plutôt qu'un vrai `<button>` : le modèle
- * de contenu d'un bouton n'admet pas de contenu de flux, et la carte est faite
- * de blocs. Le clavier est donc recâblé à la main — Entrée et Espace, ce qu'un
- * bouton aurait donné gratuitement.
+ * Ses actions sont celles qui ont un sens sur l'état courant du personnage —
+ * modifier (dans la vue qui les manipule), partager, dupliquer en groupe. La
+ * carte elle-même n'est plus cliquable : elle porte désormais des boutons, et
+ * un clic à côté d'eux ne doit rien déclencher.
  */
-export function StaticGroupCard({
-                                    onOpen,
-                                    ...card
-                                }: GroupCardProps & {onOpen?: () => void}) {
+export function StaticGroupCard(card: GroupCardProps) {
     return (
-        <section
-            className={`group-card group-card--static${
-                onOpen ? " group-card--clickable" : ""
-            }`}
-            aria-label={card.name}
-            role={onOpen ? "button" : undefined}
-            tabIndex={onOpen ? 0 : undefined}
-            onClick={onOpen}
-            onKeyDown={
-                onOpen
-                    ? (event) => {
-                        if (event.key !== "Enter" && event.key !== " ") return;
-                        // Espace ferait défiler la page, Entrée n'a rien à
-                        // déclencher d'autre : le geste est absorbé.
-                        event.preventDefault();
-                        onOpen();
-                    }
-                    : undefined
-            }
-        >
+        <section className="group-card group-card--static" aria-label={card.name}>
             <GroupCard {...card} />
         </section>
     );

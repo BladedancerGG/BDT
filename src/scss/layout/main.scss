@@ -84,7 +84,7 @@
   // d'où un plafond plus serré que celui des vignettes.
   --plug-size: min(var(--plug-size-pref), 12vw);
 
-  --item-gap: 8px;
+  --item-gap: 6px;
   // Hauteur des en-têtes de groupe du coffre (voir components/item-group.scss).
   // Lues elles aussi par la virtualisation : les en-têtes sont des lignes de la
   // grille au même titre que les objets, il leur faut une hauteur connue.

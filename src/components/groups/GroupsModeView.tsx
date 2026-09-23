@@ -22,6 +22,7 @@ import type {InventoryItemDefinition} from "@/lib/destiny/types";
 import {useCharacterGroups, useLoadoutGroups} from "@/lib/loadouts/groups/store";
 import {copyGroupLoadouts} from "@/lib/loadouts/groups/types";
 import {useConfirmEquipGroup} from "@/lib/loadouts/groups/use-confirm-equip";
+import {useRecordPlugs} from "@/lib/loadouts/groups/use-record-plugs";
 import {buildShare} from "@/lib/loadouts/share/snapshot";
 import {useShareSource} from "@/lib/loadouts/share/use-share-source";
 import {useShare} from "@/components/share/useShare";
@@ -31,6 +32,7 @@ import {CharacterPicker} from "../CharacterPicker";
 import {SortableGroupCard, StaticGroupCard} from "./GroupCard";
 import {GroupCreateButton} from "./GroupCreateButton";
 import {GroupEditor} from "./GroupEditor";
+import {Squares2X2Icon} from "@heroicons/react/24/solid";
 
 /**
  * Mode « groupes » : une carte par groupe du personnage, précédée de celle des
@@ -82,12 +84,18 @@ export function GroupsModeView({
     const moveGroup = useLoadoutGroups((s) => s.moveGroup);
     const confirmEquip = useConfirmEquipGroup(characterId);
     const setViewMode = useSettings((s) => s.setViewMode);
+    const recordPlugs = useRecordPlugs();
     // Le partage part d'ici comme de l'éditeur : c'est le même instantané, et
     // la même modale. Seule la construction demande le profil, qui est là.
     const shareSource = useShareSource(data, defs);
     const {share, dialog: shareDialog} = useShare();
 
     const [editingId, setEditingId] = useState<string | null>(null);
+    /**
+     * Deux cartes par ligne sur téléphone, au lieu d'une. Sans effet au-delà :
+     * le bouton n'y est pas affiché, les cartes y gardent la taille réglée.
+     */
+    const [twoColumns, setTwoColumns] = useState(false);
 
     // La grille des cartes suit le personnage et non le groupe : un emplacement
     // nouvellement débloqué apparaît alors vide sur les groupes existants,
@@ -156,6 +164,17 @@ export function GroupsModeView({
                         {t("dragHint")}
                     </p>
                 )}
+
+                {/* Téléphone seulement — le SCSS le masque au-delà. */}
+                <button
+                    type="button"
+                    className="btn btn--small group-list__columns"
+                    aria-pressed={twoColumns}
+                    onClick={() => setTwoColumns((two) => !two)}
+                >
+                    <Squares2X2Icon aria-hidden/>
+                    {t("twoColumns")}
+                </button>
             </div>
 
             <DndContext
@@ -168,17 +187,49 @@ export function GroupsModeView({
                     if (from !== -1 && to !== -1) moveGroup(characterId, from, to);
                 }}
             >
-                <div className="group-list__cards">
+                <div
+                    className={`group-list__cards${
+                        twoColumns ? " group-list__cards--two" : ""
+                    }`}
+                >
                     {/* La première carte montre toujours les emplacements du
-                        jeu. Elle n'a pas d'actions et n'est pas déplaçable :
-                        c'est l'état courant du personnage, pas un groupe. Un
-                        clic mène là où on le manipule. */}
+                        jeu. Elle n'est pas déplaçable : c'est l'état courant du
+                        personnage, pas un groupe. « Modifier » mène donc là où
+                        on le manipule, et « Dupliquer » en fait un groupe. */}
                     <StaticGroupCard
                         name={t("currentLoadouts")}
                         loadouts={loadouts}
                         slotCount={slotCount}
                         identifiers={identifiers}
-                        onOpen={() => setViewMode("loadouts")}
+                        onEdit={() => setViewMode("loadouts")}
+                        onShare={() =>
+                            share(
+                                buildShare(
+                                    "group",
+                                    t("currentLoadouts"),
+                                    loadouts,
+                                    shareSource,
+                                ),
+                            )
+                        }
+                        onDuplicate={
+                            characterId
+                                ? () =>
+                                    createGroup({
+                                        characterId,
+                                        name: t("copyName", {
+                                            name: t("currentLoadouts"),
+                                        }),
+                                        // Les attributs relevés comme à la
+                                        // création « depuis les équipements
+                                        // actuels » : c'est le même geste.
+                                        loadouts: copyGroupLoadouts(
+                                            loadouts,
+                                            recordPlugs,
+                                        ),
+                                    })
+                                : undefined
+                        }
                     />
 
                     <SortableContext

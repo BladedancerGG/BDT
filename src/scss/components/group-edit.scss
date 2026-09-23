@@ -105,6 +105,23 @@
     gap: 0.375rem;
   }
 
+  // Le choix de l'emplacement cible, au-dessus de la grille du personnage où
+  // il se fait : la consigne, et la seule sortie qui n'engage rien.
+  &__target {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    max-width: calc(4 * var(--loadout-item-size) + 3 * var(--item-gap));
+    padding: 0.5rem;
+    border: 1px solid var(--color-accent);
+
+    .group-edit__hint {
+      flex: 1 1 10rem;
+      color: var(--color-text);
+    }
+  }
+
   &__hint {
     max-width: calc(4 * var(--loadout-item-size) + 3 * var(--item-gap));
     margin: 0;

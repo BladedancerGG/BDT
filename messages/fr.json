@@ -347,7 +347,14 @@
     "colorNone": "Aucune couleur",
     "useEquipped": "Utiliser les objets équipés",
     "shareGroup": "Partager ce groupe",
-    "shareLoadout": "Partager cet équipement"
+    "shareLoadout": "Partager cet équipement",
+    "twoColumns": "Deux cartes par ligne",
+    "createInGame": "Appliquer cet équipement en jeu",
+    "createInGameHint": "Choisissez l’emplacement du personnage où recréer l’emplacement n°{number} du groupe.",
+    "createInGameConfirm": "Recréer cet équipement dans l’emplacement n°{number} en jeu ? Ses objets seront équipés sur ce personnage.",
+    "createInGameOverwrite": "L’emplacement en jeu « {name} » sera remplacé.",
+    "createInGameSummary": "Environ {requests} requêtes vers Bungie, envoyées une à une.",
+    "createInGameSkipped": "Cet équipement ne peut pas être recréé en jeu : ses objets ont disparu du compte, ou son apparence est incomplète."
   },
   "share": {
     "title": "Partager",

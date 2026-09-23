@@ -13,7 +13,7 @@ import type {InventoryItemDefinition} from "@/lib/destiny/types";
 import {upgradedPlug} from "@/lib/destiny/perk-upgrades";
 import {INVALID_HASH} from "../loadout";
 import {planGroupEquip, type GroupEquipContext, type GroupEquipPlan} from "./equip";
-import type {GroupLoadout, LoadoutGroup} from "./types";
+import {emptyGroupLoadout, type GroupLoadout, type LoadoutGroup} from "./types";
 
 /** Référence stable pour les emplacements sans objet à signaler. */
 const NO_ITEMS: readonly string[] = [];
@@ -133,14 +133,19 @@ export function useEquipGroup(characterId: string | null) {
     const {run: runLoadout} = useLoadoutActions();
 
     /**
-     * Le plan, pour l'annoncer avant de l'engager. `null` sans profil.
+     * Le plan d'une liste d'emplacements, contre l'état du profil. `null` sans
+     * profil.
      *
      * **Asynchrone**, et c'est le manifeste qui l'impose : les attributs qu'une
      * arme n'offre plus se remplacent par leur version améliorée, ce qui demande
      * de lire des définitions en IndexedDB. Voir `buildPlugResolver`.
      */
-    const plan = useCallback(
-        async (group: LoadoutGroup): Promise<GroupEquipPlan | null> => {
+    const planLoadouts = useCallback(
+        async (
+            groupLoadouts: readonly GroupLoadout[],
+            /** Vider les emplacements du jeu que la liste ne réécrit pas */
+            clear: boolean,
+        ): Promise<GroupEquipPlan | null> => {
             const profile = queryClient.getQueryData<ProfileData>(PROFILE_KEY);
             if (!profile || !characterId) return null;
 
@@ -157,13 +162,13 @@ export function useEquipGroup(characterId: string | null) {
             );
 
             const resolvePlug = await buildPlugResolver(
-                group.loadouts,
+                groupLoadouts,
                 profile.items,
             );
 
             return planGroupEquip(
-                group.loadouts,
-                profile.loadouts?.[characterId] ?? [],
+                groupLoadouts,
+                clear ? (profile.loadouts?.[characterId] ?? []) : [],
                 {
                     itemOf: (id) => {
                         const item = items.get(id);
@@ -187,6 +192,34 @@ export function useEquipGroup(characterId: string | null) {
             );
         },
         [queryClient, characterId],
+    );
+
+    /** Le plan du groupe entier, pour l'annoncer avant de l'engager. */
+    const plan = useCallback(
+        (group: LoadoutGroup) =>
+            planLoadouts(group.loadouts, true),
+        [planLoadouts],
+    );
+
+    /**
+     * Le plan d'un seul emplacement du groupe, recréé dans l'emplacement
+     * `target` du jeu.
+     *
+     * Le même planificateur que pour le groupe, sur une liste où seul `target`
+     * est rempli : l'emplacement visé y est écrasé par `SnapshotLoadout`, et
+     * les autres, vides, n'y demandent rien. Aucun emplacement du jeu n'est
+     * transmis — il n'y a donc rien à vider, et ceux qu'on ne vise pas restent
+     * intacts, ce qui est tout l'objet du geste.
+     */
+    const planSlot = useCallback(
+        (loadout: GroupLoadout, target: number) =>
+            planLoadouts(
+                Array.from({length: target + 1}, (_, index) =>
+                    index === target ? loadout : emptyGroupLoadout(),
+                ),
+                false,
+            ),
+        [planLoadouts],
     );
 
     const equip = useCallback(
@@ -269,5 +302,5 @@ export function useEquipGroup(characterId: string | null) {
         [queryClient, characterId, enqueueMove, insert, runLoadout],
     );
 
-    return {plan, equip};
+    return {plan, planSlot, equip};
 }

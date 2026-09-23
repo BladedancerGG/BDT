@@ -3,7 +3,7 @@
 import {useCallback} from "react";
 import {useTranslations} from "next-intl";
 import {planRequestCount} from "./equip";
-import type {LoadoutGroup} from "./types";
+import type {GroupLoadout, LoadoutGroup} from "./types";
 import {useEquipGroup} from "./use-equip-group";
 
 /**
@@ -49,5 +49,54 @@ export function useConfirmEquipGroup(characterId: string | null) {
             return true;
         },
         [plan, equip, t],
+    );
+}
+
+/**
+ * Recréer en jeu un seul emplacement d'un groupe, après l'avoir chiffré.
+ *
+ * Même séquence que l'équipement du groupe, restreinte à l'emplacement visé :
+ * ses objets sont équipés, leurs attributs posés, puis l'emplacement `target`
+ * du jeu est écrasé. Les autres emplacements du jeu ne sont pas touchés.
+ *
+ * Renvoie `false` quand rien n'a été engagé : profil absent, emplacement
+ * inéquipable, ou refus.
+ */
+export function useConfirmCreateInGame(characterId: string | null) {
+    const t = useTranslations("groups");
+    const {planSlot, equip} = useEquipGroup(characterId);
+
+    return useCallback(
+        async (
+            loadout: GroupLoadout,
+            target: number,
+            /** Nom de l'emplacement du jeu écrasé, s'il est occupé */
+            overwritten?: string,
+        ): Promise<boolean> => {
+            const result = await planSlot(loadout, target);
+            if (!result) return false;
+
+            // Objets disparus ou apparence incomplète : la séquence
+            // n'enregistrerait que la panoplie du moment, pas l'emplacement.
+            if (result.slots.length === 0) {
+                window.alert(t("createInGameSkipped"));
+                return false;
+            }
+
+            const message = [
+                t("createInGameConfirm", {number: target + 1}),
+                overwritten
+                    ? t("createInGameOverwrite", {name: overwritten})
+                    : null,
+                t("createInGameSummary", {requests: planRequestCount(result)}),
+            ]
+                .filter(Boolean)
+                .join("\n\n");
+
+            if (!window.confirm(message)) return false;
+            equip(result);
+            return true;
+        },
+        [planSlot, equip, t],
     );
 }

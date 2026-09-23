@@ -347,7 +347,14 @@
     "colorNone": "No colour",
     "useEquipped": "Use the equipped items",
     "shareGroup": "Share this group",
-    "shareLoadout": "Share this loadout"
+    "shareLoadout": "Share this loadout",
+    "twoColumns": "Two cards per row",
+    "createInGame": "Create this loadout in game",
+    "createInGameHint": "Pick the character slot where group slot #{number} should be recreated.",
+    "createInGameConfirm": "Recreate this loadout in in-game slot #{number}? Its items will be equipped on this character.",
+    "createInGameOverwrite": "The in-game loadout “{name}” will be replaced.",
+    "createInGameSummary": "About {requests} requests to Bungie, sent one at a time.",
+    "createInGameSkipped": "This loadout can’t be recreated in game: its items are gone from the account, or its appearance is incomplete."
   },
   "share": {
     "title": "Share",
