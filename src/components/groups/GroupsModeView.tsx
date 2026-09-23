@@ -27,6 +27,7 @@ import {useShareSource} from "@/lib/loadouts/share/use-share-source";
 import {useShare} from "@/components/share/useShare";
 import {useLoadoutIdentifiers} from "@/lib/loadouts/use-loadout-identifiers";
 import {useSettings} from "@/lib/settings/store";
+import {CharacterPicker} from "../CharacterPicker";
 import {SortableGroupCard, StaticGroupCard} from "./GroupCard";
 import {GroupCreateButton} from "./GroupCreateButton";
 import {GroupEditor} from "./GroupEditor";
@@ -60,6 +61,7 @@ export function GroupsModeView({
                                    data,
                                    defs,
                                    hidden,
+                                   onSelectCharacter,
                                }: {
     characterId: string | null;
     /** Classe du personnage : filtre les objets proposés dans l'éditeur */
@@ -70,6 +72,8 @@ export function GroupsModeView({
     defs: Map<number, InventoryItemDefinition>;
     /** La vue est en retrait dans la pile : estompée, et hors d'atteinte */
     hidden: boolean;
+    /** Changer de personnage depuis la barre d'outils, sans remonter l'en-tête */
+    onSelectCharacter: (characterId: string) => void;
 }) {
     const t = useTranslations("groups");
     const groups = useCharacterGroups(characterId);
@@ -128,6 +132,18 @@ export function GroupsModeView({
             inert={hidden}
         >
             <div className="group-list__toolbar">
+                {/* Les groupes appartiennent au personnage : changer d'onglet
+                    change de liste. Le sélecteur est donc ici aussi, en
+                    emblème entier — c'est lui qui dit à qui est la grille
+                    qu'on regarde, ce que la vignette de l'en-tête n'annonce
+                    qu'à qui la cherche. */}
+                <CharacterPicker
+                    characters={data.characters}
+                    selectedId={characterId}
+                    onSelect={onSelectCharacter}
+                    full
+                />
+
                 <GroupCreateButton characterId={characterId} loadouts={loadouts}/>
 
                 {/* L'ordre des cartes est celui que l'utilisateur leur donne en

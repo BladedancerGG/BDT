@@ -759,6 +759,7 @@ function Inventory({
                         data={data}
                         defs={defs}
                         hidden={!groupsMode}
+                        onSelectCharacter={setSelectedId}
                     />
                 </DragScopeProvider>
             </div>

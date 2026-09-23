@@ -6,6 +6,7 @@ import {
   useDismiss,
   useRole,
   useInteractions,
+  useTransitionStatus,
   offset,
   flip,
   shift,
@@ -40,6 +41,16 @@ const SHAPE_CLASS = {
   elemental: "item--shape-diamond",
   prismatic: "item--shape-circle",
 } as const;
+
+/**
+ * Durée de l'aller-retour de la feuille basse, en millisecondes.
+ *
+ * ⚠ En double avec `$duration` de `scss/components/item-sheet.scss` : c'est le
+ * CSS qui anime, mais c'est le JavaScript qui décide combien de temps la
+ * feuille reste montée. Les deux valeurs doivent rester égales, sinon la
+ * feuille est arrachée avant la fin de son glissement.
+ */
+const SHEET_TRANSITION = 220;
 
 // Objet d'une grille d'inventaire : vignette (icône + habillages) et infobulle.
 //
@@ -250,6 +261,12 @@ export function ItemIcon({
       if (target instanceof Element && target.closest(".socket-picker")) {
         return false;
       }
+      // Une AUTRE vignette fait exception : son clic doit ouvrir son
+      // infobulle, comme si rien n'était ouvert. L'avaler obligeait à cliquer
+      // deux fois — une pour refermer, une pour ouvrir. La nôtre, elle, garde
+      // l'avalement : le clic y rouvrirait aussitôt ce que le congé referme.
+      const vignette = target instanceof Element ? target.closest(".item") : null;
+      if (vignette && vignette !== refs.reference.current) return true;
       // Le congé se décide sur le `pointerdown` ; le `click` qui le suit, lui,
       // atteint ce qui se trouve dessous. Refermer une infobulle en touchant à
       // côté déclenchait donc ce qu'on avait touché — la vignette voisine, ou
@@ -265,6 +282,14 @@ export function ItemIcon({
     dismiss,
     role,
   ]);
+
+  // La feuille basse glisse aussi pour SORTIR : Floating UI la garde montée le
+  // temps de l'animation et pose l'étape en `data-status`, que le SCSS lit.
+  // Durée nulle hors téléphone — l'infobulle ancrée paraît et disparaît net, la
+  // garder montée 220 ms de plus ne ferait que retarder sa disparition.
+  const { isMounted, status } = useTransitionStatus(context, {
+    duration: sheet ? SHEET_TRANSITION : 0,
+  });
 
   // Une seule vignette, deux bibliothèques : Floating UI a besoin de l'élément
   // pour se positionner, dnd-kit pour le mesurer.
@@ -348,17 +373,22 @@ export function ItemIcon({
         )}
       </div>
 
-      {shown && (
+      {isMounted && (
         <FloatingPortal>
           {sheet ? (
             // Le voile ferme au toucher — c'est `useDismiss` qui s'en charge,
             // tout ce qui n'est pas la feuille étant « au-dehors ». Il bloque
             // aussi le défilement derrière elle.
-            <FloatingOverlay className="item-sheet__scrim" lockScroll>
+            <FloatingOverlay
+              className="item-sheet__scrim"
+              data-status={status}
+              lockScroll
+            >
               <div
                 ref={refs.setFloating}
                 {...getFloatingProps()}
                 className="item-sheet"
+                data-status={status}
               >
                 {tooltip}
               </div>

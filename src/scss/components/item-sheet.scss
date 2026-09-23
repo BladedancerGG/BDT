@@ -41,6 +41,14 @@ $ease: cubic-bezier(0.16, 1, 0.3, 1); // décélération franche, sans rebond
 
   animation: item-sheet-enter $duration $ease;
 
+  // Elle repart comme elle est venue. L'étape est posée par Floating UI
+  // (`useTransitionStatus`, dans `ItemIcon`), qui garde la feuille montée le
+  // temps du glissement — d'où le `forwards`, sans lequel elle réapparaîtrait
+  // en haut de sa course juste avant d'être démontée.
+  &[data-status="close"] {
+    animation: item-sheet-exit $duration $ease forwards;
+  }
+
   // L'infobulle ne s'impose plus sa largeur : c'est la feuille qui la donne.
   // Elle devient une colonne à trois étages — en-tête, corps, pied — dont seul
   // celui du milieu défile.
@@ -118,9 +126,15 @@ $ease: cubic-bezier(0.16, 1, 0.3, 1); // décélération franche, sans rebond
     }
   }
 
-  // Respecte la préférence système : la feuille paraît sans glisser.
+  // Respecte la préférence système : la feuille paraît et disparaît sans
+  // glisser. L'étape de sortie est reprise nommément : son sélecteur d'attribut
+  // pèse plus lourd, et l'annulation seule l'aurait laissée jouer.
   @media (prefers-reduced-motion: reduce) {
     animation: none;
+
+    &[data-status="close"] {
+      animation: none;
+    }
   }
 }
 
@@ -131,8 +145,22 @@ $ease: cubic-bezier(0.16, 1, 0.3, 1); // décélération franche, sans rebond
   background-color: var(--color-overlay);
   animation: item-sheet-scrim $duration ease;
 
+  // ⚠ Une animation NOMMÉE À PART, et non l'entrée jouée à l'envers : le nom
+  // décide de l'identité de l'animation. Réutiliser `item-sheet-scrim` ne
+  // créait rien de neuf — la précédente, déjà terminée, se voyait seulement
+  // retournée, et sa fin de course valait dès lors `opacity: 0`. Le voile
+  // s'éteignait donc d'un coup, emportant la feuille avec lui : elle est son
+  // enfant, et glissait sans plus rien montrer.
+  &[data-status="close"] {
+    animation: item-sheet-scrim-exit $duration ease forwards;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     animation: none;
+
+    &[data-status="close"] {
+      animation: none;
+    }
   }
 }
 
@@ -142,8 +170,20 @@ $ease: cubic-bezier(0.16, 1, 0.3, 1); // décélération franche, sans rebond
   }
 }
 
+@keyframes item-sheet-exit {
+  to {
+    translate: 0 100%;
+  }
+}
+
 @keyframes item-sheet-scrim {
   from {
+    opacity: 0;
+  }
+}
+
+@keyframes item-sheet-scrim-exit {
+  to {
     opacity: 0;
   }
 }

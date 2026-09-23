@@ -7,6 +7,18 @@
 .character-picker {
   height: 100%;
 
+  // Hors de l'en-tête, le bouton est l'emblème entier — le même onglet que les
+  // options du menu (voir `full`, dans le composant). Il porte alors son propre
+  // habillage : le conteneur ne sert plus qu'à ancrer le menu, et n'a donc plus
+  // de hauteur à épouser.
+  &--full {
+    height: 50px;
+
+    .character-tab {
+      //width: 100%;
+    }
+  }
+
   // Le personnage courant : l'icône d'emblème, le symbole de classe par-dessus.
   // Carré, à la hauteur de la barre — c'est ce qui rend la place aux autres
   // blocs de l'en-tête.

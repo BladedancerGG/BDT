@@ -35,15 +35,23 @@ import {CharacterTab} from "./CharacterTab";
  * Le menu passe par Floating UI comme les autres surfaces flottantes de
  * l'application : positionnement, fermeture par Échap ou clic au-dehors, et
  * navigation aux flèches.
+ *
+ * `full` échange le bouton carré contre l'emblème entier — le même onglet que
+ * les options du menu. C'est la forme qu'il prend hors de l'en-tête, où la
+ * place manque moins et où rien d'autre n'annonce le personnage regardé (voir
+ * la vue des groupes).
  */
 export function CharacterPicker({
                                     characters,
                                     selectedId,
                                     onSelect,
+                                    full = false,
                                 }: {
     characters: readonly Character[];
     selectedId: string | null;
     onSelect: (characterId: string) => void;
+    /** Afficher l'emblème entier plutôt que la vignette carrée */
+    full?: boolean;
 }) {
     const t = useTranslations("inventory");
 
@@ -76,33 +84,49 @@ export function CharacterPicker({
     if (!current) return null;
 
     return (
-        <div className="character-picker">
-            <button
-                // setReference est un callback ref stable de Floating UI
-                ref={refs.setReference}
-                type="button"
-                className="character-picker__button"
-                aria-haspopup="menu"
-                aria-expanded={open}
-                aria-label={t("character")}
-                title={t("character")}
-                {...getReferenceProps()}
-            >
-                {/* L'icône d'emblème passe au CSS par une variable, comme le
-                    fond des onglets dépliés */}
-                <span
-                    className="character-picker__emblem"
-                    style={
-                        {
-                            "--emblem-url": `url(${BUNGIE_ROOT}${current.emblemPath})`,
-                        } as CSSProperties
-                    }
+        <div className={`character-picker${full ? " character-picker--full" : ""}`}>
+            {full ? (
+                <CharacterTab
+                    // setReference est un callback ref stable de Floating UI
+                    ref={refs.setReference}
+                    character={current}
+                    // Il n'est pas une option du menu : le liseré de sélection
+                    // y désignerait le seul choix affiché.
+                    selected={false}
+                    aria-haspopup="menu"
+                    aria-expanded={open}
+                    {...getReferenceProps()}
                 />
-                <ClassIcon
-                    classType={current.classType}
-                    className="character-picker__class"
-                />
-            </button>
+            ) : (
+                <button
+                    // setReference est un callback ref stable de Floating UI
+                    // (API documentée), pas une lecture de ref pendant le rendu
+                    // eslint-disable-next-line react-hooks/refs
+                    ref={refs.setReference}
+                    type="button"
+                    className="character-picker__button"
+                    aria-haspopup="menu"
+                    aria-expanded={open}
+                    aria-label={t("character")}
+                    title={t("character")}
+                    {...getReferenceProps()}
+                >
+                    {/* L'icône d'emblème passe au CSS par une variable, comme le
+                        fond des onglets dépliés */}
+                    <span
+                        className="character-picker__emblem"
+                        style={
+                            {
+                                "--emblem-url": `url(${BUNGIE_ROOT}${current.emblemPath})`,
+                            } as CSSProperties
+                        }
+                    />
+                    <ClassIcon
+                        classType={current.classType}
+                        className="character-picker__class"
+                    />
+                </button>
+            )}
 
             {open && (
                 <FloatingPortal>

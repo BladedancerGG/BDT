@@ -16,8 +16,17 @@
   &__toolbar {
     display: flex;
     flex-wrap: wrap;
+    align-items: center;
     gap: 0.5rem;
     flex-shrink: 0;
+
+    // Sur téléphone, le sélecteur passe AU-DESSUS du bouton : l'emblème veut
+    // ses 15rem, et côte à côte il ne restait au bouton que de quoi couper son
+    // libellé en deux.
+    @include m.to(v.$bp-sm) {
+      flex-direction: column;
+      align-items: stretch;
+    }
   }
 
   // Les cartes s'alignent en rangées et débordent vers le bas, comme dans la
