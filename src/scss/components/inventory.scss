@@ -9,6 +9,35 @@
 .inventory {
   gap: 1rem;
 
+  // Personnage, familles d'objets et filtre d'armures, sur une ligne qui
+  // passe à la suivante quand la largeur manque : l'emblème entier réclame à
+  // lui seul ses 15 rem.
+  &__toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
+
+    @include m.to(v.$bp-lg) {
+      padding: 1rem 1rem 0;
+    }
+  }
+
+  // Libellé puis interrupteur, rejetés contre le bord droit : un réglage du
+  // stockage, qu'on ne confond pas avec les onglets qui le précèdent.
+  &__class-filter {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-left: auto;
+    font-size: 0.875rem;
+
+    label {
+      cursor: pointer;
+    }
+  }
+
   // Équipement à gauche, coffre à droite. Empilés sous 1024 px : les deux
   // colonnes d'emplacements et leurs panneaux dépliants demandent de la largeur.
   &__body {

@@ -499,6 +499,14 @@ least valuable item goes to the vault) rather than failing — the same thing th
 game does. Exotics are picked last as replacements or evictions: equipping one
 can force another one off, which nobody asked for.
 
+When the character has **nothing else stored** in the slot, the replacement is
+brought in first (`fetchStandIn`, role `standIn`): from the vault, otherwise from
+what another character has *stored* — never an item equipped elsewhere, which
+would itself need a replacement, with no end to the cascade. The candidate must
+fit the character's class, be transferable, and not be an exotic while another
+exotic of the same family is worn. Group equips go through the same planner, so
+they benefit from it too.
+
 ### Stacks
 
 Mods, consumables and materials are **not instanced**: the API knows them by
@@ -794,7 +802,15 @@ The inventory mode itself has two layouts, chosen in the settings and stored in
 the same cookie (`inventoryLayout`, `lib/settings/constants.ts`):
 
 - **`single`** — the historical one: the slots of the *displayed* character, in
-  two columns facing each other, and the vault on the right.
+  two columns facing each other, and the storage on the right. The storage
+  shows, between the Postmaster and the vault, an « Other characters » root,
+  one section per **other** character inside it (`CharacterSection`,
+  `VirtualItemGrid`, class symbol included), then one sub-group per slot, what
+  they wear first — without the vault's own sub-groups, which would push the
+  equipped item away from the head of its slot. A toggle (`ownClassArmor`, in the
+  cookie) hides armour only another class could wear. The character picker sits
+  left of the category tabs (`.inventory__toolbar`), no longer in the header;
+  the toggle (`.toggle`) is pushed against the right edge.
 - **`characters`** — the three characters side by side, one column each
   (`components/CharacterColumns.tsx`), and the vault on the right. Each row is
   `EquipmentSlot side="right"`, the armour column of the other layout reused as
@@ -814,7 +830,9 @@ Three things follow from the second one, and none of them is cosmetic:
 - **Lost items are split per character.** They come from all three at once, and
   nothing on a tile says whose Postmaster it sleeps in — hence
   `LeadSection.groups` (`VirtualItemGrid`), one sub-header per character, class
-  symbol included.
+  symbol included. The `single` layout does the same, since its storage already
+  holds the other two characters; only the shared storage tab keeps the
+  displayed character's lost items alone.
 
 The shared storage tab (`itemCategory: "inventory"`) ignores the setting: it
 belongs to no character, and already shows two grids without a single slot.
@@ -2431,6 +2449,14 @@ d'échouer — c'est ce que fait le jeu. Les exotiques sont choisis en dernier c
 remplaçants ou comme évincés : en équiper un peut en faire sauter un autre, ce
 que personne n'a demandé.
 
+Quand le personnage n'a **rien d'autre de rangé** dans l'emplacement, le
+remplaçant est d'abord amené (`fetchStandIn`, rôle `standIn`) : du coffre, sinon
+de ce qu'un autre personnage a de *rangé* — jamais d'un objet équipé ailleurs,
+qui réclamerait lui-même un remplaçant, et la cascade n'aurait pas de fond. Le
+candidat doit convenir à la classe du personnage, être transférable, et ne pas
+être un exotique quand un autre de la même famille est porté. L'équipement d'un
+groupe passe par le même planificateur et en profite donc aussi.
+
 ### Les piles
 
 Mods, consommables et matériaux ne sont **pas instanciés** : l'API les connaît
@@ -2751,7 +2777,16 @@ Le mode inventaire a lui-même deux dispositions, réglées dans les paramètres
 rangées dans le même cookie (`inventoryLayout`, `lib/settings/constants.ts`) :
 
 - **`single`** — l'historique : les emplacements du *seul* personnage affiché,
-  en deux colonnes qui se font face, et le coffre à droite.
+  en deux colonnes qui se font face, et le stockage à droite. Celui-ci montre,
+  entre le Courrier et le coffre, une racine « Autres personnages », une
+  section par **autre** personnage à l'intérieur (`CharacterSection`,
+  `VirtualItemGrid`, symbole de classe compris), puis un sous-groupe par
+  emplacement, ce qu'il porte en tête — sans les sous-groupes du coffre, qui
+  éloigneraient l'objet porté de la tête de son emplacement. Une bascule (`ownClassArmor`, dans le cookie)
+  masque les armures qu'une autre classe serait seule à porter. Le sélecteur de
+  personnage est à gauche des onglets de famille (`.inventory__toolbar`), et
+  plus dans l'en-tête ; l'interrupteur (`.toggle`) est rejeté contre le bord
+  droit.
 - **`characters`** — les trois personnages côte à côte, une colonne chacun
   (`components/CharacterColumns.tsx`), et le coffre à droite. Chaque ligne est
   un `EquipmentSlot side="right"`, la colonne des armures de l'autre
@@ -2772,7 +2807,9 @@ Trois conséquences à la seconde, et aucune n'est cosmétique :
 - **Les objets perdus sont découpés par personnage.** Ils viennent des trois à
   la fois, et rien dans une vignette ne dit chez qui elle dort — d'où
   `LeadSection.groups` (`VirtualItemGrid`), un sous-en-tête par personnage,
-  symbole de classe compris.
+  symbole de classe compris. La disposition `single` en fait autant, son
+  stockage montrant déjà les deux autres personnages ; seul l'onglet du
+  rangement partagé garde les objets perdus du personnage affiché seuls.
 
 L'onglet du rangement partagé (`itemCategory: "inventory"`) ignore le réglage :
 il n'appartient à aucun personnage, et montre déjà deux grilles sans le moindre

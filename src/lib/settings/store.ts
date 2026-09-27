@@ -98,6 +98,12 @@ export interface SettingsState {
      * qu'on fait une fois, pas à chaque visite.
      */
     inventoryLayout: InventoryLayout;
+    /**
+     * Masquer du stockage les armures qu'une autre classe que celle du
+     * personnage affiché serait seule à porter. Ne vaut que pour la disposition
+     * à un seul personnage, où le bouton qui la commande est posé.
+     */
+    ownClassArmor: boolean;
     /** Critères de tri du coffre, du plus important au moins important */
     sortRules: SortRule[];
     /** Sous-groupe des sections d'armes du coffre — un seul critère à la fois */
@@ -140,6 +146,7 @@ export interface SettingsState {
     setShowOriginalOnHover: (show: boolean) => void;
     setItemCategory: (category: ItemCategory) => void;
     setInventoryLayout: (layout: InventoryLayout) => void;
+    setOwnClassArmor: (enabled: boolean) => void;
     setWeaponGrouping: (grouping: WeaponGrouping) => void;
     setArmorGrouping: (grouping: ArmorGrouping) => void;
     setSearchHistorySize: (size: number) => void;
@@ -179,6 +186,7 @@ export function persistedSettings(state: SettingsState) {
         showOriginalOnHover: state.showOriginalOnHover,
         itemCategory: state.itemCategory,
         inventoryLayout: state.inventoryLayout,
+        ownClassArmor: state.ownClassArmor,
         sorts: serializeSortRules(state.sortRules),
         weaponGrouping: state.weaponGrouping,
         armorGrouping: state.armorGrouping,
@@ -214,6 +222,7 @@ export function mergeSettings(
         viewMode,
         itemCategory,
         inventoryLayout,
+        ownClassArmor,
         syncEnabled,
         ...rest
     } = (persisted ?? {}) as Partial<SettingsState> & {sorts?: unknown};
@@ -233,6 +242,8 @@ export function mergeSettings(
         itemCategory: parseItemCategory(itemCategory) ?? current.itemCategory,
         inventoryLayout:
             parseInventoryLayout(inventoryLayout) ?? current.inventoryLayout,
+        ownClassArmor:
+            typeof ownClassArmor === "boolean" ? ownClassArmor : current.ownClassArmor,
         syncEnabled: syncEnabled === true,
     };
 }
@@ -251,6 +262,7 @@ export const useSettings = create<SettingsState>()(
             showOriginalOnHover: true,
             itemCategory: DEFAULT_ITEM_CATEGORY,
             inventoryLayout: DEFAULT_INVENTORY_LAYOUT,
+            ownClassArmor: false,
             sortRules: [...DEFAULT_SORT_RULES],
             weaponGrouping: DEFAULT_WEAPON_GROUPING,
             armorGrouping: DEFAULT_ARMOR_GROUPING,
@@ -273,6 +285,7 @@ export const useSettings = create<SettingsState>()(
                 set({showOriginalOnHover}),
             setItemCategory: (itemCategory) => set({itemCategory}),
             setInventoryLayout: (inventoryLayout) => set({inventoryLayout}),
+            setOwnClassArmor: (ownClassArmor) => set({ownClassArmor}),
             setWeaponGrouping: (weaponGrouping) => set({weaponGrouping}),
             setArmorGrouping: (armorGrouping) => set({armorGrouping}),
             setSearchHistorySize: (size) =>

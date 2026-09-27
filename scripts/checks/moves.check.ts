@@ -231,4 +231,133 @@ check("la part transférée fusionne, le reste demeure",
     splitMerged.vault.map((i) => [i.bucketHash, i.quantity]),
     [[BUCKET.Vault, 6], [BUCKET.Modifications, 5]]);
 
+section("amener un remplaçant d'ailleurs");
+
+// L'API n'a pas de « déséquiper » : un personnage qui n'a rien d'autre de rangé
+// dans l'emplacement ne pouvait pas se séparer de son arme. Il faut désormais
+// lui amener un remplaçant — du coffre d'abord, sinon d'un autre personnage.
+
+const GUN = 5000;
+const SPARE = 5001;
+const EXO = 5002;
+const HUNTER_HELM = 5003;
+const OTHER = "char-2";
+
+const weapon = (id: string, itemHash: number, bucketHash: number): DestinyItemComponent =>
+    ({ itemHash, itemInstanceId: id, bucketHash, quantity: 1, location: 0, state: 0 }) as
+        DestinyItemComponent;
+const weaponDef = (tierType: number) => ({
+    inventory: { bucketTypeHash: BUCKET.KineticWeapons, tierType },
+}) as unknown as InventoryItemDefinition;
+
+const gearContext = (profile: Partial<ProfileData>): PlanContext => ({
+    profile: {
+        characters: [
+            { characterId: CHAR, classType: 0 },
+            { characterId: OTHER, classType: 1 },
+        ] as ProfileData["characters"],
+        equipment: { [CHAR]: [weapon("gun", GUN, BUCKET.KineticWeapons)] },
+        inventory: { [CHAR]: [], [OTHER]: [] },
+        vault: [],
+        items: {},
+        ...profile,
+    },
+    defs: new Map([
+        [GUN, weaponDef(5)],
+        [SPARE, weaponDef(5)],
+        [EXO, weaponDef(6)],
+        [HUNTER_HELM, {
+            inventory: { bucketTypeHash: BUCKET.KineticWeapons, tierType: 5 },
+            classType: 1,
+        } as unknown as InventoryItemDefinition],
+    ]),
+    capacities: new Map([
+        [BUCKET.KineticWeapons, 10],
+        [BUCKET.Vault, 1300],
+    ]),
+});
+
+const kinds = (plan: MovePlan) =>
+    plan.ok ? plan.steps.map((s) => `${s.kind}:${s.role}:${s.itemInstanceId}`) : plan.failure;
+
+check("rien nulle part : refus",
+    kinds(planMove("gun", { kind: "vault" }, gearContext({}))),
+    "noReplacement");
+
+check("le coffre fournit le remplaçant",
+    kinds(planMove("gun", { kind: "vault" }, gearContext({
+        vault: [weapon("spare", SPARE, BUCKET.Vault)],
+    }))),
+    [
+        "fromVault:standIn:spare",
+        "equip:unequip:spare",
+        "toVault:move:gun",
+    ]);
+
+check("coffre vide : un autre personnage prête ce qu'il a de rangé",
+    kinds(planMove("gun", { kind: "vault" }, gearContext({
+        inventory: { [CHAR]: [], [OTHER]: [weapon("spare", SPARE, BUCKET.KineticWeapons)] },
+    }))),
+    [
+        "toVault:standIn:spare",
+        "fromVault:standIn:spare",
+        "equip:unequip:spare",
+        "toVault:move:gun",
+    ]);
+
+check("un objet équipé ailleurs n'est jamais pris",
+    kinds(planMove("gun", { kind: "vault" }, gearContext({
+        equipment: {
+            [CHAR]: [weapon("gun", GUN, BUCKET.KineticWeapons)],
+            [OTHER]: [weapon("spare", SPARE, BUCKET.KineticWeapons)],
+        },
+    }))),
+    "noReplacement");
+
+check("le non-exotique passe avant l'exotique",
+    kinds(planMove("gun", { kind: "vault" }, gearContext({
+        vault: [weapon("exo", EXO, BUCKET.Vault), weapon("spare", SPARE, BUCKET.Vault)],
+    }))).slice(0, 1),
+    ["fromVault:standIn:spare"]);
+
+check("une armure d'une autre classe n'est pas un remplaçant",
+    kinds(planMove("gun", { kind: "vault" }, gearContext({
+        vault: [weapon("helm", HUNTER_HELM, BUCKET.Vault)],
+    }))),
+    "noReplacement");
+
+// Vers un autre personnage : le remplaçant pris au coffre ne doit pas fausser
+// le compte de celui-ci pour le transfert qui suit.
+check("vers un autre personnage : remplaçant, puis le trajet habituel",
+    kinds(planMove("gun", { kind: "equipped", characterId: OTHER }, gearContext({
+        characters: [
+            { characterId: CHAR, classType: 0 },
+            { characterId: OTHER, classType: 0 },
+        ] as ProfileData["characters"],
+        vault: [weapon("spare", SPARE, BUCKET.Vault)],
+    }))),
+    [
+        "fromVault:standIn:spare",
+        "equip:unequip:spare",
+        "toVault:move:gun",
+        "fromVault:move:gun",
+        "equip:move:gun",
+    ]);
+
+// Le rejeu local enchaîne les trois étapes sans perdre l'objet libéré
+{
+    const ctx = gearContext({ vault: [weapon("spare", SPARE, BUCKET.Vault)] });
+    const plan = planMove("gun", { kind: "vault" }, ctx);
+    const after = plan.ok
+        ? plan.steps.reduce((profile, s) => applyStep(profile, s), ctx.profile)
+        : ctx.profile;
+    check("rejeu : le remplaçant est porté, l'objet libéré dort au coffre",
+        [
+            after.equipment[CHAR].map((i) => i.itemInstanceId),
+            after.inventory[CHAR].length,
+            after.vault.map((i) => i.itemInstanceId),
+        ],
+        [["spare"], 0, ["gun"]]);
+}
+
 process.exit(report());

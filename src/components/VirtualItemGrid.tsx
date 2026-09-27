@@ -34,6 +34,8 @@ type GridRow =
     kind: "section";
     key: string;
     label: string;
+    /** Seuls les personnages de « Autres personnages » en portent une */
+    icon?: GroupIcon;
     count: number;
     collapsed: boolean;
     height: number;
@@ -84,11 +86,30 @@ export interface LeadSection {
     groups?: LeadGroup[];
 }
 
+/**
+ * Un autre personnage que celui affiché, posé dans le stockage de la
+ * disposition à un seul personnage : ses objets y sont à portée de glisser,
+ * sans changer de personnage pour aller les chercher.
+ *
+ * Porté et rangé arrivent séparés : chaque emplacement montre d'abord ce que
+ * le personnage porte, et une vignette ne dit pas à elle seule si l'objet
+ * l'est.
+ */
+export interface CharacterSection {
+    key: string;
+    label: string;
+    icon?: GroupIcon;
+    equipped: DestinyItemComponent[];
+    stored: DestinyItemComponent[];
+}
+
 // Référence stable : `useSearchFiltered` mémorise sur l'identité de sa liste
 const NO_ITEMS: DestinyItemComponent[] = [];
 
 /** Clé de repli de la section du coffre. Aucun emplacement ne peut la heurter. */
 const VAULT_KEY = "root:vault";
+/** Clé de repli de la racine « Autres personnages » */
+const CHARACTERS_KEY = "root:characters";
 
 /**
  * Grille d'objets virtualisée, pour les listes longues (le coffre en compte
@@ -116,6 +137,7 @@ export function VirtualItemGrid({
                                     items,
                                     details,
                                     lead,
+                                    characters,
                                     category,
                                     fixedColumns,
                                 }: {
@@ -123,6 +145,8 @@ export function VirtualItemGrid({
     items: DestinyItemComponent[];
     details: Record<string, ItemDetail>;
     lead?: LeadSection;
+    /** Autres personnages, entre la section de tête et le coffre */
+    characters?: CharacterSection[];
     /** Famille d'objets à retenir — voir `useDisplayableItems` */
     category?: ItemCategory;
     /**
@@ -142,6 +166,21 @@ export function VirtualItemGrid({
     const leadFound = useSearchFiltered(lead?.items ?? NO_ITEMS);
     // Filtrés, triés selon les critères réglés dans les paramètres, puis groupés
     const sections = useGroupedItems(found, details, category);
+
+    // Les objets des autres personnages passent par le MÊME filtrage et le
+    // même tri que le coffre, en une seule liste : un appel de hook par
+    // personnage n'est pas possible, leur nombre varie. Chaque objet est
+    // ensuite rendu à son personnage par identité.
+    const characterItems = useMemo(
+        () =>
+            characters
+                ? characters.flatMap((c) => [...c.equipped, ...c.stored])
+                : NO_ITEMS,
+        [characters],
+    );
+    const characterFound = useSearchFiltered(characterItems);
+    const characterSections = useGroupedItems(characterFound, details, category);
+    const charactersLabel = t("otherCharacters");
     const viewportRef = useRef<HTMLDivElement>(null);
     // La taille réglée dans les paramètres change la grille sans changer sa
     // largeur : on la passe pour forcer une re-mesure. C'est le réglage dédié au
@@ -170,9 +209,13 @@ export function VirtualItemGrid({
         const out: GridRow[] = [];
 
         // Découpe une liste en lignes de `columns` objets
-        const pushItems = (prefix: string, list: DestinyItemComponent[]) => {
+        const pushItems = (
+            prefix: string,
+            list: DestinyItemComponent[],
+            into: GridRow[] = out,
+        ) => {
             for (let start = 0; start < list.length; start += columns) {
-                out.push({
+                into.push({
                     kind: "items",
                     key: `${prefix}#${start}`,
                     items: list.slice(start, start + columns),
@@ -223,6 +266,77 @@ export function VirtualItemGrid({
                     pushItems(lead.key, leadFound);
                 }
             }
+        }
+
+        // Les autres personnages, réunis sous une seule racine : un personnage
+        // au niveau d'une section, ses emplacements à celui d'un sous-groupe.
+        // Ceux du coffre n'y trouvent pas place — ils éloigneraient l'objet
+        // porté de la tête de son emplacement, où il doit se lire en premier.
+        // Les lignes sont préparées à part : la racine annonce le total, qui
+        // n'est connu qu'une fois tous les personnages parcourus.
+        const characterRows: GridRow[] = [];
+        let characterTotal = 0;
+        for (const character of characters ?? []) {
+            const equipped = new Set(character.equipped);
+            const owned = new Set([...character.equipped, ...character.stored]);
+            const buckets = characterSections
+                .map((section) => {
+                    const mine = section.groups
+                        .flatMap((group) => group.items)
+                        .filter((item) => owned.has(item));
+                    return {
+                        section,
+                        items: [
+                            ...mine.filter((item) => equipped.has(item)),
+                            ...mine.filter((item) => !equipped.has(item)),
+                        ],
+                    };
+                })
+                .filter(({items}) => items.length > 0);
+            // Rien de ce personnage ne survit à la recherche : pas d'en-tête
+            if (buckets.length === 0) continue;
+
+            const count = buckets.reduce((sum, {items}) => sum + items.length, 0);
+            characterTotal += count;
+
+            const characterKey = `${CHARACTERS_KEY}/${character.key}`;
+            const characterCollapsed = collapsed.has(characterKey);
+            characterRows.push({
+                kind: "section",
+                key: characterKey,
+                label: character.label,
+                icon: character.icon,
+                count,
+                collapsed: characterCollapsed,
+                height: sectionHeight,
+            });
+            if (characterCollapsed) continue;
+
+            for (const {section, items} of buckets) {
+                const bucketKey = `${characterKey}/${section.key}`;
+                const bucketCollapsed = collapsed.has(bucketKey);
+                characterRows.push({
+                    kind: "group",
+                    key: bucketKey,
+                    label: section.label,
+                    count: items.length,
+                    collapsed: bucketCollapsed,
+                    height: groupHeight,
+                });
+                if (!bucketCollapsed) pushItems(bucketKey, items, characterRows);
+            }
+        }
+        if (characterTotal > 0) {
+            const charactersCollapsed = collapsed.has(CHARACTERS_KEY);
+            out.push({
+                kind: "root",
+                key: CHARACTERS_KEY,
+                label: charactersLabel,
+                count: characterTotal,
+                collapsed: charactersCollapsed,
+                height: rootHeight,
+            });
+            if (!charactersCollapsed) out.push(...characterRows);
         }
 
         const vaultCollapsed = collapsed.has(VAULT_KEY);
@@ -278,6 +392,9 @@ export function VirtualItemGrid({
         sections,
         lead,
         leadFound,
+        characters,
+        characterSections,
+        charactersLabel,
         title,
         total,
         collapsed,
@@ -362,7 +479,7 @@ export function VirtualItemGrid({
                                 kind={row.kind}
                                 label={row.label}
                                 count={row.count}
-                                icon={row.kind === "section" ? undefined : row.icon}
+                                icon={row.icon}
                                 collapsed={row.collapsed}
                                 onToggle={() => toggle(row.key)}
                                 expandLabel={t("expand")}

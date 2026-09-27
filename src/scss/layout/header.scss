@@ -5,9 +5,10 @@
 // succédaient — titre et compte d'un côté, personnages et modes d'affichage de
 // l'autre. Elles ne commandaient qu'une même chose, ce que la page montre.
 //
-// Il vit dans la vue connectée et non dans la page : il porte les onglets de
-// personnage, et n'a donc rien à montrer tant que le manifeste et le profil ne
-// sont pas chargés.
+// Il vit dans la vue connectée et non dans la page : ses commandes agissent
+// sur le profil, et n'ont donc rien à montrer tant que le manifeste et lui ne
+// sont pas chargés. Le sélecteur de personnage n'y est plus : il ouvre la vue
+// qu'il commande (voir `.inventory__toolbar` et `.group-list__toolbar`).
 
 .header {
   // Hauteur d'une rangée. Sur téléphone, c'est la cible tactile minimale
@@ -50,13 +51,6 @@
 
   .main-menu-button {
     grid-area: 1 / 1;
-  }
-
-  // Masqué en attendant sa place dans la vue d'inventaire, qui reste à
-  // remanier : trois blocs suffisent à remplir la rangée, et le personnage
-  // courant se lit déjà sur chaque colonne d'équipement.
-  .character-picker {
-    display: none;
   }
 
   // Les deux modes d'affichage se changent au menu principal, qui les porte
@@ -104,10 +98,6 @@
     --header-row: 2.5rem;
     display: flex;
     height: 3.5rem;
-
-    .character-picker {
-      display: block;
-    }
 
     .view-mode-tabs {
       display: flex;

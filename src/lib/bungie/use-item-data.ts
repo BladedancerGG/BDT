@@ -39,7 +39,7 @@ export function useItemData(instanceId: string | undefined): {
     staleTime: 5 * 60 * 1000,
     queryFn: async () => {
       const res = await fetch(`/api/item/${instanceId}`);
-      if (!res.ok) throw new Error("Échec du chargement de l'objet");
+      if (!res.ok) throw new Error("Error loading item");
       return res.json();
     },
   });

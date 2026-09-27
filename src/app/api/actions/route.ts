@@ -73,7 +73,7 @@ export async function POST(request: Request) {
         message: err.message,
         throttleSeconds: err.throttleSeconds,
       };
-      console.error(`Action ${body.kind} refusée:`, err.message);
+      console.error(`Action ${body.kind} did not succeed:`, err.message);
       return NextResponse.json(
         { error },
         // 409 : l'état du compte s'oppose à l'action, ce n'est pas une panne
@@ -81,7 +81,7 @@ export async function POST(request: Request) {
       );
     }
 
-    console.error("Erreur action:", err);
+    console.error("Action error:", err);
     return NextResponse.json(
       { error: { message: "action_failed" } satisfies MoveStepError },
       { status: 502 },

@@ -71,7 +71,7 @@ buildBackup(settings, groups, now).groups!.push({...group, id: "g2"});
 check("l'export copie la liste, il ne la partage pas", groups.length, 1);
 
 check("nom de fichier daté et sans caractère interdit",
-    backupFileName(now), "bdt-sauvegarde-2026-09-04-143207.json");
+    backupFileName(now), "bdt-backup-2026-09-04-143207.json");
 check("… et il ne contient ni deux-points ni espace",
     /[:\s]/.test(backupFileName(now)), false);
 

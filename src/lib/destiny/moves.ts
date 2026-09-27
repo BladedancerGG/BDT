@@ -147,9 +147,11 @@ export type MoveFailure =
 export interface PlannedStep extends MoveStepRequest {
   /**
    * `move` porte sur l'objet déplacé ; `unequip` équipe un remplaçant pour
-   * libérer l'objet ; `evict` range un autre objet au coffre pour faire place.
+   * libérer l'objet ; `standIn` amène ce remplaçant d'ailleurs quand le
+   * personnage n'en a aucun ; `evict` range un autre objet au coffre pour
+   * faire place.
    */
-  role: "move" | "unequip" | "evict";
+  role: "move" | "unequip" | "standIn" | "evict";
   /** Emplacement d'équipement concerné (pas celui du coffre) */
   bucketHash: number;
   /**
@@ -560,6 +562,84 @@ export function planMove(
     return null;
   };
 
+  /**
+   * Amène au personnage un objet du même emplacement, puis l'équipe à la place
+   * de celui qu'on libère.
+   *
+   * Le coffre d'abord — une requête de transfert au lieu de deux — puis ce
+   * qu'un autre personnage a de **rangé** : un objet équipé ailleurs réclamerait
+   * lui-même un remplaçant, et la cascade n'aurait pas de fond. L'ordre de
+   * sacrifice reste celui des remplaçants ordinaires.
+   */
+  const fetchStandIn = (characterId: string): MoveFailure | null => {
+    const character = ctx.profile.characters.find(
+      (c) => c.characterId === characterId,
+    );
+    // Un exotique n'est acceptable que si aucun autre de la même famille n'est
+    // porté ailleurs : sinon l'équiper en chasserait un que personne n'a visé.
+    const family = exoticFamily(bucketHash);
+    const hasRival =
+      family !== null &&
+      (ctx.profile.equipment[characterId] ?? []).some(
+        (equipped) =>
+          equipped.bucketHash !== bucketHash &&
+          exoticFamily(equipped.bucketHash) === family &&
+          isExotic(ctx.defs.get(equipped.itemHash)),
+      );
+    const fits = (candidate: DestinyItemComponent) => {
+      if (!candidate.itemInstanceId || candidate.itemInstanceId === itemInstanceId) {
+        return false;
+      }
+      const candidateDef = ctx.defs.get(candidate.itemHash);
+      if (!candidateDef || homeBucket(candidateDef) !== bucketHash) return false;
+      if (candidateDef.nonTransferrable || candidateDef.equippable === false) {
+        return false;
+      }
+      if (
+        candidateDef.classType !== undefined &&
+        candidateDef.classType !== CLASS_ANY &&
+        character &&
+        character.classType !== candidateDef.classType
+      ) {
+        return false;
+      }
+      return !(hasRival && isExotic(candidateDef));
+    };
+
+    const inVault = sacrificeOrder(
+      ctx,
+      ctx.profile.vault.filter((i) => i.bucketHash === BUCKET.Vault && fits(i)),
+    )[0];
+    if (inVault) {
+      step("fromVault", inVault, characterId, "standIn");
+      vaultCount -= 1;
+      step("equip", inVault, characterId, "unequip");
+      // Arrivé puis équipé, et l'objet libéré prend sa place rangée : le
+      // compte du personnage augmente d'un.
+      bump(characterId, 1);
+      return null;
+    }
+
+    for (const other of ctx.profile.characters) {
+      if (other.characterId === characterId) continue;
+      const candidate = sacrificeOrder(
+        ctx,
+        stored(ctx.profile, other.characterId, bucketHash).filter(fits),
+      )[0];
+      if (!candidate) continue;
+      if (vaultCount >= vaultCapacity) return "vaultFull";
+
+      step("toVault", candidate, other.characterId, "standIn");
+      bump(other.characterId, -1);
+      step("fromVault", candidate, characterId, "standIn");
+      step("equip", candidate, characterId, "unequip");
+      bump(characterId, 1);
+      return null;
+    }
+
+    return "noReplacement";
+  };
+
   // —— 1. Sortir des Objets perdus ————————————————————————————
   // Seule destination possible : l'inventaire du personnage qui les détient.
   let holder: string | null = null; // null = le coffre
@@ -590,11 +670,15 @@ export function planMove(
       ctx,
       stored(ctx.profile, place.characterId, bucketHash),
     )[0];
-    if (!replacement?.itemInstanceId) {
-      return { ok: false, failure: "noReplacement" };
+    if (replacement?.itemInstanceId) {
+      step("equip", replacement, place.characterId, "unequip");
+      // Le remplaçant quitte l'inventaire, l'objet libéré y entre : à somme nulle
+    } else {
+      // Rien de rangé sur le personnage : le jeu refuserait de le laisser
+      // l'emplacement nu, il faut donc lui AMENER un remplaçant d'ailleurs.
+      const failure = fetchStandIn(place.characterId);
+      if (failure) return { ok: false, failure };
     }
-    step("equip", replacement, place.characterId, "unequip");
-    // Le remplaçant quitte l'inventaire, l'objet libéré y entre : à somme nulle
   }
 
   // —— 3. Rejoindre le bon conteneur ————————————————————————

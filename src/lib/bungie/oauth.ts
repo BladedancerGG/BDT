@@ -22,7 +22,7 @@ export interface BungieTokens {
 
 /** Construit l'URL vers laquelle rediriger l'utilisateur pour l'autoriser. */
 export function getAuthorizeUrl(state: string): string {
-  if (!CLIENT_ID) throw new Error("BUNGIE_CLIENT_ID manquante");
+  if (!CLIENT_ID) throw new Error("BUNGIE_CLIENT_ID missing, check .env file if it's present");
   const params = new URLSearchParams({
     client_id: CLIENT_ID,
     response_type: "code",
@@ -74,7 +74,7 @@ async function requestTokens(
   body: Record<string, string>,
 ): Promise<BungieTokens> {
   if (!CLIENT_ID || !CLIENT_SECRET || !API_KEY) {
-    throw new Error("Variables OAuth Bungie manquantes");
+    throw new Error("Bungie OAuth variables missing, check .env file if they are present");
   }
 
   const res = await fetch(TOKEN_URL, {
@@ -88,7 +88,7 @@ async function requestTokens(
   });
 
   if (!res.ok) {
-    throw new Error(`Échec token OAuth (${res.status}): ${await res.text()}`);
+    throw new Error(`OAuth token error (${res.status}): ${await res.text()}`);
   }
 
   return parseTokenResponse(await res.json());

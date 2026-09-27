@@ -175,15 +175,17 @@ function StepRow({
         ? t("insert", { perk })
         : step.role === "unequip"
           ? t("unequip", { item })
-          : step.role === "evict"
-            ? t("evict", { item })
-            : step.kind === "pull"
-              ? t("pull", { character })
-              : step.kind === "toVault"
-                ? t("toVault")
-                : step.kind === "fromVault"
-                  ? t("toCharacter", { character })
-                  : t("equip", { character });
+          : step.role === "standIn"
+            ? t("standIn", { item })
+            : step.role === "evict"
+              ? t("evict", { item })
+              : step.kind === "pull"
+                ? t("pull", { character })
+                : step.kind === "toVault"
+                  ? t("toVault")
+                  : step.kind === "fromVault"
+                    ? t("toCharacter", { character })
+                    : t("equip", { character });
 
   return (
     <li className="action-card__step">

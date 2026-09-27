@@ -138,7 +138,7 @@ export function parseItemCategory(raw: unknown): ItemCategory | undefined {
 export const INVENTORY_LAYOUTS = ["single", "characters"] as const;
 export type InventoryLayout = (typeof INVENTORY_LAYOUTS)[number];
 
-export const DEFAULT_INVENTORY_LAYOUT: InventoryLayout = "single";
+export const DEFAULT_INVENTORY_LAYOUT: InventoryLayout = "characters";
 
 export function parseInventoryLayout(raw: unknown): InventoryLayout | undefined {
     return INVENTORY_LAYOUTS.includes(raw as InventoryLayout)

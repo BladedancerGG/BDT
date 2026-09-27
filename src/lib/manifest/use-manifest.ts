@@ -43,7 +43,7 @@ export function useManifest() {
         ensureManifest(locale, (progress) => update({progress}))
             .then(() => update({status: "ready"}))
             .catch((err) => {
-                console.error("Manifeste:", err);
+                console.error("[manifest]", err);
                 update({status: "error"});
             });
 

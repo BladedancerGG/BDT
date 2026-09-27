@@ -44,6 +44,9 @@ shell: ## Ouvre un shell dans le conteneur de l'app
 db-shell: ## Ouvre une console psql dans la base
 	docker compose exec db psql -U $${POSTGRES_USER:-bdt} -d $${POSTGRES_DB:-bdt}
 
+get-user-count: ## Récupère le nombre total d'utilisateurs inscrits sur le site
+	docker compose exec db psql -U $${POSTGRES_USER:-bdt} -d $${POSTGRES_DB:-bdt} -c 'select count("id") from "User";'
+
 ## —— Base de données (Prisma) ——————————————————————————————
 
 migrate: ## Crée et applique les migrations (dev)

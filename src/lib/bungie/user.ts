@@ -68,7 +68,7 @@ export async function getPrimaryDestinyMembership(
 
   const memberships = data.destinyMemberships;
   if (!memberships?.length) {
-    throw new Error("Aucune membership Destiny trouvée");
+    throw new Error("No Destiny Memberships found.");
   }
 
   // En cross-save, primaryMembershipId désigne la plateforme qui fait autorité

@@ -10,6 +10,7 @@ import {
     EquippedSetsProvider,
 } from "@/lib/destiny/set-bonus";
 import {
+    ARMOR_BUCKETS,
     ARMOR_COLUMN,
     BUCKET,
     CUSTOMIZATION_LEFT,
@@ -28,6 +29,7 @@ import {useSettings} from "@/lib/settings/store";
 import {useDisplayableItems} from "@/lib/destiny/use-displayable-items";
 import {useLoadoutItems} from "@/lib/destiny/use-loadout-items";
 import {isEmptyLoadout} from "@/lib/loadouts/loadout";
+import {CLASS_ANY, homeBucket} from "@/lib/destiny/moves";
 import {SearchProvider} from "@/lib/search/provider";
 import {SearchActionsBridge} from "./search/SearchActionsBridge";
 import {useActionRunner} from "@/lib/actions/use-action-runner";
@@ -50,12 +52,18 @@ import {LoadoutTitle} from "./loadouts/LoadoutTitle";
 import {GroupsModeView} from "./groups/GroupsModeView";
 import {GroupSelectionBar} from "./groups/GroupSelectionBar";
 import {useGroupSelection} from "@/lib/loadouts/groups/selection";
-import {VirtualItemGrid, type LeadGroup, type LeadSection} from "./VirtualItemGrid";
+import {
+    VirtualItemGrid,
+    type CharacterSection,
+    type LeadGroup,
+    type LeadSection,
+} from "./VirtualItemGrid";
 import {ActionsPanel} from "./actions/ActionsPanel";
 import {DropZones} from "./dnd/DropZones";
 import {DragScopeProvider, MoveDnd, type DragScope} from "./dnd/MoveDnd";
 import {LoadingIcon} from "@/components/icons";
 import {ArrowLeftIcon} from "@heroicons/react/24/solid";
+import {Toggle} from "./ui/SettingRow";
 
 /**
  * Vide l'unique file d'actions.
@@ -71,6 +79,17 @@ function ActionRunner() {
 
 // Référence stable : évite de relancer le filtrage à chaque rendu
 const NO_ITEMS: DestinyItemComponent[] = [];
+
+/**
+ * Emplacements des autres personnages tenus hors du stockage : doctrine et
+ * artéfact ne quittent pas leur personnage, les montrer à portée de glisser
+ * n'offrirait qu'un refus. Le Courrier a déjà sa section.
+ */
+const NOT_IN_STORAGE: ReadonlySet<number> = new Set([
+    BUCKET.Subclass,
+    BUCKET.Artifact,
+    BUCKET.Postmaster,
+]);
 
 /**
  * Portée du glisser-déposer dans le mode « équipements » : interdit, et sous ses
@@ -270,10 +289,10 @@ function Inventory({
         [shownInventory],
     );
 
-    // Les objets perdus des TROIS personnages, pour la disposition en colonnes :
-    // elle les montre tous, découpés par personnage. Toujours calculés — une
-    // liste de quelques dizaines d'objets, et un hook ne se monte pas
-    // conditionnellement.
+    // Les objets perdus des TROIS personnages, découpés par personnage, quelle
+    // que soit la disposition : celle à un seul personnage montre déjà les
+    // deux autres dans son stockage. Toujours calculés — une liste de quelques
+    // dizaines d'objets, et un hook ne se monte pas conditionnellement.
     const allLeftovers = useMemo(
         () =>
             data.characters.flatMap((c) =>
@@ -309,11 +328,12 @@ function Inventory({
     // côte à côte, sans objet quand on n'en voit qu'une à la fois.
     const columnsLayout = rail ? !shared : layout === "characters" && !shared;
 
-    // Les objets perdus montrés : ceux du personnage affiché, ou ceux des trois
-    // quand les colonnes sont montées — chacun sous son en-tête.
+    // Les objets perdus montrés : ceux des trois, chacun sous son en-tête. Le
+    // rangement partagé fait exception — il reste la colonne du seul
+    // personnage affiché, porte d'entrée de ces objets de portée compte.
     const names = useCharacterNames(data.characters);
     const postmasterGroups = useMemo(() => {
-        if (!columnsLayout) return undefined;
+        if (shared) return undefined;
         // Les sous-groupes se taillent dans les listes d'origine, pas dans la
         // liste filtrée : celle-ci ne dit plus de qui vient chaque objet.
         const kept = new Set(shownLeftovers);
@@ -325,9 +345,9 @@ function Inventory({
                 (i) => i.bucketHash === BUCKET.Postmaster && kept.has(i),
             ),
         }));
-    }, [columnsLayout, data.characters, data.inventory, names, shownLeftovers]);
+    }, [shared, data.characters, data.inventory, names, shownLeftovers]);
     const postmaster = usePostmasterSection(
-        columnsLayout ? shownLeftovers : ownLeftovers,
+        shared ? ownLeftovers : shownLeftovers,
         postmasterGroups,
     );
 
@@ -413,6 +433,67 @@ function Inventory({
     const equipmentMode = viewMode === "loadouts";
     const groupsMode = viewMode === "groups";
 
+    // —— Le stockage de la disposition à un seul personnage ——————
+    //
+    // Elle ne montre qu'un personnage : les deux autres y rejoignent le
+    // stockage, pour qu'on aille chercher leurs objets sans changer d'onglet.
+    // Ni les colonnes ni le rail n'en ont besoin — ils les montrent déjà —, et
+    // le rangement partagé n'appartient à personne.
+    const single = !columnsLayout && !shared;
+
+    const ownClassArmor = useSettings((s) => s.ownClassArmor);
+    const setOwnClassArmor = useSettings((s) => s.setOwnClassArmor);
+    const armorClass =
+        single && ownClassArmor ? character?.classType : undefined;
+
+    // Une armure qu'une autre classe serait seule à porter. L'emplacement
+    // d'ORIGINE, et non `bucketHash` : au coffre, celui-ci vaut « Coffre »
+    // pour tout le monde.
+    const foreignArmor = useMemo(() => {
+        if (armorClass === undefined) return null;
+        return (item: DestinyItemComponent) => {
+            const def = defs.get(item.itemHash);
+            return (
+                def !== undefined &&
+                ARMOR_BUCKETS.has(homeBucket(def)) &&
+                def.classType !== undefined &&
+                def.classType !== CLASS_ANY &&
+                def.classType !== armorClass
+            );
+        };
+    }, [armorClass, defs]);
+
+    const storageVaultItems = useMemo(
+        () =>
+            foreignArmor
+                ? vaultItems.filter((i) => !foreignArmor(i))
+                : vaultItems,
+        [vaultItems, foreignArmor],
+    );
+
+    const otherCharacters = useMemo((): CharacterSection[] | undefined => {
+        if (!single) return undefined;
+        const keep = (i: DestinyItemComponent) =>
+            !NOT_IN_STORAGE.has(i.bucketHash) && !foreignArmor?.(i);
+        return data.characters
+            .filter((c) => c.characterId !== current)
+            .map((c) => ({
+                key: c.characterId,
+                label: names.get(c.characterId) ?? "",
+                icon: {kind: "class", classType: c.classType},
+                equipped: (data.equipment[c.characterId] ?? NO_ITEMS).filter(keep),
+                stored: (data.inventory[c.characterId] ?? NO_ITEMS).filter(keep),
+            }));
+    }, [
+        single,
+        foreignArmor,
+        data.characters,
+        data.equipment,
+        data.inventory,
+        current,
+        names,
+    ]);
+
     // —— La chaîne de hauteurs du rail ————————————————————————
     //
     // Le rail demande la même mise en page « application » que le grand écran :
@@ -450,8 +531,9 @@ function Inventory({
         <div className="inventory__storage">
             <VirtualItemGrid
                 title={t("vault")}
-                items={vaultItems}
+                items={storageVaultItems}
                 details={data.items}
+                characters={otherCharacters}
                 // Cinq par ligne sur téléphone, la taille s'y ajustant : c'est
                 // la grille qui mesure sa largeur, la fenêtre ne disant rien de
                 // la barre de défilement.
@@ -481,11 +563,6 @@ function Inventory({
                 className={`header${searchOpen ? " header--search-open" : ""}`}
             >
                 <MainMenuButton/>
-                <CharacterPicker
-                    characters={data.characters}
-                    selectedId={current}
-                    onSelect={setSelectedId}
-                />
                 {/* La loupe précède la barre qu'elle commande : c'est l'ordre
                     de lecture, et la grille de l'en-tête la place ailleurs
                     sans toucher au document. */}
@@ -527,9 +604,40 @@ function Inventory({
                     }`}
                     inert={viewMode !== "inventory"}
                 >
-                    {/* Onglets de famille d'objets : ils commandent à la
-                        fois les colonnes du personnage et le coffre. */}
-                    <ItemCategoryTabs/>
+                    <div className="inventory__toolbar">
+                        {/* Le personnage regardé, posé devant ce qu'on regarde
+                            de lui plutôt que dans l'en-tête. Les colonnes et le
+                            rail le désignent déjà chacun à leur manière — un
+                            clic sur la colonne, une page par personnage. */}
+                        {!columnsLayout && (
+                            <CharacterPicker
+                                characters={data.characters}
+                                selectedId={current}
+                                onSelect={setSelectedId}
+                                full
+                            />
+                        )}
+
+                        {/* Onglets de famille d'objets : ils commandent à la
+                            fois les colonnes du personnage et le coffre. */}
+                        <ItemCategoryTabs/>
+
+                        {/* L'interrupteur des paramètres, et non un bouton : c'est
+                            un réglage qu'on laisse en place, pas un geste. */}
+                        {single && (
+                            <div className="inventory__class-filter">
+                                <label htmlFor="own-class-armor">
+                                    {t("ownClassArmor")}
+                                </label>
+                                <Toggle
+                                    id="own-class-armor"
+                                    checked={ownClassArmor}
+                                    onChange={setOwnClassArmor}
+                                    label={t("ownClassArmor")}
+                                />
+                            </div>
+                        )}
+                    </div>
 
                     <div
                         className={`inventory__body${

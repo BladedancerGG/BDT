@@ -26,7 +26,7 @@ export async function ensureManifest(
 ): Promise<void> {
     // 1. Métadonnées (version + chemins) via notre proxy serveur
     const res = await fetch("/api/manifest");
-    if (!res.ok) throw new Error("Impossible de récupérer le manifeste");
+    if (!res.ok) throw new Error("Failed to fetch manifest");
     const meta: ManifestMeta = await res.json();
 
     // 2. Déjà à jour ? (même version, même langue ET même schéma de tables)
@@ -48,7 +48,7 @@ export async function ensureManifest(
 
     // 3. Télécharger chaque table (fallback anglais si la langue manque)
     const paths = meta.componentPaths[language] ?? meta.componentPaths.en;
-    if (!paths) throw new Error(`Aucun chemin de manifeste pour "${language}"`);
+    if (!paths) throw new Error(`No manifest path for "${language}"`);
 
     let done = 0;
     for (const table of MANIFEST_TABLES) {
@@ -61,13 +61,13 @@ export async function ensureManifest(
         // sans le moindre indice. Elle doit donc casser bruyamment.
         if (!path) {
             throw new Error(
-                `Table absente du manifeste : ${table} (langue « ${language} »)`,
+                `Missing manifest table: ${table} (language: "${language}")`,
             );
         }
 
         // Fichiers statiques publics servis directement par bungie.net (CORS OK)
         const tableRes = await fetch(`${BUNGIE_ROOT}${path}`);
-        if (!tableRes.ok) throw new Error(`Échec téléchargement ${table}`);
+        if (!tableRes.ok) throw new Error(`Failed downloading ${table} manifest table`);
         const json: Record<string, unknown> = await tableRes.json();
 
         const rows = Object.entries(json).map(([hash, data]) => ({
@@ -80,7 +80,7 @@ export async function ensureManifest(
         // l'interface resterait muette. Aucune des tables demandées ici n'a de
         // raison légitime d'être vide.
         if (rows.length === 0) {
-            throw new Error(`Table vide dans le manifeste : ${table}`);
+            throw new Error(`Empty manifest table: ${table}`);
         }
 
         // Remplace le contenu précédent de cette table

@@ -93,7 +93,7 @@ export async function bungieFetch<T>(
     ...init
   }: FetchOptions = {},
 ): Promise<T> {
-  if (!API_KEY) throw new BungieApiError("BUNGIE_API_KEY manquante");
+  if (!API_KEY) throw new BungieApiError("BUNGIE_API_KEY missing, check the .env file if it's present");
 
   const method = (init.method ?? "GET").toUpperCase();
   // On ne retente que les requêtes sans effet de bord
@@ -133,7 +133,7 @@ export async function bungieFetch<T>(
         if (attempt < attempts && RETRYABLE_STATUS.has(res.status)) {
           lastError = error;
           console.warn(
-            `[bungie] ${res.status} sur ${path} — nouvelle tentative ${attempt}/${attempts - 1}`,
+            `[bungie] ${res.status} on ${BUNGIE_ROOT}${path} — new attempt ${attempt}/${attempts - 1}`,
           );
           await wait(backoffDelay(attempt));
           continue;
@@ -177,7 +177,7 @@ export async function bungieFetch<T>(
 
       const reason = error instanceof Error ? error.message : String(error);
       console.warn(
-        `[bungie] échec réseau sur ${path} (${reason}) — nouvelle tentative ${attempt}/${attempts - 1}`,
+        `Network error on ${BUNGIE_ROOT}${path} for the following reason: "${reason}" — new attempt ${attempt}/${attempts - 1}`,
       );
       await wait(backoffDelay(attempt));
     }
@@ -185,7 +185,7 @@ export async function bungieFetch<T>(
 
   if (lastError instanceof BungieApiError) throw lastError;
   throw new BungieApiError(
-    `Bungie injoignable sur ${path}: ${
+    `${BUNGIE_ROOT}${path}: ${
       lastError instanceof Error ? lastError.message : String(lastError)
     }`,
   );
