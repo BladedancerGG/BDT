@@ -74,15 +74,7 @@ the Rust engine being gone.
 
 | Tool | URL | Scope |
 |---|---|---|
-| **Adminer** | http://localhost:8080 | whole database: free-form SQL, schema, indexes, migrations table |
 | **Prisma Studio** | `make studio` → http://localhost:5555 | Prisma models only, comfortable editing |
-
-Adminer's "server" field is pre-filled with `db`; pick **PostgreSQL** as the
-system and use the `.env` credentials (`make adminer` prints them). Adminer 5
-follows `prefers-color-scheme`, so its dark theme applies on its own.
-
-> ⚠️ **Development tool.** This container exposes a database login form on port
-> 8080 — it is absent from the production stack.
 
 ## Item data preloading
 
@@ -1996,15 +1988,7 @@ Rust ayant disparu.
 
 | Outil | URL | Portée |
 |---|---|---|
-| **Adminer** | http://localhost:8080 | toute la base : SQL libre, schéma, index, table des migrations |
 | **Prisma Studio** | `make studio` → http://localhost:5555 | uniquement les modèles Prisma, édition confortable |
-
-Le champ « serveur » d'Adminer est pré-rempli à `db` ; choisir **PostgreSQL**
-comme système et saisir les identifiants du `.env` (`make adminer` les rappelle).
-Adminer 5 suit `prefers-color-scheme`, son thème sombre s'applique tout seul.
-
-> ⚠️ **Outil de développement.** Ce conteneur expose un formulaire de connexion à
-> la base sur le port 8080 — il est absent de la stack de production.
 
 ## Préchargement des données d'objets
 
