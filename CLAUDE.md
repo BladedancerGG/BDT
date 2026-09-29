@@ -13,20 +13,36 @@ Si y a des points à clarifier dans les prompts utilisateurs, ne surtout pas hé
 
 Ne pas dupliquer leur contenu ici — y renvoyer.
 
-| Fichier            | Contenu                                                                    |
-| ------------------ | -------------------------------------------------------------------------- |
-| `README.md`        | Installation locale et déploiement en production, uniquement               |
-| `ARCHITECTURE.md`  | Notes techniques détaillées : OAuth, manifeste, icônes, ornements, doctrines, préchargement, virtualisation, SCSS, thème |
-| `DLM.md`           | Cahier des charges d'origine (fonctionnalités visées)                      |
+| Fichier                 | Contenu                                                                    |
+| ----------------------- | -------------------------------------------------------------------------- |
+| `README.md`             | Installation locale et déploiement en production, uniquement               |
+| `docs/ARCHITECTURE.md`  | Notes techniques détaillées : OAuth, manifeste, icônes, ornements, doctrines, préchargement, virtualisation, SCSS, thème |
+| `docs/DLM.md`           | Cahier des charges d'origine (fonctionnalités visées)                      |
 
 `ARCHITECTURE.md` est la première chose à lire avant de toucher à la logique Destiny.
 Les deux premiers sont bilingues : **anglais d'abord, puis français**. Conserver cette structure.
 
+## Organisation du dépôt
+
+La racine ne contient que ce qui sert à Docker : `Dockerfile`, `.dockerignore`,
+`docker-compose*.yml`, `Makefile`, `.env*`. Le projet Next.js entier vit dans **`src/`**
+(`package.json`, `node_modules`, `prisma/`, `messages/`, `public/`, `scripts/`, `Caddyfile*`),
+et ses sources dans `src/src/`. La documentation est dans `docs/`.
+
+- `src/` est monté en **`/app`** dans le conteneur (`./src:/app`) : c'est le répertoire de
+  travail de `docker compose exec app …`.
+- Le contexte de build reste la racine, d'où les `COPY src/…` du `Dockerfile` et les motifs
+  `src/…` de `.dockerignore`.
+- `make` et `docker compose` se lancent depuis la racine.
+
+**Sauf mention contraire, les chemins cités plus bas sont relatifs à `src/`** (donc à `/app`),
+et `lib/…` / `components/…` abrègent `src/src/lib/…` / `src/src/components/…`.
+
 ## Tout tourne dans Docker
 
 C'est la contrainte à connaître avant toute autre : `npm`, `npx` et `tsc` lancés depuis l'hôte
-échouent. `node_modules` est bien dans le dossier du projet — pour que l'IDE y résolve types,
-imports et règles ESLint — mais ses binaires natifs (`@next/swc`, `lightningcss`, `sass`, moteurs
+échouent. `node_modules` est bien dans le dossier du projet (`src/node_modules`) — pour que
+l'IDE y résolve types, imports et règles ESLint — mais ses binaires natifs (`@next/swc`, `lightningcss`, `sass`, moteurs
 Prisma) sont compilés pour la **musl** du conteneur, pas pour la glibc de l'hôte. Seul le
 JavaScript pur y tourne des deux côtés.
 
@@ -59,7 +75,7 @@ Les modules **purs** — ceux qui ne connaissent ni React, ni le store, ni le r�
 malgré tout leurs vérifications, rangées dans `scripts/checks/` :
 
 ```bash
-scripts/checks/run.sh    # compile et exécute les vérifications, dans le conteneur
+src/scripts/checks/run.sh    # depuis la racine : compile et exécute les vérifications, dans le conteneur
 ```
 
 Elles couvrent aujourd'hui `lib/loadouts/groups/edit.ts`, `lib/loadouts/groups/equip.ts`,
@@ -184,7 +200,7 @@ Sans tests automatisés, la vérification est manuelle et attendue :
 ```bash
 docker compose exec app npx tsc --noEmit                    # types
 docker compose exec app npm run lint                        # au-delà des 2 problèmes connus
-scripts/checks/run.sh                                       # moteurs purs
+src/scripts/checks/run.sh                                   # moteurs purs
 curl -skL -o /dev/null -w "%{http_code}\n" https://localhost/fr   # et /en
 docker compose logs app --since 30s                         # erreurs runtime
 ```
@@ -193,5 +209,4 @@ Pour du CSS, récupérer la feuille compilée (`/_next/static/…/*.css`) et y c
 les greps de chaînes exactes sur la source donnent des faux négatifs, le compilateur normalisant les
 valeurs (`125ms` → `.125s`, `top right` → `100% 0`).
 
-`.env` est ignoré par git et contient des secrets en clair. Adminer (commenté dans
-`docker-compose.yml`) est un outil de développement seulement, absent de la production.
+`.env` est ignoré par git et contient des secrets en clair.

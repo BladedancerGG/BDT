@@ -1,10 +1,15 @@
-node_modules
-.next
+# Le contexte de build est la racine : le projet Next vit dans src/.
+src/node_modules
+src/.next
+src/tsconfig.tsbuildinfo
 .git
 .env
-.env.local
+.env.*
+!.env.example
+!.env.production.example
 npm-debug.log
+docs
 README.md
 Dockerfile
 .dockerignore
-docker-compose.yml
+docker-compose*.yml

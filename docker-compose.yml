@@ -6,7 +6,7 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./src/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
 
@@ -43,7 +43,8 @@ services:
     # pas en 1000:1000 (`id -u`, `id -g`).
     user: "${DOCKER_UID:-1000}:${DOCKER_GID:-1000}"
     volumes:
-      - .:/app
+      # Seul src/ est monté : c'est lui, et non la racine, qui contient le projet Next.
+      - ./src:/app
       # node_modules n'est plus un volume anonyme : il vit dans le projet, sur
       # l'hôte, pour que l'IDE y résolve types, imports et règles ESLint.
       # L'entrypoint l'installe au démarrage s'il manque ou a vieilli.

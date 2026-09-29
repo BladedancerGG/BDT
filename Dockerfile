@@ -10,7 +10,9 @@ RUN apk add --no-cache openssl
 # ---- Étape dépendances ----
 # Isolée pour profiter du cache Docker : ne se relance que si package*.json change
 FROM base AS deps
-COPY package.json package-lock.json* ./
+# Le contexte de build est la racine du dépôt (fichiers Docker), le projet Next
+# vit dans src/ : c'est son contenu qu'on dépose dans /app.
+COPY src/package.json src/package-lock.json* ./
 RUN npm install
 
 # ---- Étape développement ----
@@ -19,7 +21,7 @@ ENV NODE_ENV=development
 # Pas de `COPY --from=deps` ici : `node_modules` vient du bind mount du projet
 # (voir docker-compose.yml), qui masquerait de toute façon ce que l'image livre.
 # C'est l'entrypoint qui l'installe au démarrage.
-COPY . .
+COPY src/ .
 
 # Le conteneur tourne sous l'UID de l'hôte (docker-compose.yml) afin que les
 # fichiers écrits dans le bind mount — node_modules, src/generated — lui
@@ -41,7 +43,7 @@ CMD ["sh", "scripts/docker/dev-entrypoint.sh"]
 FROM base AS builder
 ENV NODE_ENV=production
 COPY --from=deps /app/node_modules ./node_modules
-COPY . .
+COPY src/ .
 # `public/` peut être absent du contexte : Git ne versionne pas les dossiers
 # vides. On le crée donc pour que la copie de l'étape production aboutisse
 # toujours, même sans fichier statique.

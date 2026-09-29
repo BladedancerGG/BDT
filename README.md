@@ -2,14 +2,14 @@
 
 ## https://destinytools.bladedancer.net/
 
-![Bladedancer destiny tools :3](public/images/BDT.png "Bladedancer destiny tools :3")
+![Bladedancer destiny tools :3](src/public/images/BDT.png "Bladedancer destiny tools :3")
 
 
 ### [English](#english) |  [Français](#français)
 
 Technical notes (architecture, Bungie API specifics, measured trade-offs):
-[`ARCHITECTURE.md`](./ARCHITECTURE.md).
-Functional scope: [`DLM.md`](./DLM.md).
+[`ARCHITECTURE.md`](./docs/ARCHITECTURE.md).
+Functional scope: [`DLM.md`](./docs/DLM.md).
 
 ---
 
@@ -156,6 +156,12 @@ make prod-down      # stop; data and certificates are kept
 make clean # stops the application and deletes all of its data (docker volumes gone bye bye)
 make prod-reset # Deletes the data and Restarts the prod application from a clean state (just like a 1st launch)
 ```
+
+## Repository layout
+
+- root — Docker only: `Dockerfile`, `docker-compose*.yml`, `Makefile`, `.env*`; every `make` / `docker compose` command runs from here
+- `src/` — the Next.js project (`package.json`, `prisma/`, `messages/`, `public/`, `Caddyfile*`, sources in `src/src/`), mounted as `/app` in the container
+- `docs/` — technical notes and specifications
 
 ## Stack
 
@@ -311,6 +317,12 @@ make prod-down      # arrêt ; les données et les certificats sont conservés
 make clean # arrête l'application et supprime toutes ses données (les volumes docker disparaissent bye bye)
 make prod-reset # Supprime les données et redémarre l'application de prod depuis un état propre (comme un 1er lancement)
 ```
+
+## Organisation du dépôt
+
+- racine — Docker uniquement : `Dockerfile`, `docker-compose*.yml`, `Makefile`, `.env*` ; toutes les commandes `make` / `docker compose` se lancent d'ici
+- `src/` — le projet Next.js (`package.json`, `prisma/`, `messages/`, `public/`, `Caddyfile*`, sources dans `src/src/`), monté en `/app` dans le conteneur
+- `docs/` — notes techniques et cahier des charges
 
 ## Stack
 

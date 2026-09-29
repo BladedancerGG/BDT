@@ -15,24 +15,11 @@ next-env.d.ts
 .env*.local
 .env.production
 
-# prisma
-/prisma/*.db
-# Client généré (Prisma 7 l'écrit dans les sources) — régénéré au démarrage
-/src/generated/
-
-# misc
-.DS_Store
-*.pem
-npm-debug.log*
-
 # claude stuff
 .claude
 
 # IDE stuff
 .idea
-
-# useless stuff
-tsconfig.tsbuildinfo
 
 # sauvegardes de base produites par « make backup » / « make prod-backup »
 backup-*.sql.gz

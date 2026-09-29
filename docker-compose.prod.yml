@@ -30,7 +30,7 @@ services:
       APP_DOMAIN: ${APP_DOMAIN:?APP_DOMAIN est requis}
       ACME_EMAIL: ${ACME_EMAIL:?ACME_EMAIL est requis}
     volumes:
-      - ./Caddyfile.prod:/etc/caddy/Caddyfile:ro
+      - ./src/Caddyfile.prod:/etc/caddy/Caddyfile:ro
       # Certificats et état ACME : à conserver, sous peine de réémission
       - caddy_data:/data
       - caddy_config:/config
