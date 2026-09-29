@@ -6,6 +6,11 @@
 // anti-champion à droite. Sur une armure exotique, l'attribut qui la définit et
 // le résumé de son effet.
 
+.intrinsic-rows {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
 .intrinsic-row {
   display: flex;
   align-items: center;

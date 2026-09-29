@@ -915,9 +915,13 @@ export function ItemTooltip({
                             l'archétype — remonté près de la puissance — et trois
                             emplacements de statistiques que le manifeste laisse
                             vides (180 plugs `armor_stats`, aucun avec nom ni icône). */}
-                        {isArmor && armorPerks.intrinsicHash && (
-                            <ArmorIntrinsic hash={armorPerks.intrinsicHash}/>
-                        )}
+                        <div className="intrinsic-rows">
+                            {isArmor &&
+                                armorPerks.intrinsicHashes?.map((hash) => (
+                                    <ArmorIntrinsic key={hash} hash={hash}/>
+                                ))}
+                        </div>
+
 
                         {/* Bonus d'ensemble : au même niveau que les attributs
                             d'armure exotique, donc avant les mods */}

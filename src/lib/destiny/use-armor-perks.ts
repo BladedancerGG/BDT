@@ -10,7 +10,9 @@ const ARCHETYPE = "armor_archetypes";
 /**
  * Attribut intrinsèque, propre aux armures exotiques. Ces plugs partagent la
  * famille `intrinsics` avec les armatures d'armes, mais sur une armure ils sont
- * les seuls de cette famille.
+ * les seuls de cette famille — jusqu'à deux fois : les objets de classe
+ * exotiques (Solipsism, Relativism, Stoicism) en portent deux, un « Esprit »
+ * par socket.
  *
  * Exporté : le mode « équipements » repère le même plug, et deux littéraux
  * feraient deux vérités.
@@ -29,7 +31,8 @@ const TUNING_STEP = 5;
 
 export interface ArmorPerks {
     archetypeHash?: number;
-    intrinsicHash?: number;
+    /** Dans l'ordre des sockets : deux sur un objet de classe exotique */
+    intrinsicHashes?: number[];
     /**
      * Statistique « ajustée » d'une armure de palier 5. Elle est tirée au sort
      * à la fabrication et **n'existe nulle part dans la définition de l'objet**
@@ -89,7 +92,9 @@ export function useArmorPerks(
                     const category = (row?.data as InventoryItemDefinition | undefined)?.plug
                         ?.plugCategoryIdentifier;
                     if (category === ARCHETYPE) perks.archetypeHash ??= hashes[i];
-                    if (category === INTRINSIC) perks.intrinsicHash ??= hashes[i];
+                    if (category === INTRINSIC) {
+                        (perks.intrinsicHashes ??= []).push(hashes[i]);
+                    }
                     if (category === TUNING) tuningPlugs.add(hashes[i]);
                 });
 
@@ -103,7 +108,7 @@ export function useArmorPerks(
                     );
                 }
 
-                return perks.archetypeHash || perks.intrinsicHash || perks.tunedStatHash
+                return perks.archetypeHash || perks.intrinsicHashes || perks.tunedStatHash
                     ? perks
                     : EMPTY;
             },

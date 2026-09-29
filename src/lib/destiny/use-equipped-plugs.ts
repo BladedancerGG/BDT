@@ -332,7 +332,8 @@ export function useEquippedPlugs(
                             // Une exotique n'appartient à aucun ensemble : c'est son
                             // attribut intrinsèque qui prend la place. Il partage la
                             // famille `intrinsics` des armatures d'armes, et sur une
-                            // armure il est le seul de cette famille.
+                            // armure il est le seul de cette famille — deux fois sur
+                            // un objet de classe exotique, d'où la boucle.
                             for (const index of sockets.keys()) {
                                 const hash = plugAt(index);
                                 if (!hash) continue;
