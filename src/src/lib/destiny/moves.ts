@@ -563,26 +563,35 @@ export function planMove(
   };
 
   /**
-   * Amène au personnage un objet du même emplacement, puis l'équipe à la place
-   * de celui qu'on libère.
+   * Amène au personnage un objet de l'emplacement `inBucket`, puis l'équipe à
+   * la place de celui qu'on libère.
    *
    * Le coffre d'abord — une requête de transfert au lieu de deux — puis ce
    * qu'un autre personnage a de **rangé** : un objet équipé ailleurs réclamerait
    * lui-même un remplaçant, et la cascade n'aurait pas de fond. L'ordre de
    * sacrifice reste celui des remplaçants ordinaires.
+   *
+   * `inBucket` n'est pas toujours celui de l'objet déplacé : libérer un
+   * exotique concurrent demande un remplaçant dans **son** emplacement, et ce
+   * remplaçant doit alors être non exotique (`allowExotic`), faute de quoi le
+   * conflit ne ferait que changer de place.
    */
-  const fetchStandIn = (characterId: string): MoveFailure | null => {
+  const fetchStandIn = (
+    characterId: string,
+    inBucket: number = bucketHash,
+    allowExotic: boolean = true,
+  ): MoveFailure | null => {
     const character = ctx.profile.characters.find(
       (c) => c.characterId === characterId,
     );
     // Un exotique n'est acceptable que si aucun autre de la même famille n'est
     // porté ailleurs : sinon l'équiper en chasserait un que personne n'a visé.
-    const family = exoticFamily(bucketHash);
+    const family = exoticFamily(inBucket);
     const hasRival =
       family !== null &&
       (ctx.profile.equipment[characterId] ?? []).some(
         (equipped) =>
-          equipped.bucketHash !== bucketHash &&
+          equipped.bucketHash !== inBucket &&
           exoticFamily(equipped.bucketHash) === family &&
           isExotic(ctx.defs.get(equipped.itemHash)),
       );
@@ -591,7 +600,7 @@ export function planMove(
         return false;
       }
       const candidateDef = ctx.defs.get(candidate.itemHash);
-      if (!candidateDef || homeBucket(candidateDef) !== bucketHash) return false;
+      if (!candidateDef || homeBucket(candidateDef) !== inBucket) return false;
       if (candidateDef.nonTransferrable || candidateDef.equippable === false) {
         return false;
       }
@@ -603,20 +612,23 @@ export function planMove(
       ) {
         return false;
       }
-      return !(hasRival && isExotic(candidateDef));
+      return !((hasRival || !allowExotic) && isExotic(candidateDef));
     };
+    // Les compteurs ne suivent que l'emplacement de l'objet déplacé : un
+    // remplaçant venu pour un AUTRE emplacement n'y prend aucune place.
+    const sameBucket = inBucket === bucketHash;
 
     const inVault = sacrificeOrder(
       ctx,
       ctx.profile.vault.filter((i) => i.bucketHash === BUCKET.Vault && fits(i)),
     )[0];
     if (inVault) {
-      step("fromVault", inVault, characterId, "standIn");
+      step("fromVault", inVault, characterId, "standIn", inBucket);
       vaultCount -= 1;
-      step("equip", inVault, characterId, "unequip");
+      step("equip", inVault, characterId, "unequip", inBucket);
       // Arrivé puis équipé, et l'objet libéré prend sa place rangée : le
       // compte du personnage augmente d'un.
-      bump(characterId, 1);
+      if (sameBucket) bump(characterId, 1);
       return null;
     }
 
@@ -624,16 +636,16 @@ export function planMove(
       if (other.characterId === characterId) continue;
       const candidate = sacrificeOrder(
         ctx,
-        stored(ctx.profile, other.characterId, bucketHash).filter(fits),
+        stored(ctx.profile, other.characterId, inBucket).filter(fits),
       )[0];
       if (!candidate) continue;
       if (vaultCount >= vaultCapacity) return "vaultFull";
 
-      step("toVault", candidate, other.characterId, "standIn");
-      bump(other.characterId, -1);
-      step("fromVault", candidate, characterId, "standIn");
-      step("equip", candidate, characterId, "unequip");
-      bump(characterId, 1);
+      step("toVault", candidate, other.characterId, "standIn", inBucket);
+      if (sameBucket) bump(other.characterId, -1);
+      step("fromVault", candidate, characterId, "standIn", inBucket);
+      step("equip", candidate, characterId, "unequip", inBucket);
+      if (sameBucket) bump(characterId, 1);
       return null;
     }
 
@@ -744,15 +756,43 @@ export function planMove(
           (candidate) =>
             candidate.itemInstanceId && !isExotic(ctx.defs.get(candidate.itemHash)),
         );
-        if (!replacement) return { ok: false, failure: "noExoticSwap" };
-
-        step(
-          "equip",
-          replacement,
-          target.characterId,
-          "unequip",
-          rival.bucketHash,
-        );
+        if (replacement) {
+          step(
+            "equip",
+            replacement,
+            target.characterId,
+            "unequip",
+            rival.bucketHash,
+          );
+        } else {
+          // Rien de rangé sur le personnage pour prendre la place de
+          // l'exotique : on lui en AMÈNE un, du coffre ou d'un autre
+          // personnage, comme pour libérer un objet équipé. C'est le cas d'un
+          // inventaire vidé, où seuls les objets portés restent.
+          //
+          // Le remplaçant transite par l'inventaire du personnage avant d'être
+          // équipé : il lui faut une place rangée dans l'emplacement du
+          // concurrent. Un emplacement plein n'est pas libéré ici — n'y
+          // trouver aucun non exotique veut dire qu'il est plein d'exotiques,
+          // cas assez rare pour laisser le refus l'expliquer.
+          if (
+            stored(ctx.profile, target.characterId, rival.bucketHash).length >=
+            Math.max(0, capacityOf(ctx, rival.bucketHash) - 1)
+          ) {
+            return { ok: false, failure: "noExoticSwap" };
+          }
+          const failure = fetchStandIn(
+            target.characterId,
+            rival.bucketHash,
+            false,
+          );
+          if (failure) {
+            return {
+              ok: false,
+              failure: failure === "noReplacement" ? "noExoticSwap" : failure,
+            };
+          }
+        }
       }
     }
 

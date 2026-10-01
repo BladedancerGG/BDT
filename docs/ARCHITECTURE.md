@@ -499,6 +499,13 @@ fit the character's class, be transferable, and not be an exotic while another
 exotic of the same family is worn. Group equips go through the same planner, so
 they benefit from it too.
 
+The **exotic conflict** uses the same fallback. When nothing non-exotic is stored
+in the rival exotic's slot — an inventory emptied down to what is worn — the
+replacement is brought in from the vault or another character
+(`fetchStandIn(characterId, rival.bucketHash, false)`), and it must be
+non-exotic. `noExoticSwap` now only means there truly is none anywhere, or that
+the rival's stored slot is full of exotics.
+
 ### Stacks
 
 Mods, consumables and materials are **not instanced**: the API knows them by
@@ -1083,6 +1090,20 @@ identical — a `SnapshotLoadout` overwrites the slot it targets — and it save
 request per filled slot. Already-free slots are skipped for the same reason, and
 because `ClearLoadout` would refuse them.
 
+**Each group slot is its own batch** (`batchId`). A failed step cancels the rest
+of *that* slot — its snapshot included, otherwise the half-equipped set would be
+recorded in game — and the following slots carry on. One batch for the whole
+group used to fail everything for a single missing item. Slots do not depend on
+each other succeeding: the runner re-plans every move against the profile at
+send time, and the perks the plan pre-filtered as already in place are exactly
+those every slot asks for identically (`volatileSockets`). Clears belong to no
+batch: they depend on nothing.
+
+Within a slot, **non-exotics are equipped before exotics** (`isExotic` in the
+context). Switching from a kinetic exotic to an energy one in snapshot order
+needed a stand-in for the first; equipping the slot's legendary kinetic weapon
+first pushes the exotic off for free.
+
 ##### Perks a weapon no longer offers
 
 A snapshot records plug **hashes**, and a weapon changes its pool behind the
@@ -1473,6 +1494,40 @@ Snapshots live in their own table (`SharedLoadout`), tied to their author only
 so that deleting an account takes its shares with it; the page never reads that
 column. `POST /api/shares` validates the body entry by entry, like the groups
 route: a public page has no session to paper over a malformed snapshot.
+
+#### Importing a share
+
+A share becomes one of your own groups from the groups view (**Import**, paste
+the link) or from the public page, whose button — shown to a signed-in visitor
+instead of the sign-in one — leads to `/?import=<kind>/<id>`. The groups view
+reads that parameter, opens its import dialog and strips it from the address.
+The dialog fetches the snapshot from `GET /api/shares/<id>?kind=…`, public like
+the page.
+
+The whole problem is the sharing one, reversed: the author's instances do not
+exist in the importing account. `lib/loadouts/share/import.ts` (pure, checked)
+maps each shared **instance** — once, not per slot, since one weapon serving
+several slots must stay one weapon:
+
+| Shared item | Candidates |
+|---|---|
+| Its instance is in the account | Kept as is, no choice (the author importing their own share) |
+| Legendary armor | Same slot and class, any piece from one of the sets worn in its slots |
+| Anything else (weapons, exotics, subclass) | Same `itemHash` |
+
+A subclass never leaves its character, so only the target character's counts.
+The group goes to a character of the share's class, read off its subclass or
+armor; a single loadout becomes a group whose first slot is filled. Defaults pick
+the same hash, then the same set, then the highest power, and two rolls of one
+weapon get two distinct copies when the account has them.
+
+The recorded perks describe the author's item, so a copy keeps only those that
+make sense on it — otherwise the equip step fails and takes the whole slot with
+it. Dropped: masterworks and mementos (they cost materials), perks outside the
+copy's own roll unless an enhanced version is there (`upgradedPlug`), sockets
+whose `plugSources` open no inventory or plug set (armor archetype and stats),
+and sockets laid out differently — measured on the manifest, 6 set armor pieces
+out of 168 per slot do not share the others' socket layout.
 
 ### Renaming and recolouring a loadout
 
@@ -2441,6 +2496,13 @@ candidat doit convenir à la classe du personnage, être transférable, et ne pa
 être un exotique quand un autre de la même famille est porté. L'équipement d'un
 groupe passe par le même planificateur et en profite donc aussi.
 
+Le **conflit d'exotiques** suit le même repli. Quand rien de non exotique n'est
+rangé dans l'emplacement de l'exotique concurrent — un inventaire vidé jusqu'aux
+seuls objets portés —, le remplaçant est amené du coffre ou d'un autre personnage
+(`fetchStandIn(characterId, rival.bucketHash, false)`), et il doit être non
+exotique. `noExoticSwap` ne veut plus dire que deux choses : il n'y en a vraiment
+nulle part, ou l'emplacement rangé du concurrent est plein d'exotiques.
+
 ### Les piles
 
 Mods, consommables et matériaux ne sont **pas instanciés** : l'API les connaît
@@ -3076,6 +3138,22 @@ final est identique — un `SnapshotLoadout` écrase l'emplacement qu'il vise �
 cela épargne une requête par emplacement rempli. Les emplacements déjà libres
 sont écartés pour la même raison, et parce que `ClearLoadout` les refuserait.
 
+**Chaque emplacement du groupe forme son propre lot** (`batchId`). Une étape qui
+échoue annule la suite de *cet* emplacement — son écrasement compris, sans quoi
+la panoplie à moitié équipée serait enregistrée en jeu — et les emplacements
+suivants continuent. Un lot unique pour tout le groupe faisait tout échouer pour
+un seul objet introuvable. Un emplacement ne dépend pas de la réussite des
+autres : l'exécuteur replanifie chaque déplacement contre le profil au moment de
+l'envoi, et les attributs que le plan a écartés comme déjà en place sont
+justement ceux que tous les emplacements demandent à l'identique
+(`volatileSockets`). Les vidages ne sont d'aucun lot : ils ne dépendent de rien.
+
+Au sein d'un emplacement, **les non exotiques sont équipés avant les exotiques**
+(`isExotic` dans le contexte). Passer d'un exotique cinétique à un exotique
+énergétique dans l'ordre de l'instantané demandait un remplaçant pour le
+premier ; équiper d'abord l'arme cinétique légendaire de l'emplacement chasse
+l'exotique gratuitement.
+
 ##### Les attributs qu'une arme n'offre plus
 
 Un instantané enregistre des **hashes** de plugs, et une arme change de pool
@@ -3498,6 +3576,42 @@ leur auteur pour la seule raison qu'un compte supprimé doit emporter ses
 partages ; la page ne lit jamais cette colonne. `POST /api/shares` valide le
 corps entrée par entrée, comme la route des groupes : une page publique n'a pas
 de session pour rattraper un instantané mal formé.
+
+#### Importer un partage
+
+Un partage devient l'un de ses propres groupes depuis la vue des groupes
+(**Importer**, puis coller le lien) ou depuis la page publique, dont le bouton —
+montré à un visiteur connecté à la place de celui de connexion — mène à
+`/?import=<genre>/<id>`. La vue des groupes lit ce paramètre, ouvre sa fenêtre
+d'import et le retire de l'adresse. La fenêtre lit l'instantané par
+`GET /api/shares/<id>?kind=…`, publique comme la page.
+
+Le problème est celui du partage, à l'envers : les instances de l'auteur
+n'existent pas dans le compte qui importe. `lib/loadouts/share/import.ts` (pur,
+vérifié) rapporte chaque **instance** partagée — une fois, et non par
+emplacement : une arme qui en sert plusieurs doit rester une seule arme.
+
+| Objet partagé | Candidats |
+|---|---|
+| Son instance est dans le compte | Reprise telle quelle, sans choix (l'auteur qui importe son partage) |
+| Armure légendaire | Même emplacement et même classe, toute pièce d'un des ensembles portés dans ses emplacements |
+| Tout le reste (armes, exotiques, doctrine) | Même `itemHash` |
+
+Une doctrine ne quitte pas son personnage : seule celle du personnage visé
+compte. Le groupe va à un personnage de la classe du partage, lue sur sa
+doctrine ou ses armures ; un équipement seul devient un groupe dont le premier
+emplacement est rempli. Le choix proposé d'office prend le même hash, puis le
+même ensemble, puis la plus forte puissance, et deux tirages d'une même arme
+reçoivent deux exemplaires distincts quand le compte les a.
+
+Les attributs enregistrés décrivent l'objet de l'auteur : un exemplaire ne garde
+que ceux qui ont un sens sur lui, faute de quoi l'équipement échoue et emporte
+tout l'emplacement. Sont écartés : pièces maîtresses et mémentos (ils coûtent
+des matériaux), les attributs hors du tirage de l'exemplaire sauf version
+améliorée présente (`upgradedPlug`), les sockets dont les `plugSources`
+n'ouvrent ni inventaire ni plug set (archétype et statistiques d'une armure), et
+les sockets disposés autrement — relevé sur le manifeste, 6 armures d'ensemble
+sur 168 par emplacement n'ont pas la disposition des autres.
 
 ### Renommer et recolorer un équipement
 

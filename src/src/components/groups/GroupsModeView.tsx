@@ -1,6 +1,6 @@
 "use client";
 
-import {useMemo, useState} from "react";
+import {useEffect, useMemo, useState} from "react";
 import {useTranslations} from "next-intl";
 import {
     DndContext,
@@ -26,13 +26,31 @@ import {useRecordPlugs} from "@/lib/loadouts/groups/use-record-plugs";
 import {buildShare} from "@/lib/loadouts/share/snapshot";
 import {useShareSource} from "@/lib/loadouts/share/use-share-source";
 import {useShare} from "@/components/share/useShare";
+import {ImportShareDialog} from "@/components/share/ImportShareDialog";
+import {parseShareLink, type ShareLink} from "@/lib/loadouts/share/types";
 import {useLoadoutIdentifiers} from "@/lib/loadouts/use-loadout-identifiers";
 import {useSettings} from "@/lib/settings/store";
 import {CharacterPicker} from "../CharacterPicker";
 import {SortableGroupCard, StaticGroupCard} from "./GroupCard";
 import {GroupCreateButton} from "./GroupCreateButton";
 import {GroupEditor} from "./GroupEditor";
-import {Squares2X2Icon} from "@heroicons/react/24/solid";
+import {ArrowDownTrayIcon, Squares2X2Icon} from "@heroicons/react/24/solid";
+
+/** Paramètre d'URL par lequel la page publique d'un partage en demande l'import. */
+const IMPORT_PARAM = "import";
+
+/**
+ * Le partage dont l'import est demandé par l'URL, s'il y en a un.
+ *
+ * Lu au premier rendu plutôt que dans un effet : la vue n'est montée qu'une
+ * fois le manifeste et le profil chargés, donc jamais rendue par le serveur, et
+ * la fenêtre s'ouvre ainsi d'emblée, sans un rendu à vide avant elle.
+ */
+function requestedImport(): ShareLink | null {
+    if (typeof window === "undefined") return null;
+    const value = new URLSearchParams(window.location.search).get(IMPORT_PARAM);
+    return value ? parseShareLink(value) : null;
+}
 
 /**
  * Mode « groupes » : une carte par groupe du personnage, précédée de celle des
@@ -78,6 +96,7 @@ export function GroupsModeView({
     onSelectCharacter: (characterId: string) => void;
 }) {
     const t = useTranslations("groups");
+    const tCommon = useTranslations("common");
     const groups = useCharacterGroups(characterId);
     const createGroup = useLoadoutGroups((s) => s.createGroup);
     const deleteGroup = useLoadoutGroups((s) => s.deleteGroup);
@@ -91,6 +110,20 @@ export function GroupsModeView({
     const {share, dialog: shareDialog} = useShare();
 
     const [editingId, setEditingId] = useState<string | null>(null);
+
+    // —— L'import d'un partage : par le bouton, ou demandé par la page publique.
+    const [importLink, setImportLink] = useState(requestedImport);
+    const [importing, setImporting] = useState(importLink !== null);
+    useEffect(() => {
+        if (!importLink) return;
+        // La vue des groupes passe au premier plan : c'est là qu'arrive le
+        // groupe importé. Le paramètre est retiré de l'adresse, faute de quoi
+        // un rechargement relancerait l'import.
+        setViewMode("groups");
+        const url = new URL(window.location.href);
+        url.searchParams.delete(IMPORT_PARAM);
+        window.history.replaceState(window.history.state, "", url);
+    }, [importLink, setViewMode]);
     /**
      * Deux cartes par ligne sur téléphone, au lieu d'une. Sans effet au-delà :
      * le bouton n'y est pas affiché, les cartes y gardent la taille réglée.
@@ -153,6 +186,15 @@ export function GroupsModeView({
                 />
 
                 <GroupCreateButton characterId={characterId} loadouts={loadouts}/>
+
+                <button
+                    type="button"
+                    className="btn group-list__import"
+                    onClick={() => setImporting(true)}
+                >
+                    <ArrowDownTrayIcon aria-hidden/>
+                    {tCommon("import")}
+                </button>
 
                 {/* L'ordre des cartes est celui que l'utilisateur leur donne en
                     les glissant : il n'y a donc pas de critère à choisir, mais
@@ -301,6 +343,21 @@ export function GroupsModeView({
             {slotCount === 0 && <p className="group-list__empty">{t("noSlots")}</p>}
 
             {shareDialog}
+
+            <ImportShareDialog
+                open={importing}
+                initial={importLink}
+                data={data}
+                defs={defs}
+                characterId={characterId}
+                onClose={() => {
+                    setImporting(false);
+                    // Servi une fois : rouverte par le bouton, la fenêtre
+                    // demande un lien au lieu de recharger le même partage.
+                    setImportLink(null);
+                }}
+                onImported={onSelectCharacter}
+            />
         </section>
     );
 }

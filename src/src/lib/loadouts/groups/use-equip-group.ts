@@ -11,6 +11,7 @@ import {getDefinitions} from "@/lib/manifest/manifest";
 import type {ItemDetail} from "@/lib/bungie/item-components";
 import type {InventoryItemDefinition} from "@/lib/destiny/types";
 import {upgradedPlug} from "@/lib/destiny/perk-upgrades";
+import {TIER} from "@/lib/destiny/display";
 import {INVALID_HASH} from "../loadout";
 import {planGroupEquip, type GroupEquipContext, type GroupEquipPlan} from "./equip";
 import {emptyGroupLoadout, type GroupLoadout, type LoadoutGroup} from "./types";
@@ -104,6 +105,41 @@ async function buildPlugResolver(
 }
 
 /**
+ * Les objets exotiques parmi ceux du groupe, par hash — voir
+ * `GroupEquipContext.isExotic`.
+ *
+ * Une seule lecture groupée en IndexedDB pour tout le groupe, comme pour les
+ * attributs : quelques dizaines de définitions, déjà en cache dans le
+ * manifeste.
+ */
+async function loadExotics(
+    groupLoadouts: readonly GroupLoadout[],
+    itemHashOf: (itemInstanceId: string) => number | undefined,
+): Promise<Set<number>> {
+    const hashes = [
+        ...new Set(
+            groupLoadouts.flatMap((loadout) =>
+                loadout.items.flatMap((entry) => {
+                    const hash = itemHashOf(entry.itemInstanceId);
+                    return hash === undefined ? [] : [hash];
+                }),
+            ),
+        ),
+    ];
+    if (hashes.length === 0) return new Set();
+
+    const rows = await getDefinitions<InventoryItemDefinition>(
+        "DestinyInventoryItemDefinition",
+        hashes,
+    );
+    return new Set(
+        hashes.filter(
+            (_, index) => rows[index]?.inventory?.tierType === TIER.Exotic,
+        ),
+    );
+}
+
+/**
  * Équiper un groupe : la séquence complète, mise en file.
  *
  * Rien n'est envoyé d'ici. Tout passe par la file d'actions, qui exécute **une
@@ -121,10 +157,22 @@ async function buildPlugResolver(
  * se suivent, et l'exécuteur n'a alors plus qu'à envoyer les différences. Voir
  * `equip-order.ts` — c'est là que se gagnent les requêtes.
  *
- * Toutes ces actions portent un **même identifiant de lot**, et c'est
- * indispensable : chaque étape suppose la précédente aboutie. L'échec d'un
- * équipement annule la suite, faute de quoi l'écrasement aurait enregistré en
- * jeu la panoplie ratée — un état faux, et silencieux. Voir `BatchFailure`.
+ * Chaque emplacement forme **son propre lot**, et c'est indispensable : ses
+ * étapes supposent chacune la précédente aboutie. L'échec d'un équipement
+ * annule la suite *de cet emplacement*, faute de quoi l'écrasement aurait
+ * enregistré en jeu la panoplie ratée — un état faux, et silencieux. Voir
+ * `BatchFailure`.
+ *
+ * Un lot par emplacement et non un pour tout le groupe : un emplacement ne
+ * dépend pas de la réussite du précédent. L'exécuteur replanifie chaque
+ * déplacement contre le profil du moment, et les attributs que le plan a
+ * écartés comme déjà en place sont ceux que *tous* les emplacements demandent
+ * à l'identique (voir `volatileSockets`) — un emplacement raté n'a donc rien
+ * pu défaire dont le suivant aurait besoin. Un seul lot faisait échouer tout
+ * le groupe pour une arme introuvable dans un seul de ses emplacements.
+ *
+ * Les vidages, eux, ne sont d'aucun lot : ils ne dépendent de rien, et un
+ * refus n'y doit rien annuler.
  */
 export function useEquipGroup(characterId: string | null) {
     const queryClient = useQueryClient();
@@ -161,10 +209,10 @@ export function useEquipGroup(characterId: string | null) {
                     ),
             );
 
-            const resolvePlug = await buildPlugResolver(
-                groupLoadouts,
-                profile.items,
-            );
+            const [resolvePlug, exotics] = await Promise.all([
+                buildPlugResolver(groupLoadouts, profile.items),
+                loadExotics(groupLoadouts, (id) => items.get(id)?.itemHash),
+            ]);
 
             return planGroupEquip(
                 groupLoadouts,
@@ -188,6 +236,7 @@ export function useEquipGroup(characterId: string | null) {
                     equippedNow: (profile.equipment[characterId] ?? []).flatMap(
                         (item) => (item.itemInstanceId ? [item.itemInstanceId] : []),
                     ),
+                    isExotic: (itemHash) => exotics.has(itemHash),
                 },
             );
         },
@@ -229,10 +278,6 @@ export function useEquipGroup(characterId: string | null) {
             if (!characterId || !profile) return;
 
             const characterLoadouts = profile.loadouts?.[characterId] ?? [];
-            // `randomUUID` est disponible sans condition : Bungie refuse les
-            // redirections en HTTP, l'application n'est jamais servie hors
-            // contexte sécurisé (voir le Caddyfile).
-            const batchId = crypto.randomUUID();
 
             // —— Vider d'abord, comme le veut la séquence.
             for (const loadoutIndex of result.clear) {
@@ -246,12 +291,16 @@ export function useEquipGroup(characterId: string | null) {
                         iconHash: current?.iconHash ?? 0,
                         nameHash: current?.nameHash ?? 0,
                         itemInstanceIds: NO_ITEMS,
-                        batchId,
                     },
                 );
             }
 
             for (const slot of result.slots) {
+                // `randomUUID` est disponible sans condition : Bungie refuse
+                // les redirections en HTTP, l'application n'est jamais servie
+                // hors contexte sécurisé (voir le Caddyfile).
+                const batchId = crypto.randomUUID();
+
                 // —— Équiper. Mis en file **sans condition**, et c'est
                 // essentiel : `useMovePlanner` écarte un déplacement inutile en
                 // consultant le profil au moment de la mise en file, or celui-ci

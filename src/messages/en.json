@@ -14,7 +14,8 @@
     "cancel": "Cancel",
     "confirm": "Confirm",
     "join": "Join",
-    "share": "Share"
+    "share": "Share",
+    "import": "Import"
   },
   "auth": {
     "login": "Sign in with Bungie"
@@ -370,6 +371,24 @@
     "linkLabel": "Share link",
     "sharedLabel": "Shared",
     "sharedBy": "{user} shared {name}",
-    "cta": "Create and manage your own groups:"
+    "cta": "Create and manage your own groups:",
+    "importCta": "Add it to your own groups:",
+    "import": {
+      "title": "Import a share",
+      "linkLabel": "Share link",
+      "linkPlaceholder": "https://…/group/…",
+      "load": "Load",
+      "loading": "Loading the share…",
+      "invalidLink": "This link points to no shared group or loadout.",
+      "notFound": "This share could not be found.",
+      "failed": "The share could not be loaded. Try again in a moment.",
+      "noCharacter": "None of your characters is of this share’s class.",
+      "characterLabel": "Character",
+      "itemsLabel": "Copies to use",
+      "kept": "{count, plural, one {# item from your account is reused as is.} other {# items from your account are reused as is.}}",
+      "missing": "No copy in your account: the item will be left out.",
+      "none": "None",
+      "truncated": "This share has more slots than this character: the last ones are not imported."
+    }
   }
 }

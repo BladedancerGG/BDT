@@ -20,9 +20,10 @@ casse en silence.
 | `sync-merge.check.ts`  | `lib/loadouts/groups/sync-merge.ts`            |
 | `subclass.check.ts`    | `lib/destiny/subclass.ts` (verrous de fragments) |
 | `gear.check.ts`        | `lib/destiny/gear.ts` (rangées des coques, vaisseaux et passereaux) |
-| `moves.check.ts`       | `lib/destiny/moves.ts` (déplacement des piles) |
+| `moves.check.ts`       | `lib/destiny/moves.ts` (piles, remplaçants, conflit d’exotiques) |
 | `sockets.check.ts`     | `lib/destiny/sockets.ts` (quels sockets lisent les plugs du compte) |
 | `share.check.ts`       | `lib/loadouts/share/snapshot.ts` (l'instantané d'un partage) |
+| `share-import.check.ts` | `lib/loadouts/share/import.ts` (importer un partage) |
 | `perk-upgrades.check.ts` | `lib/destiny/perk-upgrades.ts` (attributs améliorés, armes façonnées) |
 | `css-duplicates.py`    | la feuille de styles compilée (voir plus bas)  |
 

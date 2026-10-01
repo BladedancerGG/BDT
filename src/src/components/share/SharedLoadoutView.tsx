@@ -1,7 +1,8 @@
 "use client";
 
 import {useMemo, useState} from "react";
-import {useTranslations} from "next-intl";
+import {useLocale, useTranslations} from "next-intl";
+import {routing} from "@/i18n/routing";
 import type {DestinyItemComponent, DestinyLoadout} from "@/lib/bungie/profile";
 import type {ItemDetail} from "@/lib/bungie/item-components";
 import {SharedSnapshotProvider} from "@/lib/bungie/shared-snapshot";
@@ -10,6 +11,7 @@ import {countEquippedSets, EquippedSetsProvider} from "@/lib/destiny/set-bonus";
 import {useLoadoutIdentifiers} from "@/lib/loadouts/use-loadout-identifiers";
 import {useSettings} from "@/lib/settings/store";
 import type {
+    ShareLink,
     SharedLoadoutSnapshot,
     SharedSnapshot,
 } from "@/lib/loadouts/share/types";
@@ -45,18 +47,31 @@ const SHARE_DRAG_SCOPE: DragScope = {disabled: true, idPrefix: "share:"};
 export function SharedLoadoutView({
                                       snapshot,
                                       author,
+                                      link,
+                                      signedIn,
                                   }: {
     snapshot: SharedSnapshot;
     /** Le nom Bungie de celui qui a partagé — voir `readShare` */
     author: string;
+    /** Ce que la page montre : c'est ce que l'import ira chercher */
+    link: ShareLink;
+    /** Le visiteur a une session : il peut importer plutôt que se connecter */
+    signedIn: boolean;
 }) {
+    const cta = {link, signedIn};
     return (
         <main className="app-main">
             <ManifestGate>
-                <SharedDefs snapshot={snapshot} author={author}/>
+                <SharedDefs snapshot={snapshot} author={author} cta={cta}/>
             </ManifestGate>
         </main>
     );
+}
+
+/** De quoi choisir le geste de la page : importer, ou se connecter. */
+interface ShareCta {
+    link: ShareLink;
+    signedIn: boolean;
 }
 
 /**
@@ -68,9 +83,11 @@ export function SharedLoadoutView({
 function SharedDefs({
                         snapshot,
                         author,
+                        cta,
                     }: {
     snapshot: SharedSnapshot;
     author: string;
+    cta: ShareCta;
 }) {
     const showOrnaments = useSettings((s) => s.showOrnaments);
     const showOriginalOnHover = useSettings((s) => s.showOriginalOnHover);
@@ -93,7 +110,7 @@ function SharedDefs({
             withOrnaments={showOrnaments}
             withOriginalOnHover={showOriginalOnHover}
         >
-            <SharedPreview snapshot={snapshot} author={author}/>
+            <SharedPreview snapshot={snapshot} author={author} cta={cta}/>
         </ItemDefsProvider>
     );
 }
@@ -120,13 +137,24 @@ function toComponent(item: SharedLoadoutSnapshot["items"][number]): DestinyItemC
 function SharedPreview({
                            snapshot,
                            author,
+                           cta,
                        }: {
     snapshot: SharedSnapshot;
     author: string;
+    cta: ShareCta;
 }) {
     const t = useTranslations("share");
     const tGroups = useTranslations("groups");
     const tAuth = useTranslations("auth");
+    const tCommon = useTranslations("common");
+    const locale = useLocale();
+    // L'import se fait dans l'application, où sont le profil et les groupes :
+    // la vue des groupes lit ce paramètre et ouvre sa fenêtre d'import. La
+    // langue est celle de la page, sans préfixe pour la langue par défaut
+    // (voir i18n/routing).
+    const importHref = `${
+        locale === routing.defaultLocale ? "/" : `/${locale}`
+    }?import=${cta.link.kind}/${encodeURIComponent(cta.link.id)}`;
     const {defs} = useItemDefs();
 
     const [selected, setSelected] = useState(0);
@@ -221,14 +249,33 @@ function SharedPreview({
                                 dire où. L'accroche porte la proposition, le
                                 bouton ne fait que l'exécuter. */}
                             <p className="group-preview__cta">
-                                <span>{t("cta")}</span>
-                                {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
-                                <a
-                                    href="/api/auth/login"
-                                    className="btn btn--small btn--primary"
-                                >
-                                    {tAuth("login")}
-                                </a>
+                                {cta.signedIn ? (
+                                    <>
+                                        <span>{t("importCta")}</span>
+                                        {/* Une navigation pleine plutôt qu'un
+                                            lien du routeur : l'application
+                                            charge son manifeste et son profil
+                                            au démarrage, que cette page n'a
+                                            pas. */}
+                                        <a
+                                            href={importHref}
+                                            className="btn btn--small btn--primary"
+                                        >
+                                            {tCommon("import")}
+                                        </a>
+                                    </>
+                                ) : (
+                                    <>
+                                        <span>{t("cta")}</span>
+                                        {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+                                        <a
+                                            href="/api/auth/login"
+                                            className="btn btn--small btn--primary"
+                                        >
+                                            {tAuth("login")}
+                                        </a>
+                                    </>
+                                )}
                             </p>
                         </div>
 

@@ -1,13 +1,13 @@
 # dependencies
-/node_modules
+src/node_modules
 
 # next.js
-/.next/
-/out/
-next-env.d.ts
+src/.next/
+src/out/
+src/next-env.d.ts
 
 # production
-/build
+src/build
 
 # env
 .env
@@ -21,5 +21,18 @@ next-env.d.ts
 # IDE stuff
 .idea
 
-# sauvegardes de base produites par « make backup » / « make prod-backup »
+# DB backups
 backup-*.sql.gz
+
+# prisma
+src/prisma/*.db
+# Client généré (Prisma 7 l'écrit dans les sources) — régénéré au démarrage
+/src/src/generated/
+
+# misc
+.DS_Store
+*.pem
+npm-debug.log*
+
+# useless stuff
+tsconfig.tsbuildinfo

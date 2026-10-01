@@ -360,4 +360,120 @@ check("vers un autre personnage : remplaçant, puis le trajet habituel",
         [["spare"], 0, ["gun"]]);
 }
 
+section("libérer un exotique concurrent");
+
+// Le jeu n'accepte qu'une arme exotique équipée. En équiper une dans un AUTRE
+// emplacement demande de chasser la première par un non exotique — et un
+// inventaire vidé, où seuls les objets portés restent, n'en avait aucun sous
+// la main : le refus « noExoticSwap » tombait alors qu'il y en avait au coffre.
+
+const ENERGY_EXO = 5004;
+const exoticContext = (profile: Partial<ProfileData>): PlanContext => {
+    const base = gearContext(profile);
+    return {
+        ...base,
+        profile: {
+            ...base.profile,
+            // L'exotique porté est l'arme cinétique ; on vise l'énergétique.
+            equipment: {
+                [CHAR]: [
+                    weapon("exo", EXO, BUCKET.KineticWeapons),
+                    weapon("gun2", GUN, BUCKET.EnergyWeapons),
+                ],
+            },
+            ...profile,
+        },
+        defs: new Map([
+            ...base.defs,
+            [ENERGY_EXO, {
+                inventory: { bucketTypeHash: BUCKET.EnergyWeapons, tierType: 6 },
+            } as unknown as InventoryItemDefinition],
+        ]),
+        capacities: new Map([
+            ...base.capacities,
+            [BUCKET.EnergyWeapons, 10],
+        ]),
+    };
+};
+const equipEnergyExo = (profile: Partial<ProfileData>) =>
+    kinds(planMove("eexo", { kind: "equipped", characterId: CHAR }, exoticContext(profile)));
+
+check("un non exotique rangé sur le personnage suffit, comme avant",
+    equipEnergyExo({
+        inventory: {
+            [CHAR]: [
+                weapon("spare", SPARE, BUCKET.KineticWeapons),
+                weapon("eexo", ENERGY_EXO, BUCKET.EnergyWeapons),
+            ],
+            [OTHER]: [],
+        },
+    }),
+    ["equip:unequip:spare", "equip:move:eexo"]);
+
+check("inventaire vide : le coffre fournit le non exotique",
+    equipEnergyExo({
+        inventory: { [CHAR]: [weapon("eexo", ENERGY_EXO, BUCKET.EnergyWeapons)], [OTHER]: [] },
+        vault: [weapon("spare", SPARE, BUCKET.Vault)],
+    }),
+    ["fromVault:standIn:spare", "equip:unequip:spare", "equip:move:eexo"]);
+
+check("le remplaçant du coffre ne peut pas être un exotique",
+    equipEnergyExo({
+        inventory: { [CHAR]: [weapon("eexo", ENERGY_EXO, BUCKET.EnergyWeapons)], [OTHER]: [] },
+        vault: [weapon("exo2", EXO, BUCKET.Vault)],
+    }),
+    "noExoticSwap");
+
+check("coffre vide : un autre personnage prête son non exotique",
+    equipEnergyExo({
+        characters: [
+            { characterId: CHAR, classType: 0 },
+            { characterId: OTHER, classType: 0 },
+        ] as ProfileData["characters"],
+        inventory: {
+            [CHAR]: [weapon("eexo", ENERGY_EXO, BUCKET.EnergyWeapons)],
+            [OTHER]: [weapon("spare", SPARE, BUCKET.KineticWeapons)],
+        },
+    }),
+    [
+        "toVault:standIn:spare",
+        "fromVault:standIn:spare",
+        "equip:unequip:spare",
+        "equip:move:eexo",
+    ]);
+
+// L'exotique visé est au coffre : il arrive d'abord, puis le remplaçant. Les
+// deux sorties du coffre ne doivent pas se gêner.
+check("l'exotique et son remplaçant viennent tous deux du coffre",
+    equipEnergyExo({
+        inventory: { [CHAR]: [], [OTHER]: [] },
+        vault: [
+            weapon("eexo", ENERGY_EXO, BUCKET.Vault),
+            weapon("spare", SPARE, BUCKET.Vault),
+        ],
+    }),
+    [
+        "fromVault:move:eexo",
+        "fromVault:standIn:spare",
+        "equip:unequip:spare",
+        "equip:move:eexo",
+    ]);
+
+{
+    const ctx = exoticContext({
+        inventory: { [CHAR]: [weapon("eexo", ENERGY_EXO, BUCKET.EnergyWeapons)], [OTHER]: [] },
+        vault: [weapon("spare", SPARE, BUCKET.Vault)],
+    });
+    const plan = planMove("eexo", { kind: "equipped", characterId: CHAR }, ctx);
+    const after = plan.ok
+        ? plan.steps.reduce((profile, s) => applyStep(profile, s), ctx.profile)
+        : ctx.profile;
+    check("rejeu : le remplaçant tient l'emplacement cinétique, l'exotique est rangé",
+        [
+            after.equipment[CHAR].map((i) => i.itemInstanceId).sort(),
+            after.inventory[CHAR].map((i) => i.itemInstanceId).sort(),
+        ],
+        [["eexo", "spare"], ["exo", "gun2"]]);
+}
+
 process.exit(report());

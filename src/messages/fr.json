@@ -14,7 +14,8 @@
     "cancel": "Annuler",
     "confirm": "Confirmer",
     "join": "Rejoindre",
-    "share": "Partager"
+    "share": "Partager",
+    "import": "Importer"
   },
   "auth": {
     "login": "Se connecter avec Bungie"
@@ -370,6 +371,24 @@
     "linkLabel": "Lien de partage",
     "sharedLabel": "Partage de",
     "sharedBy": "{user} a partagé {name}",
-    "cta": "Créez et gérez vos propres groupes :"
+    "cta": "Créez et gérez vos propres groupes :",
+    "importCta": "Ajoutez-le à vos propres groupes :",
+    "import": {
+      "title": "Importer un partage",
+      "linkLabel": "Lien du partage",
+      "linkPlaceholder": "https://…/group/…",
+      "load": "Charger",
+      "loading": "Chargement du partage…",
+      "invalidLink": "Ce lien ne désigne aucun groupe ni équipement partagé.",
+      "notFound": "Ce partage est introuvable.",
+      "failed": "Le partage n’a pas pu être chargé. Réessayez dans un instant.",
+      "noCharacter": "Aucun de vos personnages n’est de la classe de ce partage.",
+      "characterLabel": "Personnage",
+      "itemsLabel": "Exemplaires à utiliser",
+      "kept": "{count, plural, one {# objet de votre compte est repris tel quel.} other {# objets de votre compte sont repris tels quels.}}",
+      "missing": "Aucun exemplaire dans votre compte : l’objet sera laissé de côté.",
+      "none": "Aucun",
+      "truncated": "Ce partage a plus d’emplacements que ce personnage : les derniers ne sont pas importés."
+    }
   }
 }

@@ -37,7 +37,7 @@ export interface PlannedGroupSlot {
     loadoutIndex: number;
     /** Apparence à donner à l'emplacement : `SnapshotLoadout` exige les trois */
     identifiers: LoadoutIdentifierHashes;
-    /** Objets à équiper, dans l'ordre où l'instantané les porte */
+    /** Objets à équiper : ceux de l'instantané, exotiques en dernier */
     equip: QueuedItem[];
     /** Attributs à poser ensuite — seuls ceux qui diffèrent */
     plugs: PlannedPlug[];
@@ -117,6 +117,34 @@ export interface GroupEquipContext {
      * enregistré, il ne déséquipe personne.
      */
     equippedNow: readonly string[];
+    /**
+     * L'objet est-il exotique ? Il décide de l'ordre des équipements d'un
+     * emplacement — voir `exoticsLast`. Omis, aucun ne l'est.
+     */
+    isExotic?: (itemHash: number) => boolean;
+}
+
+/**
+ * Les objets d'un emplacement, **non exotiques d'abord**.
+ *
+ * Le jeu n'accepte qu'une arme et qu'une armure exotiques équipées. Passer
+ * d'un exotique cinétique à un exotique énergétique, dans l'ordre de
+ * l'instantané, demandait de chasser le premier par un remplaçant — amené du
+ * coffre au besoin, soit deux requêtes de plus, voire un refus. Équiper avant
+ * lui l'arme légendaire que l'emplacement prévoit de toute façon dans son
+ * emplacement fait le même travail gratuitement : l'exotique part de lui-même.
+ *
+ * Le tri est stable : à rareté égale, l'ordre de l'instantané demeure.
+ */
+function exoticsLast(
+    items: QueuedItem[],
+    isExotic: ((itemHash: number) => boolean) | undefined,
+): QueuedItem[] {
+    if (!isExotic) return items;
+    return [
+        ...items.filter((item) => !isExotic(item.itemHash)),
+        ...items.filter((item) => isExotic(item.itemHash)),
+    ];
 }
 
 /** Clé d'un socket précis d'un objet précis. */
@@ -330,7 +358,7 @@ export function planGroupEquip(
         slots.push({
             loadoutIndex,
             identifiers: {colorHash, iconHash, nameHash},
-            equip,
+            equip: exoticsLast(equip, ctx.isExotic),
             plugs,
         });
         costs.push({items: equip.map((item) => item.itemInstanceId), sockets});

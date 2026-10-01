@@ -13,10 +13,6 @@ export default async function Home() {
         <main className="app-main">
             {user ? (
                 <>
-                    {/* L'en-tête vit dans le `Dashboard` : il porte les onglets
-                        de personnage, et ne doit donc paraître qu'une fois le
-                        manifeste et le profil chargés. Les seules données du
-                        serveur dont il a besoin descendent en props. */}
                     <MainMenu displayName={user.displayName}/>
                     <Dashboard
                         bungieMembershipId={user.bungieMembershipId}

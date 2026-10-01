@@ -114,6 +114,29 @@ export function sharePath(
     )}`;
 }
 
+/** Ce qu'un lien de partage désigne. */
+export interface ShareLink {
+    kind: ShareKind;
+    id: string;
+}
+
+/**
+ * Le partage qu'un lien collé désigne, ou `null`.
+ *
+ * Le lien est lu sans égard pour son origine ni sa langue : seuls le genre et
+ * l'identifiant comptent, et c'est la route de l'application qui ira chercher
+ * le partage. Un lien recopié d'un autre déploiement désignerait simplement un
+ * partage introuvable ici. Le nom qui suit l'identifiant est décoratif — voir
+ * `shareSlug` — et peut manquer.
+ */
+export function parseShareLink(raw: string): ShareLink | null {
+    const match = /(?:^|\/)(group|loadout)\/([A-Za-z0-9_-]{1,64})(?:[/?#]|$)/.exec(
+        raw.trim(),
+    );
+    if (!match) return null;
+    return {kind: match[1] as ShareKind, id: match[2]};
+}
+
 // —— Validation du corps reçu par l'API ————————————————————————
 //
 // Vérifiée entrée par entrée, comme les groupes : ce qui est déposé ici est

@@ -79,6 +79,14 @@
   // Rappel du glisser-déposer, à la place que la maquette réservait au bouton
   // de tri : l'ordre des cartes est celui que l'utilisateur leur donne, il n'y
   // a donc aucun critère à choisir — seulement un geste à annoncer.
+  // « Importer » : un partage reçu devient un groupe du personnage.
+  &__import {
+    svg {
+      width: 1rem;
+      height: 1rem;
+    }
+  }
+
   &__hint {
     display: flex;
     align-items: center;

@@ -351,4 +351,18 @@ const untouched = JSON.stringify(substituted);
 planGroupEquip(substituted, character, UPGRADE);
 check("une substitution non plus", JSON.stringify(substituted), untouched);
 
+// —— L'ordre des objets d'un emplacement ———————————————————————
+section("exotiques en dernier");
+
+// Le jeu n'accepte qu'un exotique par famille : équiper d'abord la légendaire
+// que l'emplacement prévoit chasse l'exotique en place sans remplaçant à
+// amener. `a1` est ici l'exotique, `a2` la légendaire.
+const EXOTICS: GroupEquipContext = {...ctx, isExotic: (hash) => hash === 11};
+check("la légendaire passe avant l'exotique",
+    planGroupEquip([full([{id: "a1", plugs: []}, {id: "a2", plugs: []}])], [], EXOTICS)
+        .slots[0].equip.map((item) => item.itemInstanceId), ["a2", "a1"]);
+check("sans exotique, l'ordre de l'instantané demeure",
+    planGroupEquip([full([{id: "a1", plugs: []}, {id: "a2", plugs: []}])], [], ctx)
+        .slots[0].equip.map((item) => item.itemInstanceId), ["a1", "a2"]);
+
 process.exit(report());

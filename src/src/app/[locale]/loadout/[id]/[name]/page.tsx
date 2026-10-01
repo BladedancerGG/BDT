@@ -4,6 +4,7 @@ import {readShare} from "@/lib/loadouts/share/read";
 import {getTranslations} from "next-intl/server";
 import {APP_TITLE} from "@/lib/app-info";
 import {SharedLoadoutView} from "@/components/share/SharedLoadoutView";
+import {getSessionUserId} from "@/lib/auth/session";
 
 /**
  * La page publique d'un équipement partagé.
@@ -22,10 +23,22 @@ export default async function SharedLoadoutPage({
     params: Promise<{id: string}>;
 }) {
     const {id} = await params;
-    const share = await readShare("loadout", id);
+    const [share, userId] = await Promise.all([
+        readShare("loadout", id),
+        getSessionUserId(),
+    ]);
     if (!share) notFound();
 
-    return <SharedLoadoutView snapshot={share.snapshot} author={share.author}/>;
+    // La session n'est lue que pour choisir le bouton : un visiteur connecté
+    // peut importer le partage, les autres sont invités à se connecter.
+    return (
+        <SharedLoadoutView
+            snapshot={share.snapshot}
+            author={share.author}
+            link={{kind: "loadout", id}}
+            signedIn={userId !== null}
+        />
+    );
 }
 
 export async function generateMetadata({
