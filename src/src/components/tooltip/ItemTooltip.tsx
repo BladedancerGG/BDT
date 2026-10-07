@@ -56,7 +56,7 @@ import {gearRow, type GearRow} from "@/lib/destiny/gear";
 import {useFragmentLocks} from "@/lib/destiny/use-fragment-locks";
 import {subclassDamageType, isSubclass} from "@/lib/destiny/subclass";
 import {useItemProgress} from "@/lib/destiny/use-item-progress";
-import {useStatBonuses} from "@/lib/destiny/use-stat-bonuses";
+import {useStatBreakdown} from "@/lib/destiny/use-stat-breakdown";
 import {useArmorPerks} from "@/lib/destiny/use-armor-perks";
 import {usePlugActionState, type QueuedItem} from "@/lib/actions/store";
 import {useSnapshotEdit} from "@/lib/loadouts/groups/snapshot-edit";
@@ -567,7 +567,13 @@ export function ItemTooltip({
     const detail = useMemo(
         () =>
             snapshotEdit && liveDetail
-                ? {...liveDetail, sockets: snapshotEdit.sockets}
+                ? {
+                    ...liveDetail,
+                    sockets: snapshotEdit.sockets,
+                    // Les totaux, eux, restent ceux des attributs réellement
+                    // en place : c'est de là que part la décomposition.
+                    statSockets: liveDetail.statSockets ?? liveDetail.sockets,
+                }
                 : liveDetail,
         [snapshotEdit, liveDetail],
     );
@@ -581,9 +587,6 @@ export function ItemTooltip({
     );
     // Niveau d'arme façonnée et compte-frags (composant 309)
     const progress = useItemProgress(detail);
-    // Part des statistiques due à la pièce maîtresse et à l'archétype, pour la
-    // détacher en fin de barre
-    const statBonuses = useStatBonuses(detail);
     // Archétype d'armure et, sur une exotique, l'attribut qui la définit
     const armorPerks = useArmorPerks(detail);
     // Mods, revêtements, ornements, aspects… débloqués sur le compte : sans
@@ -628,6 +631,27 @@ export function ItemTooltip({
         return next;
     }, [detail?.sockets, pending]);
     const liveLocks = useFragmentLocks(def, shownSockets);
+
+    // Statistiques décomposées (base, attributs et mods, pièce maîtresse) et
+    // recalculées sur les attributs montrés : elles suivent un changement sans
+    // attendre Bungie. Armes et armures seulement — une doctrine n'expose que
+    // des écarts.
+    const breakdownWeapon = def?.itemType === ITEM_TYPE.Weapon;
+    const breakdownEnabled = breakdownWeapon || def?.itemType === ITEM_TYPE.Armor;
+    const breakdownStats = useMemo(
+        () => (breakdownEnabled ? Object.keys(detail?.stats ?? {}).map(Number) : []),
+        [breakdownEnabled, detail?.stats],
+    );
+    const statBreakdown = useStatBreakdown({
+        def,
+        detail,
+        shownSockets,
+        statHashes: breakdownStats,
+        weapon: breakdownWeapon,
+        state,
+        gearTier: detail?.instance?.gearTier ?? gearTier,
+        weaponLevel: progress.weaponLevel,
+    });
 
     // Le panneau s'ancre à l'infobulle, pas à l'icône cliquée : il la longe sur
     // toute sa hauteur, comme dans la maquette. `size` la lui impose comme
@@ -717,7 +741,10 @@ export function ItemTooltip({
             : isSword
                 ? SWORD_STAT_ORDER
                 : WEAPON_STAT_ORDER;
-    const statEntries = orderStats(detail?.stats ?? {}, statOrder);
+    const statEntries = orderStats(detail?.stats ?? {}, statOrder).map((stat) => ({
+        ...stat,
+        value: statBreakdown[stat.statHash]?.total ?? stat.value,
+    }));
     // Tout est affiché d'emblée : l'infobulle ne s'ouvre plus qu'au clic, donc
     // elle est toujours volontaire — plus de version « survol » abrégée.
     const showStats = isArmor || isSubclassItem || isWeapon;
@@ -744,8 +771,10 @@ export function ItemTooltip({
         gearTier === TUNED_GEAR_TIER &&
         armorPerks.tunedStatHash !== undefined;
 
-    const rpm = detail?.stats?.[WEAPON_STAT.RPM];
-    const impact = detail?.stats?.[WEAPON_STAT.IMPACT];
+    const rpm =
+        statBreakdown[WEAPON_STAT.RPM]?.total ?? detail?.stats?.[WEAPON_STAT.RPM];
+    const impact =
+        statBreakdown[WEAPON_STAT.IMPACT]?.total ?? detail?.stats?.[WEAPON_STAT.IMPACT];
     const energy = detail?.instance?.energy;
 
     // Un artéfact n'est identifiable que par son emplacement : son `itemType`
@@ -854,7 +883,7 @@ export function ItemTooltip({
                                         withBar={stat.withBar && !isSubclassItem}
                                         signed={isSubclassItem}
                                         max={statMax}
-                                        bonus={statBonuses[stat.statHash]}
+                                        breakdown={statBreakdown[stat.statHash]}
                                         tuned={
                                             showTuned
                                                 ? stat.statHash === armorPerks.tunedStatHash

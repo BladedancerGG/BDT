@@ -62,6 +62,13 @@ export interface InventoryItemDefinition {
      */
     energyCapacity?: { capacityValue: number };
   };
+  /** Hash de la définition, recopié dans l'entrée du manifeste */
+  hash?: number;
+  /**
+   * Groupe de statistiques : ses `scaledStats` donnent la courbe qui convertit
+   * l'investissement en valeur affichée — voir `stat-breakdown.ts`.
+   */
+  stats?: { statGroupHash?: number };
   /** Écarts de statistiques conférés — voir plug-stats.ts */
   investmentStats?: {
     statTypeHash: number;
@@ -86,6 +93,8 @@ export interface InventoryItemDefinition {
   /** Filigrane des objets « mis en avant » */
   iconWatermarkFeatured?: string;
   isFeaturedItem?: boolean;
+  /** Arme d'adepte (168 armes au relevé) — voir `stat-breakdown.ts` */
+  isAdept?: boolean;
   /** Objet « holofoil » : fond animé au lieu de la couleur de rareté */
   isHolofoil?: boolean;
   /**
@@ -164,6 +173,21 @@ export interface SandboxPerkDefinition {
 export interface StatDefinition {
   displayProperties: DisplayProperties;
   statCategory?: number;
+}
+
+/**
+ * Groupe de statistiques d'un objet. `scaledStats` donne, par statistique, la
+ * courbe qui convertit l'investissement en valeur affichée : l'identité presque
+ * partout, mais pas pour l'Impact (72 groupes sur 74 au relevé).
+ */
+export interface StatGroupDefinition {
+  maximumValue?: number;
+  scaledStats?: {
+    statHash: number;
+    maximumValue: number;
+    displayAsNumeric?: boolean;
+    displayInterpolation: { value: number; weight: number }[];
+  }[];
 }
 
 /** Type de dégâts : c'est lui qui porte l'icône d'élément d'une arme. */

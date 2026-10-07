@@ -127,7 +127,13 @@ export function useActionRunner() {
                 ...current,
                 items: {
                   ...current.items,
-                  [step.itemInstanceId]: { ...detail, sockets },
+                  // Les totaux restent ceux des sockets d'avant : ils ne
+                  // changeront qu'au rechargement.
+                  [step.itemInstanceId]: {
+                    ...detail,
+                    sockets,
+                    statSockets: detail.statSockets ?? detail.sockets,
+                  },
                 },
               }
             : current,

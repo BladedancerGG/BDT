@@ -25,6 +25,7 @@ casse en silence.
 | `share.check.ts`       | `lib/loadouts/share/snapshot.ts` (l'instantané d'un partage) |
 | `share-import.check.ts` | `lib/loadouts/share/import.ts` (importer un partage) |
 | `perk-upgrades.check.ts` | `lib/destiny/perk-upgrades.ts` (attributs améliorés, armes façonnées) |
+| `stat-breakdown.check.ts` | `lib/destiny/stat-breakdown.ts` (base, attributs, pièce maîtresse, bonus de palier) |
 | `css-duplicates.py`    | la feuille de styles compilée (voir plus bas)  |
 
 ## Lancer

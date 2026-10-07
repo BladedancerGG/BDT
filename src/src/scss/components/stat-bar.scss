@@ -68,8 +68,8 @@
     -webkit-mask-size: contain;
   }
 
-  // Les deux segments (base puis pièce maîtresse) s'enchaînent dans le sens de
-  // lecture : la piste est un conteneur flex, pas un simple fond.
+  // Les segments (base, attributs, pièce maîtresse, malus) s'enchaînent dans
+  // le sens de lecture : la piste est un conteneur flex, pas un simple fond.
   &__track {
     display: flex;
     flex: 1;
@@ -79,18 +79,25 @@
     max-width: 200px;
   }
 
-  // Largeur fournie en inline via une variable CSS. La barre est claire et la
-  // part de pièce maîtresse dorée : deux teintes suffisent à les distinguer, et
-  // c'est ce que fait le jeu.
+  // Largeur fournie en inline via une variable CSS. Les teintes sont celles
+  // du jeu : base claire, attributs et mods en bleu, pièce maîtresse dorée, et
+  // ce que retirent attributs et mods en rouge, à la suite de la partie pleine
+  // — la trace de ce qui est perdu.
   &__fill {
     width: var(--stat-pct, 0%);
     height: 100%;
     background-color: var(--color-text);
 
-    // Part apportée par la pièce maîtresse et par l'archétype, détachée en fin
-    // de barre. Teinte dorée, celle du jeu.
     &--bonus {
+      background-color: var(--color-energy);
+    }
+
+    &--masterwork {
       background-color: var(--color-accent);
+    }
+
+    &--malus {
+      background-color: var(--color-danger);
     }
   }
 
@@ -104,6 +111,12 @@
       padding-left: 0.25rem;
       color: var(--color-text);
       max-width: calc(200px + 1.5rem + 0.5rem);
+    }
+
+    // Modifiée par la pièce maîtresse (vitesse de charge, vitesse de tir) :
+    // faute de segment doré, c'est la valeur qui en prend la teinte.
+    .stat-bar__value--masterwork {
+      color: var(--color-accent);
     }
   }
 }

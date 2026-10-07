@@ -368,6 +368,59 @@ reusing the stats already curated for item tooltips, so the list is maintained i
 one place. `isConditionallyActive` values are **kept** — a fragment's "-10
 Grenade" is one, and the game shows it.
 
+## Stat breakdown
+
+Weapon and armour stat bars are split into base (white), perks and mods
+(blue, or red for what they remove), and masterwork (gold).
+`lib/destiny/stat-breakdown.ts` is pure and checked by
+`scripts/checks/stat-breakdown.check.ts`.
+
+The API only returns **totals**. Rather than rebuilding everything from
+definitions as DIM does, the base is the API total minus what the plugs bring:
+whatever cannot be modelled (artifact, adept bonuses, enhanced intrinsics…)
+stays correct, folded into the base. The intrinsic frame counts as base.
+Conditional-stat rules come from DIM's `stats-conditional.ts`, checked against
+the manifest:
+
+- **Tiered masterwork** (+10 on its stat, +0 conditional elsewhere): the game
+  adds the weapon's tier to **every** listed stat, the main one included
+  (Range +15 at tier 5). The API leaves this out of its totals, so it is
+  **added**. The old adept masterworks (+3 conditional) are not affected.
+  Entries for the same stat are **merged first**: the Reload masterwork
+  declares Reload twice (+10, then +0 conditional), and adding the tier to
+  each entry gave +20 instead of +15.
+- **Crafted or enhanced weapons** have no masterwork socket: their enhanced
+  intrinsic (+10 on one stat, +2 conditional on six others) takes its place
+  and goes to the gold segment. Below level 20 only the main stat gets +10.
+  From level 20 every listed stat gets `max(2, tier)`, the main one on top of
+  its +10 (+12/+2 up to tier 2, then +15/+5 at tier 5). Assumption: the API
+  counts what the manifest declares (+10, plus +2 from level 20), and the
+  rest is added.
+- **Enhanced adept weapons** (`isAdept` on the definition) follow DIM, with no
+  weapon-level condition. Secondary stats get +3, or +4 at enhancement level 3,
+  plus the enhancement level at tier 5. The main stat gets 10 + tier. The
+  enhancement level (1–3) comes from the "Enhancement" plug in place
+  (2728416798 / …797 / …796).
+- Exotic catalyst (trait `item.exotic_catalyst`): active only once the item
+  is masterworked (`ITEM_STATE.Masterwork`).
+- Armour 3.0 masterwork and Balanced Tuning: only on stats whose base,
+  read from the hidden `armor_stats` plugs, is zero.
+- Adept enhancer previews and Elemental Capacitor: never applied.
+- "Enhanced Charge Time" (3779301690) and "Adept Charge Time" (744770875)
+  declare **no** investment stat: their "+10 Charge Time" exists only in their
+  perk text. It is hard-coded and added to the totals, since the API cannot
+  count what is not declared (DIM misses it too). The Draw Time mods and
+  Tension do declare theirs.
+
+Stats follow the **shown** plugs, so a pending insert or a group snapshot
+updates the bars immediately. `ItemDetail.statSockets` records which sockets
+the API totals describe, because a successful insert patches `sockets` in the
+cache while `stats` only changes on the next refresh. The display curves
+(`DestinyStatGroupDefinition`, which is not the identity for Impact) are
+applied to weapons. Armour stats are 1:1. Charge time and draw time follow a
+**decreasing** curve (1000 → 500 ms): a masterwork lowers them, so its share
+is negative. These values have no bar, so the number itself turns gold.
+
 ## Shared definitions
 
 `ItemDefsProvider` (`src/lib/destiny/item-defs.tsx`) loads every item definition
@@ -2354,6 +2407,63 @@ internes (Défense, Puissance, coûts d'énergie, « Coût du fragment »…).
 déjà curées pour les infobulles d'objets : la liste reste maintenue en un seul
 endroit. Les valeurs `isConditionallyActive` sont **conservées** — le « -10
 Grenade » d'un fragment en est une, et le jeu l'affiche.
+
+## Décomposition des statistiques
+
+Les barres de statistiques des armes et armures sont découpées en base (blanc),
+attributs et mods (bleu, rouge pour ce qu'ils retirent) et pièce maîtresse
+(doré). `lib/destiny/stat-breakdown.ts` est pur et vérifié par
+`scripts/checks/stat-breakdown.check.ts`.
+
+L'API ne renvoie que des **totaux**. Plutôt que de tout reconstruire depuis les
+définitions comme DIM, la base est le total de l'API moins l'apport des plugs :
+ce qu'on ne sait pas modéliser (artéfact, bonus d'adepte, intrinsèques
+améliorés…) reste juste, fondu dans la base. L'armature compte dans la base.
+Les règles des écarts conditionnels viennent de `stats-conditional.ts` (DIM),
+vérifiées sur le manifeste :
+
+- **Pièce maîtresse de palier** (+10 sur sa statistique, +0 conditionnel
+  ailleurs) : le jeu ajoute le palier de l'arme à **toutes** les statistiques
+  listées, la principale comprise (Portée +15 en palier 5). L'API l'omet de ses
+  totaux : il est **ajouté**. Les anciennes pièces maîtresses d'adepte (+3
+  conditionnel) ne sont pas concernées. Les entrées d'une même statistique
+  sont **réunies d'abord** : la pièce maîtresse « Rechargement » déclare
+  Rechargement deux fois (+10, puis +0 conditionnel), et ajouter le palier à
+  chaque entrée donnait +20 au lieu de +15.
+- **Armes façonnées ou améliorées** : elles n'ont pas de socket de pièce
+  maîtresse. Leur intrinsèque amélioré (+10 sur une statistique, +2
+  conditionnel sur six autres) en tient lieu et passe en doré. Avant le niveau
+  20, seule la principale reçoit ses +10. À partir du niveau 20, chaque
+  statistique listée reçoit `max(2, palier)`, la principale en plus de ses +10
+  (+12/+2 jusqu'au palier 2, puis +15/+5 en palier 5). Hypothèse : l'API compte
+  ce que déclare le manifeste (+10, et +2 dès le niveau 20), et le reste est
+  ajouté.
+- **Armes d'adepte améliorées** (`isAdept` dans la définition) : formule de
+  DIM, sans condition de niveau d'arme. Les secondaires reçoivent +3, ou +4 au
+  niveau d'amélioration 3, plus le niveau d'amélioration en palier 5. La
+  principale reçoit 10 + palier. Le niveau d'amélioration (1 à 3) vient du plug
+  « Amélioration » en place (2728416798 / …797 / …796).
+- Catalyseur d'exotique (trait `item.exotic_catalyst`) : actif seulement une
+  fois l'objet en pièce maîtresse (`ITEM_STATE.Masterwork`).
+- Pièce maîtresse d'armure 3.0 et Ajustement équilibré : seulement sur les
+  statistiques dont la base, lue sur les plugs masqués `armor_stats`, est nulle.
+- Aperçus d'amélioration d'adepte et Condensateur élémentaire : jamais appliqués.
+- « Enhanced Charge Time » (3779301690) et « Adept Charge Time » (744770875)
+  ne déclarent **aucun** écart : leur « +10 Vitesse de charge » n'existe que
+  dans le texte de leur perk. Il est codé en dur et ajouté aux totaux, l'API ne
+  pouvant compter ce qui n'est pas déclaré (DIM ne le rattrape pas non plus).
+  Les mods « Draw Time » et Tension, eux, déclarent les leurs.
+
+Les statistiques suivent les plugs **montrés** : une insertion en attente ou un
+instantané de groupe met les barres à jour sur-le-champ.
+`ItemDetail.statSockets` indique à quels sockets correspondent les totaux de
+l'API : une insertion aboutie modifie `sockets` dans le cache, alors que `stats`
+ne change qu'au rechargement suivant. Les courbes d'affichage
+(`DestinyStatGroupDefinition`, qui ne sont pas l'identité pour l'Impact)
+s'appliquent aux armes. Les statistiques d'armure sont en 1:1. Vitesse de
+charge et vitesse de tir suivent une courbe **décroissante** (1000 → 500 ms) :
+la pièce maîtresse les fait baisser, sa part est donc négative. Ces valeurs
+n'ont pas de barre, c'est donc le nombre lui-même qui passe en doré.
 
 ## Définitions mutualisées
 

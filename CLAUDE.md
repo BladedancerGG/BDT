@@ -83,6 +83,7 @@ Elles couvrent aujourd'hui `lib/loadouts/groups/edit.ts`, `lib/loadouts/groups/e
 `lib/loadouts/groups/sync-merge.ts`, `lib/destiny/insert-plan.ts`, `lib/settings/backup.ts`,
 `lib/destiny/subclass.ts`, `lib/destiny/gear.ts`, `lib/destiny/moves.ts` (les piles, les
 remplaçants), `lib/destiny/perk-upgrades.ts` (attributs améliorés et armes façonnées),
+`lib/destiny/stat-breakdown.ts` (décomposition des statistiques, bonus de palier),
 `lib/loadouts/share/snapshot.ts` (l'instantané d'un partage)
 et `lib/loadouts/share/import.ts` (l'import d'un partage),
 et contrôlent au passage les règles CSS qui se recouvrent.

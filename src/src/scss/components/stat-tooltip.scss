@@ -1,0 +1,48 @@
+// Infobulle d'une statistique. L'habillage (cadre, en-tête, description) est
+// celui de `.plug-tooltip`, qu'elle porte aussi : seul le détail du total est
+// propre à elle.
+
+.stat-tooltip {
+  // Tableau à deux colonnes : libellés à gauche, valeurs alignées à droite.
+  &__breakdown {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    column-gap: 1.5rem;
+    row-gap: 0.125rem;
+    margin: 0;
+    font-size: 0.75rem;
+
+    dt {
+      color: var(--color-text-muted);
+    }
+
+    dd {
+      margin: 0;
+      text-align: right;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+
+    // Le total, séparé d'un filet comme le bas d'une addition. Imbriqué ici
+    // pour l'emporter sur la teinte muette des `dt`.
+    .stat-tooltip__total {
+      margin-top: 0.25rem;
+      padding-top: 0.25rem;
+      border-top: 1px solid var(--color-border);
+      color: var(--color-text);
+    }
+  }
+
+  // Mêmes teintes que les segments de la barre
+  &__value--bonus {
+    color: var(--color-energy);
+  }
+
+  &__value--malus {
+    color: var(--color-danger);
+  }
+
+  &__value--masterwork {
+    color: var(--color-accent);
+  }
+}

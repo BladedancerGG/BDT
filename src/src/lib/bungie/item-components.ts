@@ -57,6 +57,18 @@ export interface ItemDetail {
   stats: StatSnapshot;
   sockets: SocketSnapshot;
   /**
+   * Sockets que décrit `stats`, quand ce ne sont plus ceux de `sockets`.
+   *
+   * Une insertion aboutie met `sockets` à jour sur-le-champ, dans le cache du
+   * profil ; `stats`, elle, ne bouge qu'au rechargement suivant. Sans ce
+   * repère, la décomposition des statistiques retirerait du total l'apport
+   * d'un attribut qui n'y est pas encore — voir `stat-breakdown.ts`.
+   *
+   * Absent quand les deux concordent : c'est le cas de tout détail venu de
+   * l'API, le rechargement l'efface donc de lui-même.
+   */
+  statSockets?: SocketSnapshot;
+  /**
    * Index des sockets désactivés (`isEnabled: false`). Sert à distinguer un
    * emplacement **verrouillé** d'un emplacement libre — les doctrines
    * déverrouillent leurs emplacements de fragments au fil des aspects équipés.

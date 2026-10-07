@@ -285,7 +285,12 @@
     "tapTwiceToEquip": "Tap twice to equip",
     "fragmentSlots": "{count, plural, one {# fragment slot} other {# fragment slots}}",
     "searchPlugs": "Search…",
-    "tunedStat": "Tuned stat"
+    "tunedStat": "Tuned stat",
+    "statBreakdown": {
+      "base": "Base",
+      "perks": "Perks and mods",
+      "total": "Total"
+    }
   },
   "search": {
     "label": "Search items",
