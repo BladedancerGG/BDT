@@ -466,17 +466,37 @@ section("Mods de vitesse de charge et de tir");
     check("insertion d'Enhanced Charge Time : recalcul immédiat", swapped[CHARGE_TIME].total, 750);
 }
 
-section("Segments de barre");
+section("Segments de barre : rouge seulement sous la base");
 {
     check(
-        "partie pleine = total, malus à la suite",
+        "total au-dessus de la base : pas de rouge, le malus pris sur le bleu",
         barSegments({base: 60, bonus: 10, malus: 8, masterwork: 10, total: 72}),
-        {base: 52, bonus: 10, masterwork: 10, malus: 8},
+        {base: 60, bonus: 2, masterwork: 10, malus: 0},
     );
     check(
-        "malus supérieur à la base : il rogne les attributs",
-        barSegments({base: 5, bonus: 10, malus: 8, masterwork: 0, total: 7}),
-        {base: 0, bonus: 7, masterwork: 0, malus: 8},
+        "malus plus grand que le bleu : pris ensuite sur le jaune",
+        barSegments({base: 60, bonus: 5, malus: 12, masterwork: 10, total: 63}),
+        {base: 60, bonus: 0, masterwork: 3, malus: 0},
+    );
+    check(
+        "total égal à la base : pas de rouge",
+        barSegments({base: 60, bonus: 0, malus: 10, masterwork: 10, total: 60}),
+        {base: 60, bonus: 0, masterwork: 0, malus: 0},
+    );
+    check(
+        "total sous la base : bleu et jaune gardés, rouge jusqu'à la base",
+        barSegments({base: 60, bonus: 5, malus: 20, masterwork: 10, total: 55}),
+        {base: 40, bonus: 5, masterwork: 10, malus: 5},
+    );
+    check(
+        "bleu et jaune plus grands que le total : rognés, bleu d'abord",
+        barSegments({base: 10, bonus: 6, malus: 14, masterwork: 5, total: 7}),
+        {base: 0, bonus: 2, masterwork: 5, malus: 3},
+    );
+    check(
+        "rouge jamais au-delà de la base",
+        barSegments({base: 10, bonus: 0, malus: 30, masterwork: 0, total: 0}),
+        {base: 0, bonus: 0, masterwork: 0, malus: 10},
     );
 }
 

@@ -371,7 +371,11 @@ Grenade" is one, and the game shows it.
 ## Stat breakdown
 
 Weapon and armour stat bars are split into base (white), perks and mods
-(blue, or red for what they remove), and masterwork (gold).
+(blue), and masterwork (gold). A red segment appears only when the total falls
+below the base, and runs from the total up to the base, never beyond it.
+Blue and gold then keep their full width and white shrinks. At or above the
+base, there is no red, and what perks remove comes out of blue, then gold
+(`barSegments`).
 `lib/destiny/stat-breakdown.ts` is pure and checked by
 `scripts/checks/stat-breakdown.check.ts`.
 
@@ -2411,8 +2415,11 @@ Grenade » d'un fragment en est une, et le jeu l'affiche.
 ## Décomposition des statistiques
 
 Les barres de statistiques des armes et armures sont découpées en base (blanc),
-attributs et mods (bleu, rouge pour ce qu'ils retirent) et pièce maîtresse
-(doré). `lib/destiny/stat-breakdown.ts` est pur et vérifié par
+attributs et mods (bleu) et pièce maîtresse (doré). Un segment rouge n'apparaît
+que lorsque le total passe sous la base : il va du total jusqu'à la base,
+jamais au-delà. Le bleu et le doré gardent alors toute leur largeur, et c'est
+le blanc qui raccourcit. À partir de la base, pas de rouge : ce que retirent
+les attributs est pris sur le bleu, puis sur le doré (`barSegments`). `lib/destiny/stat-breakdown.ts` est pur et vérifié par
 `scripts/checks/stat-breakdown.check.ts`.
 
 L'API ne renvoie que des **totaux**. Plutôt que de tout reconstruire depuis les

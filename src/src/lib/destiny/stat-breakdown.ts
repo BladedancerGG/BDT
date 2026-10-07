@@ -504,11 +504,15 @@ export function breakdownStats(input: BreakdownInput): Record<number, StatBreakd
 }
 
 /**
- * Largeurs des segments d'une barre, en points : la partie pleine vaut le
- * total, le malus la suit comme la trace de ce qui est perdu.
+ * Largeurs des segments d'une barre, en points. La partie pleine vaut toujours
+ * le total.
  *
- * Le malus rogne d'abord la base ; s'il la dépasse, les attributs puis la pièce
- * maîtresse — la partie pleine ne doit jamais dépasser le total.
+ * - Total au moins égal à la base : pas de rouge. Le blanc vaut la base, et le
+ *   malus se prend sur le bleu, puis sur le jaune.
+ * - Total sous la base : le bleu et le jaune gardent leur largeur, le blanc
+ *   s'arrête où il faut pour que la partie pleine tombe sur le total, et le
+ *   rouge va du total jusqu'à la base — jamais au-delà. Si le bleu et le jaune
+ *   dépassent à eux seuls le total, ils sont rognés à leur tour, bleu d'abord.
  */
 export function barSegments(b: StatBreakdown): {
     base: number;
@@ -516,14 +520,31 @@ export function barSegments(b: StatBreakdown): {
     masterwork: number;
     malus: number;
 } {
-    let deficit = b.malus;
+    if (b.total >= b.base) {
+        let deficit = b.malus;
+        const take = (part: number) => {
+            const cut = Math.min(part, deficit);
+            deficit -= cut;
+            return part - cut;
+        };
+        const bonus = take(b.bonus);
+        const masterwork = take(b.masterwork);
+        return {base: b.base, bonus, masterwork, malus: 0};
+    }
+
+    const total = Math.max(0, b.total);
+    let overflow = Math.max(0, b.bonus + b.masterwork - total);
     const take = (part: number) => {
-        const cut = Math.min(part, deficit);
-        deficit -= cut;
+        const cut = Math.min(part, overflow);
+        overflow -= cut;
         return part - cut;
     };
-    const base = take(b.base);
     const bonus = take(b.bonus);
     const masterwork = take(b.masterwork);
-    return {base, bonus, masterwork, malus: b.malus};
+    return {
+        base: total - bonus - masterwork,
+        bonus,
+        masterwork,
+        malus: b.base - total,
+    };
 }

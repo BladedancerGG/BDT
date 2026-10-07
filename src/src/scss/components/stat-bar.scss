@@ -80,9 +80,9 @@
   }
 
   // Largeur fournie en inline via une variable CSS. Les teintes sont celles
-  // du jeu : base claire, attributs et mods en bleu, pièce maîtresse dorée, et
-  // ce que retirent attributs et mods en rouge, à la suite de la partie pleine
-  // — la trace de ce qui est perdu.
+  // du jeu : base claire, attributs et mods en bleu, pièce maîtresse dorée. Le
+  // rouge suit la partie pleine quand le total passe sous la base : il marque
+  // ce qui manque pour l'atteindre.
   &__fill {
     width: var(--stat-pct, 0%);
     height: 100%;

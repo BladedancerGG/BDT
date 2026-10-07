@@ -52,8 +52,9 @@ export function StatBar({
     signed?: boolean;
     /**
      * Décomposition du total : base en clair, attributs et mods en bleu, pièce
-     * maîtresse en doré, puis ce que retirent attributs et mods en rouge.
-     * Sans elle, la barre est d'un seul tenant.
+     * maîtresse en doré, puis — seulement si le total passe sous la base — le
+     * manque jusqu'à la base en rouge (voir `barSegments`). Sans elle, la
+     * barre est d'un seul tenant.
      */
     breakdown?: StatBreakdown;
     /**
