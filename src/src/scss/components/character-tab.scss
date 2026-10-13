@@ -29,6 +29,16 @@
     box-shadow: 0 0 2px 1px var(--color-accent);
   }
 
+  // Bandeau des colonnes de personnages : rien à cliquer, donc ni main ni halo
+  // qui le laisseraient croire.
+  &--passive {
+    cursor: default;
+
+    &:hover {
+      box-shadow: none;
+    }
+  }
+
   // Emblème affiché en fond via une variable CSS posée en inline
   &__emblem {
     position: absolute;
@@ -101,4 +111,8 @@
   &--selected {
     box-shadow: 0 0 2px 1px var(--color-accent);
   }
+}
+
+.character-tab--selected.character-tab--passive {
+  box-shadow: none !important;
 }

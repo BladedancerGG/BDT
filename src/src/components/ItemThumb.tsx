@@ -16,6 +16,7 @@ import {
 import { bestIconPath, tierClassName } from "@/lib/destiny/icons";
 import { displayedEnergyCost } from "@/lib/destiny/sockets";
 import { isSubclass } from "@/lib/destiny/subclass";
+import { isEngram } from "@/lib/destiny/buckets";
 import { AmmoIcon, BorderIcon, hasAmmoIcon } from "@/components/icons";
 import { BUNGIE_ROOT, ITEM_TYPE } from "@/lib/destiny/display";
 
@@ -136,12 +137,15 @@ export function ItemThumb({
   // Les doctrines en sont exemptées : leur vignette est un losange ou un
   // cercle, un cadre carré n'aurait aucun sens autour.
   const subclass = isSubclass(def);
-  const regularBorder = !subclass && !isMasterwork(state);
+  // Les engrammes non plus : leur icône est une silhouette détourée, qu'un
+  // carré de rareté encadré transformerait en tuile.
+  const bare = subclass || isEngram(def);
+  const regularBorder = !bare && !isMasterwork(state);
 
   const classes = [
     "item-thumb",
-    // Les doctrines ont leur propre cadre : pas de fond de rareté
-    subclass ? null : `item-thumb--tier-${tierClassName(tierType)}`,
+    // Doctrines et engrammes ont leur propre forme : pas de fond de rareté
+    bare ? null : `item-thumb--tier-${tierClassName(tierType)}`,
     holofoil ? "item-thumb--holofoil" : null,
     originalIcon ? "item-thumb--ornamented" : null,
     // Dégradé du coin bas droit : il accompagne le marquage façonné / amélioré,

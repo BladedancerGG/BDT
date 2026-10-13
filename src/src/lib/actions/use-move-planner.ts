@@ -6,7 +6,9 @@ import type { ProfileData } from "@/lib/bungie/use-profile";
 import { useItemDefs } from "@/lib/destiny/item-defs";
 import { useBucketCapacities } from "@/lib/destiny/use-bucket-capacities";
 import {
+  locateItem,
   planMove,
+  type ItemPlace,
   type MovePlan,
   type MoveTarget,
   type PlanContext,
@@ -69,5 +71,15 @@ export function useMovePlanner() {
     [plan, enqueueAction],
   );
 
-  return { plan, enqueue };
+  /** Où se trouve l'objet, d'après le profil en cache — même source que `plan`. */
+  const locate = useCallback(
+    (itemInstanceId: string): ItemPlace | null => {
+      const ctx = context();
+      if (!ctx) return null;
+      return locateItem(ctx.profile, itemInstanceId)?.place ?? null;
+    },
+    [context],
+  );
+
+  return { plan, enqueue, locate };
 }

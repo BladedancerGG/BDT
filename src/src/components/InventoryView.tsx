@@ -20,6 +20,7 @@ import {
     type SlotSide,
 } from "@/lib/destiny/buckets";
 import {useDefinition} from "@/lib/manifest/use-definition";
+import type {ItemOwner} from "@/lib/destiny/grouping";
 import type {InventoryBucketDefinition} from "@/lib/destiny/types";
 import type {ItemCategory} from "@/lib/settings/constants";
 import {useCharacterNames} from "@/lib/destiny/use-character-names";
@@ -349,17 +350,50 @@ function Inventory({
         postmasterGroups,
     );
 
+    // Les engrammes des TROIS personnages, chacun sous son en-tête : ils ne
+    // quittent jamais leur personnage, et la vue n'en montre qu'un — sans eux
+    // ceux des deux autres resteraient invisibles. Le planificateur les refuse
+    // de toute façon (`nonTransferrable`), où qu'on les dépose.
+    const engrams = useMemo(
+        () =>
+            data.characters.map((c, order) => ({
+                character: c,
+                order,
+                items: (data.inventory[c.characterId] ?? NO_ITEMS).filter(
+                    (i) => i.bucketHash === BUCKET.Engrams,
+                ),
+            })),
+        [data.characters, data.inventory],
+    );
+    const engramOwners = useMemo(() => {
+        const owners = new Map<DestinyItemComponent, ItemOwner>();
+        for (const {character, order, items} of engrams) {
+            const owner: ItemOwner = {
+                key: character.characterId,
+                label: names.get(character.characterId) ?? "",
+                icon: {kind: "class", classType: character.classType},
+                order,
+            };
+            for (const item of items) owners.set(item, owner);
+        }
+        return owners;
+    }, [engrams, names]);
+
     const pouchItems = useMemo(
         () =>
             shared
                 ? [
                       ...data.vault,
                       ...currentInventory.filter(
-                          (i) => i.bucketHash !== BUCKET.Postmaster,
+                          (i) =>
+                              i.bucketHash !== BUCKET.Postmaster &&
+                              i.bucketHash !== BUCKET.Engrams,
                       ),
-                  ].filter((i) => i.bucketHash !== BUCKET.Vault)
+                  ]
+                      .filter((i) => i.bucketHash !== BUCKET.Vault)
+                      .concat(engrams.flatMap((e) => e.items))
                 : NO_ITEMS,
-        [shared, data.vault, currentInventory],
+        [shared, data.vault, currentInventory, engrams],
     );
     const vaultItems = useMemo(
         () =>
@@ -522,6 +556,7 @@ function Inventory({
                 fixedColumns={rail ? 5 : undefined}
                 lead={postmaster}
                 category={category}
+                owners={engramOwners}
             />
         </div>
     );
@@ -549,7 +584,12 @@ function Inventory({
             {/* La recherche englobe toute la vue : les vignettes de
                 l'équipement s'estompent elles aussi. */}
             <SearchProvider data={data} currentCharacterId={current}>
-            <MoveDnd selectedCharacterId={current}>
+            {/* Les trois personnages à l'écran : le double-clic équipe chez
+                le porteur de l'objet, la sélection n'y commandant plus rien. */}
+            <MoveDnd
+                selectedCharacterId={current}
+                equipInPlace={columnsLayout && viewMode === "inventory"}
+            >
             <ActionRunner/>
             <SearchActionsBridge data={data}/>
             {/* Un SEUL en-tête : menu, recherche et boutons de compte sur la
@@ -670,7 +710,6 @@ function Inventory({
                                             data={data}
                                             category={category}
                                             selected={c.characterId === current}
-                                            onSelect={setSelectedId}
                                         />
                                     ))
                                 )}
@@ -679,9 +718,9 @@ function Inventory({
                         ) : (
                             <>
                                 {/* Colonne de gauche du rangement partagé : ce que
-                                    le personnage porte sur lui, modificateurs et
-                                    objets à usage unique séparés par leurs
-                                    sections. */}
+                                    les personnages portent sur eux — engrammes de
+                                    chacun, objets à usage unique, modificateurs —
+                                    séparés par leurs sections. */}
                                 {shared && pouchGrid}
 
                                 {/* Disposition « trois personnages » : une colonne
@@ -692,7 +731,6 @@ function Inventory({
                                         data={data}
                                         category={category}
                                         selectedId={current}
-                                        onSelect={setSelectedId}
                                     />
                                 )}
 

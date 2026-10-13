@@ -21,10 +21,17 @@ import {ClassIcon} from "./ClassIcon";
 export function CharacterTab({
                                  character,
                                  selected,
+                                 passive = false,
                                  ...buttonProps
                              }: {
     character: Character;
     selected: boolean;
+    /**
+     * Simple bandeau, sans rien à cliquer : les colonnes des trois personnages
+     * le posent en tête de chacune, où il ne désigne plus rien — le double-clic
+     * y équipe chez le porteur de l'objet, pas chez le personnage sélectionné.
+     */
+    passive?: boolean;
 } & ComponentPropsWithRef<"button">) {
     const classDef = useDefinition<ClassDefinition>(
         "DestinyClassDefinition",
@@ -38,12 +45,8 @@ export function CharacterTab({
     const counts = useSearchCounts();
     const found = counts?.byCharacter.get(character.characterId) ?? null;
 
-    return (
-        <button
-            type="button"
-            className={`character-tab${selected ? " character-tab--selected" : ""}`}
-            {...buttonProps}
-        >
+    const content = (
+        <>
             {/* L'URL de l'emblème est passée au CSS via une variable */}
             <span
                 className="character-tab__emblem"
@@ -72,6 +75,22 @@ export function CharacterTab({
                     </span>
                 </div>
             </span>
+        </>
+    );
+
+    const classes = `character-tab${selected ? " character-tab--selected" : ""}`;
+
+    if (passive) {
+        return <div className={`${classes} character-tab--passive`}>{content}</div>;
+    }
+
+    return (
+        <button
+            type="button"
+            className={classes}
+            {...buttonProps}
+        >
+            {content}
         </button>
     );
 }

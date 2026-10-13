@@ -3,11 +3,11 @@
 import {useMemo} from "react";
 import type {ItemCategory} from "@/lib/settings/constants";
 import {useItemDefs} from "./item-defs";
-import {CUSTOMIZATION_BUCKETS, STORAGE_BUCKETS} from "./buckets";
+import {CUSTOMIZATION_BUCKETS, INVENTORY_BUCKETS} from "./buckets";
 import {DISPLAYED_ITEM_TYPES, DISPLAYED_BUCKETS} from "./display";
 
-/** Emplacements du rangement partagé, en ensemble pour le test d'appartenance. */
-const STORAGE_SET: ReadonlySet<number> = new Set(STORAGE_BUCKETS);
+/** Emplacements de l'onglet « Inventaire », en ensemble pour le test d'appartenance. */
+const INVENTORY_SET: ReadonlySet<number> = new Set(INVENTORY_BUCKETS);
 
 /**
  * Ne garde que les objets de la famille demandée.
@@ -38,7 +38,7 @@ export function useDisplayableItems<T extends { itemHash: number }>(
             const bucket = def.inventory?.bucketTypeHash ?? 0;
 
             if (category === "customization") return CUSTOMIZATION_BUCKETS.has(bucket);
-            if (category === "inventory") return STORAGE_SET.has(bucket);
+            if (category === "inventory") return INVENTORY_SET.has(bucket);
 
             return (
                 DISPLAYED_ITEM_TYPES.has(def.itemType) ||

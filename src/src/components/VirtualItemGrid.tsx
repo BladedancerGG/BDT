@@ -5,7 +5,7 @@ import {useTranslations} from "next-intl";
 import {useVirtualizer} from "@tanstack/react-virtual";
 import type {DestinyItemComponent} from "@/lib/bungie/profile";
 import type {ItemDetail} from "@/lib/bungie/item-components";
-import type {GroupIcon} from "@/lib/destiny/grouping";
+import type {GroupIcon, ItemOwner} from "@/lib/destiny/grouping";
 import type {ItemCategory} from "@/lib/settings/constants";
 import {useGroupedItems} from "@/lib/destiny/use-grouped-items";
 import {useGridMetrics} from "@/lib/destiny/use-grid-metrics";
@@ -139,6 +139,7 @@ export function VirtualItemGrid({
                                     lead,
                                     characters,
                                     category,
+                                    owners,
                                     fixedColumns,
                                 }: {
     title: string;
@@ -149,6 +150,12 @@ export function VirtualItemGrid({
     characters?: CharacterSection[];
     /** Famille d'objets à retenir — voir `useDisplayableItems` */
     category?: ItemCategory;
+    /**
+     * Détenteur de chaque objet, quand la grille en réunit de plusieurs
+     * personnages : leurs sections se découpent alors par personnage (voir
+     * `GroupingContext.owners`).
+     */
+    owners?: ReadonlyMap<DestinyItemComponent, ItemOwner>;
     /**
      * Nombre d'objets par ligne imposé, la taille des vignettes s'y ajustant.
      *
@@ -165,7 +172,7 @@ export function VirtualItemGrid({
     const found = useSearchFiltered(items);
     const leadFound = useSearchFiltered(lead?.items ?? NO_ITEMS);
     // Filtrés, triés selon les critères réglés dans les paramètres, puis groupés
-    const sections = useGroupedItems(found, details, category);
+    const sections = useGroupedItems(found, details, category, owners);
 
     // Les objets des autres personnages passent par le MÊME filtrage et le
     // même tri que le coffre, en une seule liste : un appel de hook par

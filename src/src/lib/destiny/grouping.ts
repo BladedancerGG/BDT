@@ -21,7 +21,7 @@ import type { DestinyItemComponent } from "@/lib/bungie/profile";
 import type { ItemDetail } from "@/lib/bungie/item-components";
 import type { InventoryItemDefinition } from "./types";
 import type { ItemSortTraits } from "./sort-traits";
-import { ARMOR_BUCKETS, BUCKET_ORDER, WEAPON_BUCKETS } from "./buckets";
+import { ARMOR_BUCKETS, BUCKET, BUCKET_ORDER, WEAPON_BUCKETS } from "./buckets";
 import { BUNGIE_ROOT } from "./display";
 
 /** Sous-groupes proposés pour les armes. Le premier libellé est « aucun ». */
@@ -96,6 +96,21 @@ export interface GroupingContext {
   ammoNames: ReadonlyMap<number, string>;
   /** Libellé du groupe fourre-tout, pour les objets dépourvus du critère */
   otherLabel: string;
+  /**
+   * Personnage qui détient chaque objet, par identité — pour les engrammes,
+   * réunis depuis les trois personnages dans une même grille, et dont rien
+   * dans la vignette ne dit chez qui ils dorment. Absent : aucun découpage.
+   */
+  owners?: ReadonlyMap<DestinyItemComponent, ItemOwner>;
+}
+
+/** Un personnage, en tant que sous-groupe — voir `GroupingContext.owners`. */
+export interface ItemOwner {
+  key: string;
+  label: string;
+  icon?: GroupIcon;
+  /** Rang du personnage dans le profil */
+  order: number;
 }
 
 // —— Structure produite ————————————————————————————————————————
@@ -156,10 +171,17 @@ const OTHER_KEY = "other";
  * Sous-groupe d'un objet, ou `undefined` s'il ne relève d'aucun — auquel cas il
  * rejoint le groupe fourre-tout, toujours en dernier.
  */
+/**
+ * Critère effectif d'un emplacement : ceux du joueur, plus le découpage par
+ * personnage, qui n'est pas un réglage mais la seule façon de lire des engrammes
+ * venus des trois.
+ */
+type Grouping = WeaponGrouping | ArmorGrouping | "owner";
+
 function groupKeyOf(
   item: DestinyItemComponent,
   def: InventoryItemDefinition,
-  grouping: WeaponGrouping | ArmorGrouping,
+  grouping: Grouping,
   ctx: GroupingContext,
 ): GroupKey | undefined {
   const detail = item.itemInstanceId
@@ -172,6 +194,17 @@ function groupKeyOf(
   switch (grouping) {
     case "none":
       return undefined;
+
+    case "owner": {
+      const owner = ctx.owners?.get(item);
+      if (!owner) return undefined;
+      return {
+        key: `owner:${owner.key}`,
+        label: owner.label,
+        icon: owner.icon,
+        order: owner.order,
+      };
+    }
 
     case "ammoType": {
       // 0 (None) et 4 (Unknown) ne sont pas des groupes : ces objets rejoignent
@@ -255,7 +288,8 @@ function groupKeyOf(
 function groupingForBucket(
   bucketHash: number,
   preferences: GroupingPreferences,
-): WeaponGrouping | ArmorGrouping {
+): Grouping {
+  if (bucketHash === BUCKET.Engrams) return "owner";
   if (WEAPON_BUCKETS.has(bucketHash)) return preferences.weapon;
   if (ARMOR_BUCKETS.has(bucketHash)) return preferences.armor;
   return "none";

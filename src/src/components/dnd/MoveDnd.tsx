@@ -148,7 +148,10 @@ function markDragging(active: boolean) {
 interface MoveActionsValue {
   /** Personnage dont l'équipement est affiché — cible du double-clic */
   selectedCharacterId: string | null;
-  /** Équipe sur le personnage affiché (double-clic sur une vignette) */
+  /**
+   * Équipe l'objet (double-clic sur une vignette) : sur le personnage affiché,
+   * ou sur celui qui le détient — voir `MoveDnd.equipInPlace`.
+   */
   equipOnSelected: (item: DraggedItem) => void;
 }
 
@@ -225,14 +228,23 @@ interface PendingDrop {
 
 export function MoveDnd({
   selectedCharacterId,
+  equipInPlace = false,
   children,
 }: {
   selectedCharacterId: string | null;
+  /**
+   * Le double-clic équipe l'objet chez le personnage qui le détient, et non
+   * chez le personnage sélectionné. C'est le cas dès que les trois sont à
+   * l'écran (colonnes, rail) : la vignette se trouve alors sous la colonne de
+   * son porteur, et l'envoyer chez un autre surprendrait. Un objet du coffre
+   * n'appartient à personne — le double-clic n'y fait rien, le glisser reste.
+   */
+  equipInPlace?: boolean;
   children: ReactNode;
 }) {
   const [dragged, setDragged] = useState<DraggedItem | null>(null);
   const [pending, setPending] = useState<PendingDrop | null>(null);
-  const { plan, enqueue } = useMovePlanner();
+  const { plan, enqueue, locate } = useMovePlanner();
 
   // Dernière position connue du curseur. Une ref, pas un état : elle change à
   // chaque mouvement et ne doit rien re-rendre.
@@ -331,14 +343,16 @@ export function MoveDnd({
     () => ({
       selectedCharacterId,
       equipOnSelected: (item) => {
-        if (!selectedCharacterId) return;
-        enqueue(item, {
-          kind: "equipped",
-          characterId: selectedCharacterId,
-        });
+        let characterId = selectedCharacterId;
+        if (equipInPlace) {
+          const place = locate(item.itemInstanceId);
+          characterId = place && place.kind !== "vault" ? place.characterId : null;
+        }
+        if (!characterId) return;
+        enqueue(item, { kind: "equipped", characterId });
       },
     }),
-    [selectedCharacterId, enqueue],
+    [selectedCharacterId, equipInPlace, locate, enqueue],
   );
 
   return (

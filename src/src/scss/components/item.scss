@@ -120,6 +120,18 @@
     clip-path: circle(50%);
   }
 
+  // —— Engrammes ———————————————————————————————————————————
+  // Silhouette détourée, sans cadre ni fond (voir ItemThumb) : le support
+  // sombre de la vignette disparaît aussi. Pas de découpe ici — le drop-shadow
+  // suit de lui-même le contour de l'image.
+  &--bare {
+    background: transparent;
+
+    &:hover {
+      filter: drop-shadow(0 0 2px var(--color-text-muted));
+    }
+  }
+
   // L'épinglage prime sur le survol
   &--shape-diamond#{&}--pinned,
   &--shape-circle#{&}--pinned {

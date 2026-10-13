@@ -21,6 +21,7 @@ import { useSearchMiss } from "@/lib/search/provider";
 import { useItemBusy } from "@/lib/actions/store";
 import { stackSubject } from "@/lib/destiny/moves";
 import { subclassKind } from "@/lib/destiny/subclass";
+import { isEngram } from "@/lib/destiny/buckets";
 import {
   pickableBucket,
   useGroupSelection,
@@ -345,6 +346,7 @@ export function ItemIcon({
         className={[
           "item",
           shape ? SHAPE_CLASS[shape] : null,
+          isEngram(def) ? "item--bare" : null,
           open ? "item--pinned" : null,
           isDragging ? "item--dragging" : null,
           searchMiss ? "item--search-miss" : null,

@@ -45,13 +45,11 @@ export function CharacterColumn({
                              data,
                              category,
                              selected,
-                             onSelect,
                          }: {
     character: Character;
     data: ProfileData;
     category: ItemCategory;
     selected: boolean;
-    onSelect: (characterId: string) => void;
 }) {
     const equipped = data.equipment[character.characterId] ?? NO_ITEMS;
     const inventory = data.inventory[character.characterId] ?? NO_ITEMS;
@@ -89,13 +87,14 @@ export function CharacterColumn({
             }`}
         >
             {/* Le même bandeau que le sélecteur de l'en-tête : classe,
-                puissance et résultats de recherche y sont déjà. Le cliquer
-                désigne le personnage courant — celui que prendront les vues
-                « équipements » et « groupes ». */}
+                puissance et résultats de recherche y sont déjà. Il ne se
+                clique pas : les trois personnages étant à l'écran, désigner
+                l'un d'eux n'y commande plus rien — le double-clic équipe chez
+                le porteur de l'objet (voir `MoveDnd.equipInPlace`). */}
             <CharacterTab
                 character={character}
                 selected={selected}
-                onClick={() => onSelect(character.characterId)}
+                passive
             />
 
             {/* Entre l'emblème et les emplacements : statistiques totales et
@@ -141,13 +140,11 @@ export function CharacterColumns({
                                      data,
                                      category,
                                      selectedId,
-                                     onSelect,
                                  }: {
     characters: readonly Character[];
     data: ProfileData;
     category: ItemCategory;
     selectedId: string | null;
-    onSelect: (characterId: string) => void;
 }) {
     return (
         <div className="character-columns">
@@ -158,7 +155,6 @@ export function CharacterColumns({
                     data={data}
                     category={category}
                     selected={character.characterId === selectedId}
-                    onSelect={onSelect}
                 />
             ))}
         </div>

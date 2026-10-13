@@ -4,6 +4,8 @@
 // et correspond à l'ordre d'affichage du jeu. Les libellés ne sont pas codés ici,
 // ils sont lus depuis le manifeste — donc traduits automatiquement.
 
+import type { InventoryItemDefinition } from "./types";
+
 export const BUCKET = {
   Subclass: 3284755031,
   KineticWeapons: 1498876634,
@@ -26,6 +28,12 @@ export const BUCKET = {
    * passage d'un transfert de l'un à l'autre.
    */
   Vault: 138197802,
+  /**
+   * Les engrammes. De portée personnage, contrairement au rangement partagé
+   * qui suit, et `nonTransferrable` jusqu'au dernier : ils ne quittent jamais
+   * le personnage qui les a ramassés.
+   */
+  Engrams: 375726501,
 
   // —— Rangement partagé ——————————————————————————————————————
   //
@@ -118,12 +126,25 @@ export const EQUIPMENT_BUCKETS: ReadonlySet<number> = new Set([
 /**
  * Rangement partagé, affiché à la suite du coffre : consommables et mods.
  *
- * L'ordre est celui du manifeste (`bucketOrder` : 20 puis 30).
+ * L'ordre est celui de l'onglet « Inventaire », choisi plutôt que celui du
+ * manifeste (`bucketOrder`, qui met les modificateurs en tête).
  */
 export const STORAGE_BUCKETS: readonly number[] = [
-  BUCKET.Modifications,
   BUCKET.Consumables,
+  BUCKET.Modifications,
   BUCKET.Materials,
+];
+
+/**
+ * Ce que montre l'onglet « Inventaire » : les engrammes de chaque personnage en
+ * tête, puis le rangement partagé.
+ *
+ * Les engrammes n'entrent pas dans `STORAGE_BUCKETS`, qui dit aussi « commun
+ * aux trois personnages » au planificateur de déplacements.
+ */
+export const INVENTORY_BUCKETS: readonly number[] = [
+  BUCKET.Engrams,
+  ...STORAGE_BUCKETS,
 ];
 
 /** Objets de personnalisation portés — colonne de gauche. */
@@ -193,9 +214,17 @@ export const BUCKET_ORDER: ReadonlyMap<number, number> = new Map(
     // découpe en sections de la même façon.
     ...CUSTOMIZATION_LEFT,
     ...CUSTOMIZATION_RIGHT,
-    ...STORAGE_BUCKETS,
+    ...INVENTORY_BUCKETS,
   ].map((hash, index) => [hash, index]),
 );
+
+/**
+ * L'objet est-il un engramme ? Son emplacement d'ORIGINE, comme partout : rien
+ * d'autre ne les distingue de façon indépendante de la langue.
+ */
+export function isEngram(def: InventoryItemDefinition | undefined): boolean {
+  return def?.inventory?.bucketTypeHash === BUCKET.Engrams;
+}
 
 /** Côté vers lequel le panneau d'inventaire d'un emplacement se déplie. */
 export type SlotSide = "left" | "right";

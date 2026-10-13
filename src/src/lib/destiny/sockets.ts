@@ -247,15 +247,31 @@ export function isTrackerPlug(
 export function isFixedPlug(
     def: InventoryItemDefinition | undefined,
 ): boolean {
+    if (isMementoPlug(def)) return true;
     const category = def?.plug?.plugCategoryIdentifier;
-    if (!category) return false;
-    if (category === EMPTY_MEMENTO_CATEGORY) return true;
-    const segments = category.split(".");
-    return segments.includes("masterworks") || segments.includes("mementos");
+    return Boolean(category?.split(".").includes("masterworks"));
 }
 
-/** Emplacement de mémento libre — voir `isFixedPlug`. */
+/** Emplacement de mémento libre — voir `isMementoPlug`. */
 const EMPTY_MEMENTO_CATEGORY = "crafting.recipes.empty_socket";
+
+/**
+ * Ce plug occupe-t-il l'emplacement de mémento d'une arme façonnée ou
+ * améliorée, rempli (`mementos`) ou libre (`crafting.recipes.empty_socket`) ?
+ *
+ * Familles relevées dans le manifeste : les 36 mémentos sont tous dans
+ * `mementos`, et l'emplacement vide est « Emplacement de mémento vide ». La
+ * famille vide est partagée avec d'autres emplacements de recette (lunettes,
+ * poings…), qu'on ne trouve pas sur une arme. Les « Traqueurs de mémento »,
+ * eux, sont des compte-frags (`…trackers`) — voir `isTrackerPlug`.
+ */
+export function isMementoPlug(
+    def: InventoryItemDefinition | undefined,
+): boolean {
+    const category = def?.plug?.plugCategoryIdentifier;
+    if (!category) return false;
+    return category === EMPTY_MEMENTO_CATEGORY || category.split(".").includes("mementos");
+}
 
 /**
  * Pièce maîtresse ou catalyseur — l'emplacement que le mode « équipements » ne

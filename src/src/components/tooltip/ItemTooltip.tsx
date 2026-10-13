@@ -53,6 +53,8 @@ import {
     ARTIFACT_SOCKET_CATEGORIES,
 } from "@/lib/destiny/sockets";
 import {gearRow, type GearRow} from "@/lib/destiny/gear";
+import {INVENTORY_BUCKETS} from "@/lib/destiny/buckets";
+import {usePlugDescription} from "@/lib/destiny/use-plug-description";
 import {useFragmentLocks} from "@/lib/destiny/use-fragment-locks";
 import {subclassDamageType, isSubclass} from "@/lib/destiny/subclass";
 import {useItemProgress} from "@/lib/destiny/use-item-progress";
@@ -593,6 +595,15 @@ export function ItemTooltip({
     // eux, aucun moyen de savoir ce qui est équipable dans un emplacement.
     const available = usePlugAvailability(itemInstanceId);
 
+    // Engrammes, objets à usage unique, modificateurs : rien d'autre ne dit à
+    // quoi ils servent. Les mods n'ont souvent pas de description propre — leur
+    // effet vit dans leurs perks —, d'où la cascade de `usePlugDescription`
+    // plutôt qu'une simple lecture de `displayProperties`.
+    const isInventoryItem = INVENTORY_BUCKETS.includes(
+        def?.inventory?.bucketTypeHash ?? 0,
+    );
+    const description = usePlugDescription(isInventoryItem ? def : undefined);
+
     // L'objet tel qu'il part en file d'actions. Les habillages en font partie :
     // la carte du panneau est montée hors de la grille et ne peut pas les
     // retrouver seule.
@@ -845,6 +856,10 @@ export function ItemTooltip({
                     />
                 ) : (
                     <>
+                        {description && (
+                            <p className="item-tooltip__description">{description}</p>
+                        )}
+
                         {/* Puissance et élément, munitions, niveau d'arme, compte-frags */}
                         {isWeapon && (
                             <WeaponSummary

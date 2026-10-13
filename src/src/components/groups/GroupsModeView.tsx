@@ -34,7 +34,7 @@ import {CharacterPicker} from "../CharacterPicker";
 import {SortableGroupCard, StaticGroupCard} from "./GroupCard";
 import {GroupCreateButton} from "./GroupCreateButton";
 import {GroupEditor} from "./GroupEditor";
-import {ArrowDownTrayIcon, Squares2X2Icon} from "@heroicons/react/24/solid";
+import {Squares2X2Icon} from "@heroicons/react/24/solid";
 
 /** Paramètre d'URL par lequel la page publique d'un partage en demande l'import. */
 const IMPORT_PARAM = "import";
@@ -96,7 +96,6 @@ export function GroupsModeView({
     onSelectCharacter: (characterId: string) => void;
 }) {
     const t = useTranslations("groups");
-    const tCommon = useTranslations("common");
     const groups = useCharacterGroups(characterId);
     const createGroup = useLoadoutGroups((s) => s.createGroup);
     const deleteGroup = useLoadoutGroups((s) => s.deleteGroup);
@@ -111,7 +110,7 @@ export function GroupsModeView({
 
     const [editingId, setEditingId] = useState<string | null>(null);
 
-    // —— L'import d'un partage : par le bouton, ou demandé par la page publique.
+    // —— L'import d'un partage, demandé par la page publique.
     const [importLink, setImportLink] = useState(requestedImport);
     const [importing, setImporting] = useState(importLink !== null);
     useEffect(() => {
@@ -186,15 +185,6 @@ export function GroupsModeView({
                 />
 
                 <GroupCreateButton characterId={characterId} loadouts={loadouts}/>
-
-                <button
-                    type="button"
-                    className="btn group-list__import"
-                    onClick={() => setImporting(true)}
-                >
-                    <ArrowDownTrayIcon aria-hidden/>
-                    {tCommon("import")}
-                </button>
 
                 {/* L'ordre des cartes est celui que l'utilisateur leur donne en
                     les glissant : il n'y a donc pas de critère à choisir, mais
@@ -352,8 +342,8 @@ export function GroupsModeView({
                 characterId={characterId}
                 onClose={() => {
                     setImporting(false);
-                    // Servi une fois : rouverte par le bouton, la fenêtre
-                    // demande un lien au lieu de recharger le même partage.
+                    // Servi une fois : le partage ne doit pas resservir si la
+                    // fenêtre venait à se rouvrir.
                     setImportLink(null);
                 }}
                 onImported={onSelectCharacter}

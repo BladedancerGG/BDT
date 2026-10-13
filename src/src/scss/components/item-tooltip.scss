@@ -107,6 +107,16 @@
     }
   }
 
+  // Description des objets d'inventaire (engrammes, consommables, mods) : même
+  // lecture que celle d'un plug, voir plug-tooltip.scss.
+  &__description {
+    font-size: 0.85rem;
+    line-height: 1.45;
+    color: var(--color-text-muted);
+    // Les descriptions du manifeste contiennent des sauts de ligne
+    white-space: pre-line;
+  }
+
   // Bandeau d'attribut intrinsèque : voir components/intrinsic-row.scss
 
   &__stats {

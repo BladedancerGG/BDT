@@ -24,6 +24,7 @@ const TRACKED: readonly number[] = [
   ...EQUIPMENT_BUCKETS,
   ...CUSTOMIZATION_BUCKETS,
   ...STORAGE_BUCKETS,
+  BUCKET.Engrams,
   BUCKET.Vault,
 ];
 

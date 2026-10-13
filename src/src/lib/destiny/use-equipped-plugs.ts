@@ -13,6 +13,7 @@ import {
     ARTIFACT_SOCKET_CATEGORIES,
     isHiddenSocketPlug,
     isMasterworkPlug,
+    isMementoPlug,
     isPlugApplied,
     isTrackerPlug,
 } from "./sockets";
@@ -195,6 +196,10 @@ export function useEquippedPlugs(
                         // icône dit seulement « cet objet est amélioré » — ce
                         // que la vignette signale déjà.
                         if (isMasterworkPlug(plugDefs.get(hash))) return undefined;
+                        // Le mémento non plus : il ne se change pas gratuitement,
+                        // et son emplacement, le plus souvent vide, n'apprend
+                        // rien sur la façon de jouer l'arme.
+                        if (isMementoPlug(plugDefs.get(hash))) return undefined;
                         const initial =
                             def.sockets?.socketEntries?.[index]?.singleInitialItemHash;
                         if (isHiddenSocketPlug(plugDefs.get(initial ?? 0))) return undefined;

@@ -9,7 +9,12 @@ import { useSettings } from "@/lib/settings/store";
 import { useItemDefs } from "./item-defs";
 import { useSortedItems } from "./use-sorted-items";
 import { useGroupDefs } from "./use-group-defs";
-import { AMMO_TYPE, groupItems, type BucketSection } from "./grouping";
+import {
+  AMMO_TYPE,
+  groupItems,
+  type BucketSection,
+  type ItemOwner,
+} from "./grouping";
 
 /**
  * Objets d'une liste, triés puis découpés en sections d'emplacement et en
@@ -23,6 +28,8 @@ export function useGroupedItems(
   items: DestinyItemComponent[],
   details: Record<string, ItemDetail>,
   category?: ItemCategory,
+  /** Détenteur de chaque objet — voir `GroupingContext.owners` */
+  owners?: ReadonlyMap<DestinyItemComponent, ItemOwner>,
 ): BucketSection[] {
   const sorted = useSortedItems(items, details, category);
   const { defs, traits } = useItemDefs();
@@ -67,6 +74,7 @@ export function useGroupedItems(
           classNames,
           ammoNames,
           otherLabel,
+          owners,
         },
         { weapon, armor },
       ),
@@ -80,6 +88,7 @@ export function useGroupedItems(
       classNames,
       ammoNames,
       otherLabel,
+      owners,
       weapon,
       armor,
     ],
