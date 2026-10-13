@@ -1,8 +1,12 @@
 "use client";
 
 import { useLiveQuery } from "dexie-react-hooks";
-import { manifestDb } from "@/lib/manifest/db";
-import type { DisplayProperties } from "@/lib/manifest/use-definition";
+import { tableRows } from "@/lib/manifest/db";
+import type {
+  ClassDefinition,
+  DamageTypeDefinition,
+  InventoryBucketDefinition,
+} from "./types";
 
 /** Libellés du manifeste dont les en-têtes de groupe ont besoin. */
 export interface GroupDefs {
@@ -20,21 +24,6 @@ const EMPTY: GroupDefs = {
   classNames: new Map(),
 };
 
-interface DamageTypeDefinition {
-  displayProperties?: DisplayProperties;
-  /** Valeur de DestinyDamageType — le hash de la définition n'en est pas une */
-  enumValue?: number;
-}
-
-interface ClassDefinition {
-  displayProperties?: DisplayProperties;
-  classType?: number;
-}
-
-interface BucketDefinition {
-  displayProperties?: DisplayProperties;
-}
-
 /**
  * Les trois petites tables servant à nommer les groupes du coffre.
  *
@@ -48,23 +37,14 @@ export function useGroupDefs(): GroupDefs {
   return (
     useLiveQuery(async () => {
       const [bucketRows, damageRows, classRows] = await Promise.all([
-        manifestDb.definitions
-          .where("table")
-          .equals("DestinyInventoryBucketDefinition")
-          .toArray(),
-        manifestDb.definitions
-          .where("table")
-          .equals("DestinyDamageTypeDefinition")
-          .toArray(),
-        manifestDb.definitions
-          .where("table")
-          .equals("DestinyClassDefinition")
-          .toArray(),
+        tableRows("DestinyInventoryBucketDefinition"),
+        tableRows("DestinyDamageTypeDefinition"),
+        tableRows("DestinyClassDefinition"),
       ]);
 
       const bucketNames = new Map<number, string>();
       for (const row of bucketRows) {
-        const name = (row.data as BucketDefinition).displayProperties?.name;
+        const name = (row.data as InventoryBucketDefinition).displayProperties?.name;
         if (name) bucketNames.set(row.hash, name);
       }
 

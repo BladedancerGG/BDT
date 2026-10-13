@@ -2,18 +2,12 @@
 
 import type {ComponentPropsWithRef, CSSProperties} from "react";
 import {useTranslations} from "next-intl";
-import {
-    useDefinition,
-    type DisplayProperties,
-} from "@/lib/manifest/use-definition";
+import {useDefinition} from "@/lib/manifest/use-definition";
 import type {Character} from "@/lib/bungie/use-profile";
 import {BUNGIE_ROOT} from "@/lib/destiny/display";
 import {useSearchCounts} from "@/lib/search/provider";
+import type {ClassDefinition} from "@/lib/destiny/types";
 import {ClassIcon} from "./ClassIcon";
-
-interface ClassDefinition {
-    displayProperties: DisplayProperties;
-}
 
 /**
  * Un personnage dans le sélecteur de l'en-tête : symbole de classe, emblème en

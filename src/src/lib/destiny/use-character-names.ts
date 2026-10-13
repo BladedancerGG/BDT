@@ -2,7 +2,7 @@
 
 import { useLiveQuery } from "dexie-react-hooks";
 import { manifestDb } from "@/lib/manifest/db";
-import type { DisplayProperties } from "@/lib/manifest/use-definition";
+import type { ClassDefinition } from "./types";
 import type { Character } from "@/lib/bungie/use-profile";
 
 const EMPTY: ReadonlyMap<string, string> = new Map();
@@ -31,7 +31,7 @@ export function useCharacterNames(
 
       const names = new Map<string, string>();
       rows.forEach((row, index) => {
-        const def = row?.data as { displayProperties?: DisplayProperties } | undefined;
+        const def = row?.data as ClassDefinition | undefined;
         names.set(
           characters[index].characterId,
           def?.displayProperties?.name ?? "",

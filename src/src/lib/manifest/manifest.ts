@@ -1,30 +1,80 @@
 "use client";
 
 import {manifestDb} from "./db";
-import {MANIFEST_TABLES, MANIFEST_SCHEMA_VERSION} from "./tables";
+import {
+    downloadManifest,
+    type ManifestMeta,
+    type ManifestProgress,
+    type WorkerReply,
+    type WorkerRequest,
+} from "./load";
+import {MANIFEST_SCHEMA_VERSION} from "./tables";
 
-const BUNGIE_ROOT = "https://www.bungie.net";
+export type {ManifestProgress};
 
-interface ManifestMeta {
-    version: string;
-    componentPaths: Record<string, Record<string, string>>;
+/** Un chargement en cours, que d'autres appels pour la même langue rejoignent. */
+interface Load {
+    language: string;
+    listeners: Set<(p: ManifestProgress) => void>;
+    last: ManifestProgress | null;
+    promise: Promise<void>;
 }
 
-export interface ManifestProgress {
-    table: string;
-    done: number;
-    total: number;
-}
+let current: Load | null = null;
+/** Dernier chargement lancé : les suivants attendent qu'il se termine. */
+let running: Promise<void> = Promise.resolve();
 
 /**
  * S'assure que le manifeste est présent et à jour en IndexedDB pour la langue
  * demandée. Ne télécharge que si la version ou la langue a changé.
+ *
+ * Les appels ne sont jamais simultanés : le chargement commence par vider la
+ * base, et un second appel concurrent viderait ce que le premier est en train
+ * d'écrire.
+ * - Pour la **même langue**, l'appel rejoint le chargement en cours et
+ *   s'abonne à sa progression. C'est le cas du double effet du mode strict de
+ *   React : enchaîné derrière le premier, le second trouvait le cache à jour et
+ *   ne recevait aucune progression — or c'est lui que la page écoute, l'effet
+ *   du premier étant déjà nettoyé. La barre restait à 0 % jusqu'au bout.
+ * - Pour une **autre langue**, il attend la fin du chargement en cours.
  */
-export async function ensureManifest(
+export function ensureManifest(
     language: string,
     onProgress?: (p: ManifestProgress) => void,
 ): Promise<void> {
-    // 1. Métadonnées (version + chemins) via notre proxy serveur
+    if (current?.language === language) {
+        if (onProgress) {
+            current.listeners.add(onProgress);
+            if (current.last) onProgress(current.last);
+        }
+        return current.promise;
+    }
+
+    const load: Load = {
+        language,
+        listeners: new Set(onProgress ? [onProgress] : []),
+        last: null,
+        promise: Promise.resolve(),
+    };
+    const notify = (progress: ManifestProgress) => {
+        load.last = progress;
+        load.listeners.forEach((listener) => listener(progress));
+    };
+    load.promise = running
+        .then(() => loadManifest(language, notify))
+        .finally(() => {
+            if (current === load) current = null;
+        });
+    running = load.promise.catch(() => {});
+    current = load;
+    return load.promise;
+}
+
+async function loadManifest(
+    language: string,
+    onProgress?: (p: ManifestProgress) => void,
+): Promise<void> {
+    // 1. Métadonnées (version + URL des tables) via le serveur
     const res = await fetch("/api/manifest");
     if (!res.ok) throw new Error("Failed to fetch manifest");
     const meta: ManifestMeta = await res.json();
@@ -36,8 +86,6 @@ export async function ensureManifest(
         manifestDb.meta.get("schema"),
     ]);
 
-    // Forcer le rechargement du manifeste si l'environnement n'est pas en production
-
     if (
         storedVersion?.value === meta.version &&
         storedLanguage?.value === language &&
@@ -46,57 +94,50 @@ export async function ensureManifest(
         return;
     }
 
-    // 3. Télécharger chaque table (fallback anglais si la langue manque)
-    const paths = meta.componentPaths[language] ?? meta.componentPaths.en;
-    if (!paths) throw new Error(`No manifest path for "${language}"`);
+    // 3. Télécharger : dans un worker, pour ne pas figer l'interface
+    await runDownload(meta, language, onProgress);
+}
 
-    let done = 0;
-    for (const table of MANIFEST_TABLES) {
-        const path = paths[table];
-
-        // Une table demandée que le manifeste ne connaît pas est une erreur de
-        // programmation — un nom mal orthographié, en pratique. La passer sous
-        // silence est le pire des choix : les lectures renverraient `undefined`
-        // pour toujours, et l'interface se contenterait d'afficher du vide,
-        // sans le moindre indice. Elle doit donc casser bruyamment.
-        if (!path) {
-            throw new Error(
-                `Missing manifest table: ${table} (language: "${language}")`,
-            );
-        }
-
-        // Fichiers statiques publics servis directement par bungie.net (CORS OK)
-        const tableRes = await fetch(`${BUNGIE_ROOT}${path}`);
-        if (!tableRes.ok) throw new Error(`Failed downloading ${table} manifest table`);
-        const json: Record<string, unknown> = await tableRes.json();
-
-        const rows = Object.entries(json).map(([hash, data]) => ({
-            table,
-            hash: Number(hash),
-            data,
-        }));
-
-        // Même raison : une table vide passerait pour un cache valide, et
-        // l'interface resterait muette. Aucune des tables demandées ici n'a de
-        // raison légitime d'être vide.
-        if (rows.length === 0) {
-            throw new Error(`Empty manifest table: ${table}`);
-        }
-
-        // Remplace le contenu précédent de cette table
-        await manifestDb.definitions.where("table").equals(table).delete();
-        await manifestDb.definitions.bulkPut(rows);
-
-        done += 1;
-        onProgress?.({table, done, total: MANIFEST_TABLES.length});
+/**
+ * Télécharge dans un Web Worker, pour que l'analyse du JSON et l'écriture en
+ * IndexedDB ne figent pas l'interface. À défaut — navigateur sans worker,
+ * script du worker introuvable —, sur le fil principal. Refaire le travail ici
+ * est sans risque : le téléchargement commence toujours par tout vider.
+ */
+function runDownload(
+    meta: ManifestMeta,
+    language: string,
+    onProgress?: (p: ManifestProgress) => void,
+): Promise<void> {
+    let worker: Worker;
+    try {
+        worker = new Worker(new URL("./manifest.worker.ts", import.meta.url), {
+            type: "module",
+        });
+    } catch (err) {
+        console.warn("[manifest] worker indisponible, chargement sur le fil principal:", err);
+        return downloadManifest(meta, language, onProgress);
     }
 
-    // 4. Mémoriser version + langue + schéma
-    await manifestDb.meta.bulkPut([
-        {key: "version", value: meta.version},
-        {key: "language", value: language},
-        {key: "schema", value: MANIFEST_SCHEMA_VERSION},
-    ]);
+    return new Promise((resolve, reject) => {
+        worker.onmessage = ({data}: MessageEvent<WorkerReply>) => {
+            if (data.type === "progress") {
+                onProgress?.(data.progress);
+                return;
+            }
+            worker.terminate();
+            if (data.type === "done") resolve();
+            else reject(new Error(data.message));
+        };
+        // Le worker capture toutes ses erreurs et les renvoie en message : cet
+        // événement-ci signale un script qui n'a pas pu se charger ou s'évaluer.
+        worker.onerror = (event) => {
+            worker.terminate();
+            console.warn("[manifest] échec du worker, chargement sur le fil principal:", event.message);
+            downloadManifest(meta, language, onProgress).then(resolve, reject);
+        };
+        worker.postMessage({meta, language} satisfies WorkerRequest);
+    });
 }
 
 /** Lit une définition par table + hash (undefined si absente). */

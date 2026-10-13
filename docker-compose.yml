@@ -38,19 +38,11 @@ services:
 
       # Application URL
       APP_URL: ${APP_URL:-https://localhost}
-    # Sous l'UID de l'hôte, pour que node_modules et src/generated, écrits dans
-    # le bind mount, lui appartiennent. Surchargeable via .env si l'hôte n'est
-    # pas en 1000:1000 (`id -u`, `id -g`).
     user: "${DOCKER_UID:-1000}:${DOCKER_GID:-1000}"
     volumes:
-      # Seul src/ est monté : c'est lui, et non la racine, qui contient le projet Next.
       - ./src:/app
-      # node_modules n'est plus un volume anonyme : il vit dans le projet, sur
-      # l'hôte, pour que l'IDE y résolve types, imports et règles ESLint.
-      # L'entrypoint l'installe au démarrage s'il manque ou a vieilli.
-      # Attention : les binaires natifs qu'il contient sont compilés pour la
-      # libc du conteneur (alpine/musl) — npm et npx restent à lancer dedans.
       - /app/.next
+      - manifest_cache:/var/cache/manifest
     depends_on:
       - db
       - caddy
@@ -77,3 +69,4 @@ volumes:
   postgres_data:
   caddy_data:
   caddy_config:
+  manifest_cache:

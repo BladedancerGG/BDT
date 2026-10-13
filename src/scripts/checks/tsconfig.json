@@ -33,6 +33,8 @@
     "share-import.check.ts",
     "perk-upgrades.check.ts",
     "plug-families.check.ts",
-    "stat-breakdown.check.ts"
+    "stat-breakdown.check.ts",
+    "projection.check.ts",
+    "progress.check.ts"
   ]
 }

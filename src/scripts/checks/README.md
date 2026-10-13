@@ -26,6 +26,8 @@ casse en silence.
 | `share-import.check.ts` | `lib/loadouts/share/import.ts` (importer un partage) |
 | `perk-upgrades.check.ts` | `lib/destiny/perk-upgrades.ts` (attributs améliorés, armes façonnées) |
 | `stat-breakdown.check.ts` | `lib/destiny/stat-breakdown.ts` (base, attributs, pièce maîtresse, bonus de palier) |
+| `projection.check.ts`  | `lib/manifest/projection.ts` et `json-entries.ts` (allègement du manifeste), et qu'aucune lecture de définition n'échappe au registre `ManifestReads` |
+| `progress.check.ts`    | `lib/manifest/progress.ts` (barre de progression pondérée du manifeste) |
 | `css-duplicates.py`    | la feuille de styles compilée (voir plus bas)  |
 
 ## Lancer

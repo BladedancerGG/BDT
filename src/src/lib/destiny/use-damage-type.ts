@@ -1,7 +1,7 @@
 "use client";
 
 import {useLiveQuery} from "dexie-react-hooks";
-import {manifestDb} from "@/lib/manifest/db";
+import {tableRows} from "@/lib/manifest/db";
 import type {DamageTypeDefinition} from "@/lib/destiny/types";
 
 /**
@@ -17,12 +17,9 @@ export function useDamageTypeDefinition(
 ): DamageTypeDefinition | undefined {
     return useLiveQuery(async () => {
         if (!damageType) return undefined;
-        const rows = await manifestDb.definitions
-            .where("table")
-            .equals("DestinyDamageTypeDefinition")
-            .toArray();
+        const rows = await tableRows("DestinyDamageTypeDefinition");
         return rows
-            .map((row) => row.data as DamageTypeDefinition & { enumValue?: number })
+            .map((row) => row.data as DamageTypeDefinition)
             .find((def) => def.enumValue === damageType);
     }, [damageType]);
 }

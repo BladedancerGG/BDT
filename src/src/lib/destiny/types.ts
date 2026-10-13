@@ -195,6 +195,25 @@ export interface DamageTypeDefinition {
   displayProperties: DisplayProperties;
   /** Variante détourée, celle que le jeu affiche sur fond sombre */
   transparentIconPath?: string;
+  /**
+   * Valeur de DestinyDamageType, celle que portent instances et définitions
+   * d'objets — le hash de la définition n'en est pas une.
+   */
+  enumValue?: number;
+}
+
+/** Classe de personnage (Titan, Chasseur, Arcaniste). */
+export interface ClassDefinition {
+  displayProperties: DisplayProperties;
+  /** Valeur de DestinyClass : c'est elle, et non le hash, que portent les objets */
+  classType?: number;
+}
+
+/** Emplacement d'inventaire (cinétique, casque, coffre…). */
+export interface InventoryBucketDefinition {
+  displayProperties: DisplayProperties;
+  /** Capacité de l'emplacement, objet équipé compris */
+  itemCount?: number;
 }
 
 /** Type anti-champion d'une arme (bloqueur, surchargé, implacable). */

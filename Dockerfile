@@ -35,6 +35,8 @@ ENV NEXT_TELEMETRY_DISABLED=1
 # n'a rien à faire dans l'arborescence de l'hôte. Le volume hérite des droits du
 # dossier de l'image — d'où le 777, l'UID qui montera n'étant pas connu ici.
 RUN mkdir -p /app/.next && chmod 777 /app/.next
+# Même raison pour le cache du manifeste (volume nommé, voir docker-compose.yml)
+RUN mkdir -p /var/cache/manifest && chmod 777 /var/cache/manifest
 
 EXPOSE 3000
 CMD ["sh", "scripts/docker/dev-entrypoint.sh"]
@@ -74,6 +76,9 @@ ENV HOSTNAME=0.0.0.0
 COPY --from=builder --chown=node:node /app/.next/standalone ./
 COPY --from=builder --chown=node:node /app/.next/static ./.next/static
 COPY --from=builder --chown=node:node /app/public ./public
+# Cache disque du manifeste : un volume nommé hérite à sa création des droits
+# du dossier qu'il recouvre — sans ce chown, "node" ne pourrait pas y écrire.
+RUN mkdir -p /var/cache/manifest && chown node:node /var/cache/manifest
 
 USER node
 EXPOSE 3000

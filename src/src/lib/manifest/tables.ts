@@ -1,7 +1,4 @@
-// Version du "schéma" de tables téléchargées. À incrémenter dès qu'on ajoute
-// ou retire une table ci-dessous : force le re-téléchargement chez les clients
-// qui ont déjà un cache (sinon la nouvelle table manquerait).
-export const MANIFEST_SCHEMA_VERSION = "10";
+import {MANIFEST_PROJECTION} from "./projection";
 
 // Tables du manifeste à télécharger.
 // On ne prend QUE ce dont l'app a besoin : DestinyInventoryItemDefinition est
@@ -44,3 +41,29 @@ export const MANIFEST_TABLES = [
 ] as const;
 
 export type ManifestTable = (typeof MANIFEST_TABLES)[number];
+
+/**
+ * Version du « schéma » téléchargé : empreinte de la liste des tables et de la
+ * projection (projection.ts). Elle entre dans l'URL et le chemin disque du
+ * relais, et le client la compare à celle de son cache.
+ *
+ * Calculée, et non plus incrémentée à la main : un oubli rendait une table ou
+ * un champ ajouté invisible pour toujours chez les clients ayant déjà un cache,
+ * sans la moindre erreur. Seul `PROJECTION_FORMAT` reste manuel — à
+ * incrémenter si la **façon** de projeter (`project`) change, pas son contenu.
+ */
+const PROJECTION_FORMAT = 1;
+
+export const MANIFEST_SCHEMA_VERSION = fnv1a(
+    JSON.stringify([PROJECTION_FORMAT, MANIFEST_TABLES, MANIFEST_PROJECTION]),
+);
+
+/** FNV-1a 32 bits, en base 36 : court, stable, sans dépendance. */
+function fnv1a(text: string): string {
+    let hash = 0x811c9dc5;
+    for (let i = 0; i < text.length; i++) {
+        hash ^= text.charCodeAt(i);
+        hash = Math.imul(hash, 0x01000193) >>> 0;
+    }
+    return hash.toString(36);
+}

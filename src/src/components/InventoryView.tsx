@@ -19,10 +19,8 @@ import {
     groupByBucket,
     type SlotSide,
 } from "@/lib/destiny/buckets";
-import {
-    useDefinition,
-    type DisplayProperties,
-} from "@/lib/manifest/use-definition";
+import {useDefinition} from "@/lib/manifest/use-definition";
+import type {InventoryBucketDefinition} from "@/lib/destiny/types";
 import type {ItemCategory} from "@/lib/settings/constants";
 import {useCharacterNames} from "@/lib/destiny/use-character-names";
 import {useSettings} from "@/lib/settings/store";
@@ -172,7 +170,7 @@ function usePostmasterSection(
     /** Découpage par personnage — voir `LeadSection.groups` */
     groups?: LeadGroup[],
 ): LeadSection {
-    const bucket = useDefinition<{ displayProperties: DisplayProperties }>(
+    const bucket = useDefinition<InventoryBucketDefinition>(
         "DestinyInventoryBucketDefinition",
         BUCKET.Postmaster,
     );

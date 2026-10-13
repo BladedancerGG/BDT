@@ -1,7 +1,7 @@
 "use client";
 
 import {useLiveQuery} from "dexie-react-hooks";
-import {manifestDb} from "@/lib/manifest/db";
+import {tableRows} from "@/lib/manifest/db";
 import type {BreakerTypeDefinition} from "@/lib/destiny/types";
 
 /**
@@ -17,10 +17,7 @@ export function useBreakerTypeDefinition(
 ): BreakerTypeDefinition | undefined {
     return useLiveQuery(async () => {
         if (!breakerType) return undefined;
-        const rows = await manifestDb.definitions
-            .where("table")
-            .equals("DestinyBreakerTypeDefinition")
-            .toArray();
+        const rows = await tableRows("DestinyBreakerTypeDefinition");
         return rows
             .map((row) => row.data as BreakerTypeDefinition)
             .find((def) => def.enumValue === breakerType);

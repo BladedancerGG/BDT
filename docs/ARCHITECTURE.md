@@ -30,20 +30,123 @@ access token (~1 h) is refreshed automatically — see `getValidAccessToken()` i
 
 The manifest holds every game definition (items, stats, classes…). It is large
 and rarely changes, so it is cached client-side in **IndexedDB** (via Dexie),
-not in the server database.
+not in the server database. The server relays the table files: it downloads
+each one once from bungie.net, **strips the fields the app never reads**, and
+serves it to every client.
 
-- `GET /api/manifest` (server) proxies `/Destiny2/Manifest/` (adding the API key)
-  and returns the `version` plus the per-language JSON table paths.
+- `GET /api/manifest` (server) reads `/Destiny2/Manifest/` (adding the API key)
+  and returns the `version` plus, per language, the relay URL of each table in
+  `src/lib/manifest/tables.ts`. Every page load waits on it, even with an
+  up-to-date client cache, so the version is kept in memory and served
+  **stale while it is re-read** in the background after a minute: the Bungie
+  API sometimes takes over 15 s to answer.
+- `GET /api/manifest/<version>/<schema>/<language>/<table>` serves one table
+  from the server's disk cache (`src/lib/manifest/server-cache.ts`), building it
+  on first request. Files are stored **pre-compressed in Brotli** (quality 9;
+  quality 11 saves barely 10 % more, for ~25× the CPU). Since version and schema
+  are in the URL, responses are `immutable`.
+- The cache lives in the `manifest_cache` Docker volume
+  (`/var/cache/manifest/<version>/<schema>/<language>/`, overridable with
+  `MANIFEST_CACHE_DIR`). The first time the server sees a new version, it
+  deletes the other versions and schemas and preloads the
+  tables of the app's locales, so the first visitor after a patch does not wait
+  on Bungie. Only the **current** version is ever downloaded: a forged URL
+  cannot fill the disk. The volume is a plain cache, safe to delete.
 - `ensureManifest(lang)` (client) compares the stored version/language and, when
-  needed, downloads the tables listed in `src/lib/manifest/tables.ts` **straight
-  from bungie.net**, storing them in IndexedDB.
+  needed, downloads the tables from the relay, storing them in IndexedDB.
+  Measured in Chromium, three choices halve a post-patch reload (12.8–15.3 s →
+  6.5–6.9 s; first load 7.2 → 5.9 s, 40 ms latency, 20 Mbit/s):
+  - **one `clear()`** of the definitions, not a delete per table: the per-table
+    delete alone cost 6 s on an update. It runs in the same transaction that
+    forgets the stored version, so an interrupted load never passes for valid;
+  - **no secondary `table` index** (Dexie schema version 2): every write
+    maintained it, ~20 % of the writing time. Reading a whole small table goes
+    through a primary-key range instead — `tableRows()` in `db.ts`;
+  - **all downloads start at once**, then are read and written one at a time:
+    the eighteen round trips no longer add up.
+
+  The writing (`bulkPut`, ~3 s) remains the bulk of the cost. Storing each
+  definition as a JSON string, to skip structured cloning, was measured
+  *slower* (4.5 s against 3.0 s). Calls are chained: a second concurrent call
+  (React strict mode, a language switch) would otherwise clear what the first
+  is writing.
+- The download itself (`downloadManifest`, `src/lib/manifest/load.ts`) runs in
+  a **Web Worker** (`manifest.worker.ts`), which writes straight into
+  IndexedDB: only progress goes through messages. On the main thread, parsing
+  and structured cloning froze the page for up to 1.4 s at a time (2 s of long
+  tasks in all); in the worker, under 50 ms and none. The version check stays
+  on the main thread — most visits find the cache up to date and never start
+  the worker. If the worker script fails to load, the download falls back to
+  the main thread, which is safe since it always starts by clearing everything.
+  Turbopack bundles the worker properly (a `turbopack-worker-*.js` bootstrap),
+  but also copies the raw `.ts` source as an unused static asset: harmless,
+  and not the file the worker runs.
+- The progress bar (`src/lib/manifest/progress.ts`) weighs each table by an
+  **estimate of its duration**, not by a table count: counted by tables, it sat
+  at 0 % for most of the load, the items table coming first. The relay
+  announces each table's decompressed size and row count (`X-Manifest-Size`,
+  `X-Manifest-Rows`, kept next to the file in `<file>.stats.json`); the bar
+  moves with the bytes received, then with each batch of 5,000 rows written.
+  Writing costs mostly **per row** — the icons table, 7 MB but 26,645 rows,
+  takes 930 ms to write — so weighting by bytes alone left the last tables
+  dragging over the final quarter. Measured in the app, the bar now follows the
+  elapsed time, past the ~1.2 s spent before the download starts (hydration,
+  `/api/manifest`, worker start). Messages are capped at one per percentage
+  point.
 - `getDefinition(table, hash)` / `getDefinitions(table, hashes)` read one or many
   definitions.
 - `useManifest()` triggers loading and exposes progress.
 
-To use more game data, add the table to `src/lib/manifest/tables.ts` and bump
-`MANIFEST_SCHEMA_VERSION` — otherwise clients with an existing cache would be
-missing the new table.
+### Slimmed tables (projection)
+
+`src/lib/manifest/projection.ts` lists, per table, the fields kept
+(`MANIFEST_PROJECTION`); everything else is dropped before the table is
+compressed. Measured on the French manifest:
+
+| | Bungie JSON | Slimmed JSON | Transferred (Brotli) |
+| --- | --- | --- | --- |
+| `DestinyInventoryItemDefinition` | 201 MB | 85 MB | 1.8 MB |
+| All 18 tables | 230 MB | 99 MB | 2.7 MB |
+
+The JSON size is what matters most: it is what the browser parses and writes
+into IndexedDB. For comparison, bungie.net's gzip of the items table alone is
+8.5 MB.
+
+**The danger is a field that is read but dropped**: the read returns
+`undefined` and the UI shows nothing, with no error. Two guards:
+
+- **At compile time**: `ManifestReads` maps every table to the one type its
+  reads cast `data` to. `tsc` fails, naming the path, when a type declares a
+  field the projection drops (`MissingFields`), or when the projection keeps a
+  field no type declares (`UnreadFields`).
+- **`scripts/checks/projection.check.ts`** scans the sources: any definition
+  read (`useDefinition<…>`, `getDefinitions<…>`, `.data as …`) must use a type
+  of `ManifestReads`, and none may be redeclared locally under the same name —
+  otherwise it would slip past the compile-time check.
+
+Projection happens **as a stream**, entry by entry
+(`src/lib/manifest/json-entries.ts`): a full `JSON.parse` of the items table
+peaks at 1.1 GB of memory, enough to kill a small production server.
+
+`MANIFEST_SCHEMA_VERSION` is **computed**: a hash of the table list and the
+projection. It is part of the relay URL and disk path, and clients compare it
+with their cache — any change to either refreshes both caches by itself.
+
+To use more game data: add the field to its type in `ManifestReads` (usually
+`src/lib/destiny/types.ts`); `tsc` then asks for it in the projection. For a new
+table, also add it to `src/lib/manifest/tables.ts`, give it a projection and a
+type in `ManifestReads`.
+
+> **Entries are not filtered, and that was tested.** The only sizeable
+> candidate was the 10,542 items of bucket 2422292810 that no plug set, socket
+> or armour set references — vendor previews by the look of them, none
+> equippable, 22 % of the items table's cost (~0.6 s per load). A temporary
+> probe logging every read of them was refuted within minutes, on two paths:
+> a crafted weapon's sockets read two of them as **plugs** ("Arme façonnée"),
+> and a real profile holds several (bounties, "Prime ordinaire"…), read by the
+> `ItemDefsProvider` batch. "Not referenced by the manifest" does not mean
+> "never read": instance sockets and profiles reach items the manifest links
+> to nothing.
 
 ## Prisma client
 
@@ -1609,12 +1712,11 @@ target. The order the choices come in is not a hash sort — it comes from the `
 `loadoutIconHashes` / `loadoutNameHashes` lists of
 `DestinyLoadoutConstantsDefinition` (a single entry, hash 1).
 
-> **Adding a manifest table means bumping `MANIFEST_SCHEMA_VERSION`.** Skip it
-> and clients that already cached the previous version never fetch the new
-> table — every read of it returns `undefined`, for ever, and the interface just
-> shows nothing. `ensureManifest` now throws when a requested table has no path
-> in the manifest or comes back empty, so the next such mistake is loud instead
-> of silent.
+> **A table or field missing from a client's cache is silent**: every read of
+> it returns `undefined`, for ever, and the interface just shows nothing. This
+> used to hinge on bumping `MANIFEST_SCHEMA_VERSION` by hand; it is now a hash of
+> the tables and their projection (see "Slimmed tables"). `ensureManifest` also
+> throws when a requested table has no URL or comes back empty.
 
 ### Keyboard shortcuts
 
@@ -1852,8 +1954,8 @@ HTTPS_PROXY=http://user:password@my-proxy.example:3128
 If the proxy rejects the credentials (407), the retry applies and the route
 returns a clean 502 — the app does not crash.
 
-> **Scope**: only server-side calls go through this proxy. Manifest table
-> downloads happen from the **browser**, straight to bungie.net.
+> **Scope**: only server-side calls go through this proxy — manifest tables
+> included, since the server relays them.
 
 ## Styles (SCSS)
 
@@ -2021,7 +2123,7 @@ src/
     loadouts/        In-game saved loadouts (contract + write actions)
     loadouts/groups/ Loadout groups (pure edit & equip engines, store, sync)
     loadouts/share/  Public shares (self-contained snapshot, contract, reading)
-    manifest/        Manifest download & cache (IndexedDB)
+    manifest/        Manifest download & cache (IndexedDB), server relay and projection
     settings/        User preferences (cookie-backed store)
   components/        UI components
   scss/              Styles (see "Styles")
@@ -2056,20 +2158,132 @@ utilisateur. L'access token (~1 h) est renouvelé automatiquement — voir
 
 Le manifeste contient toutes les définitions du jeu (objets, stats, classes…).
 Volumineux et rarement modifié, il est mis en cache côté client dans
-**IndexedDB** (via Dexie), et non en base serveur.
+**IndexedDB** (via Dexie), et non en base serveur. Le serveur relaie les
+fichiers de tables : il télécharge chacun une fois chez bungie.net, **en retire
+les champs que l'app ne lit pas**, et le sert à tous les clients.
 
-- `GET /api/manifest` (serveur) proxifie `/Destiny2/Manifest/` (en ajoutant la
-  clé API) et renvoie la `version` plus les chemins des tables JSON par langue.
+- `GET /api/manifest` (serveur) lit `/Destiny2/Manifest/` (en ajoutant la clé
+  API) et renvoie la `version` plus, par langue, l'URL du relais pour chaque
+  table de `src/lib/manifest/tables.ts`. Tout chargement de page l'attend, même
+  avec un cache client à jour : la version est donc gardée en mémoire et servie
+  **périmée pendant sa relecture** en arrière-plan, au-delà d'une minute — l'API
+  Bungie met parfois plus de 15 s à répondre.
+- `GET /api/manifest/<version>/<schéma>/<langue>/<table>` sert une table depuis
+  le cache disque du serveur (`src/lib/manifest/server-cache.ts`), en la
+  construisant à la première demande. Les fichiers sont stockés **précompressés
+  en Brotli** (qualité 9 ; la qualité 11 gagne à peine 10 % de plus, pour ~25 fois
+  le calcul). Version et schéma étant dans l'URL, les réponses sont `immutable`.
+- Le cache vit dans le volume Docker `manifest_cache`
+  (`/var/cache/manifest/<version>/<schéma>/<langue>/`, surchargeable par
+  `MANIFEST_CACHE_DIR`). À la première rencontre d'une nouvelle version, le
+  serveur supprime les autres versions et schémas et précharge les tables des
+  langues de l'app : le premier visiteur après un patch n'attend pas Bungie. Seule
+  la version **courante** est téléchargée : une URL forgée ne peut pas remplir le
+  disque. Le volume n'est qu'un cache, le supprimer est sans risque.
 - `ensureManifest(lang)` (client) compare la version/langue stockée et, si
-  besoin, télécharge les tables listées dans `src/lib/manifest/tables.ts`
-  **directement depuis bungie.net**, puis les stocke en IndexedDB.
+  besoin, télécharge les tables depuis le relais, puis les stocke en IndexedDB.
+  Mesuré dans Chromium, trois choix divisent par deux le rechargement qui suit
+  un patch (12,8–15,3 s → 6,5–6,9 s ; premier chargement 7,2 → 5,9 s, latence
+  40 ms, 20 Mbit/s) :
+  - **un seul `clear()`** des définitions, et non une suppression par table : à
+    elle seule, celle-ci coûtait 6 s sur une mise à jour. Il se fait dans la
+    transaction qui oublie la version stockée, pour qu'un chargement interrompu
+    ne passe jamais pour valide ;
+  - **plus d'index secondaire `table`** (version 2 du schéma Dexie) : chaque
+    écriture le maintenait, ~20 % du temps d'écriture. Lire une petite table
+    entière passe par un intervalle de la clé primaire — `tableRows()` dans
+    `db.ts` ;
+  - **tous les téléchargements partent d'emblée**, puis sont lus et écrits un à
+    un : les dix-huit allers-retours ne s'additionnent plus.
+
+  L'écriture (`bulkPut`, ~3 s) reste l'essentiel du coût. Stocker chaque
+  définition en chaîne JSON, pour éviter le clonage structuré, s'est mesuré
+  *plus lent* (4,5 s contre 3,0 s). Les appels sont enchaînés : un second appel
+  concurrent (mode strict de React, changement de langue) viderait sinon ce que
+  le premier est en train d'écrire.
+- Le téléchargement lui-même (`downloadManifest`, `src/lib/manifest/load.ts`)
+  tourne dans un **Web Worker** (`manifest.worker.ts`), qui écrit directement
+  en IndexedDB : seule la progression transite par les messages. Sur le fil
+  principal, l'analyse et le clonage structuré figeaient la page jusqu'à 1,4 s
+  d'un coup (2 s de tâches longues au total) ; dans le worker, moins de 50 ms et
+  aucune. La vérification de version reste sur le fil principal : la plupart
+  des visites trouvent le cache à jour et ne lancent jamais le worker. Si le
+  script du worker ne se charge pas, le téléchargement se replie sur le fil
+  principal — sans risque, puisqu'il commence toujours par tout vider.
+  Turbopack emballe bien le worker (un amorceur `turbopack-worker-*.js`), mais
+  recopie aussi la source `.ts` brute en asset statique inutilisé : sans
+  conséquence, ce n'est pas le fichier qu'exécute le worker.
+- La barre de progression (`src/lib/manifest/progress.ts`) pondère chaque
+  table par une **estimation de sa durée**, et non par un nombre de tables :
+  comptée par tables, elle restait à 0 % presque tout le chargement, la table
+  des objets passant la première. Le relais annonce la taille décompressée et
+  le nombre de lignes de chaque table (`X-Manifest-Size`, `X-Manifest-Rows`,
+  conservés à côté du fichier dans `<fichier>.stats.json`) ; la barre avance
+  avec les octets reçus, puis à chaque lot de 5 000 lignes écrites. L'écriture
+  coûte surtout **par ligne** — la table des icônes, 7 Mo mais 26 645 lignes,
+  prend 930 ms à écrire —, et pondérer par les seuls octets laissait les
+  dernières tables traîner sur le dernier quart du temps. Mesurée dans l'app,
+  la barre suit désormais le temps écoulé, passé les ~1,2 s qui précèdent le
+  téléchargement (hydratation, `/api/manifest`, démarrage du worker). Les
+  messages sont limités à un par point de pourcentage.
 - `getDefinition(table, hash)` / `getDefinitions(table, hashes)` lisent une ou
   plusieurs définitions.
 - `useManifest()` déclenche le chargement et expose la progression.
 
-Pour exploiter plus de données du jeu, ajoute la table dans
-`src/lib/manifest/tables.ts` et incrémente `MANIFEST_SCHEMA_VERSION` — sinon les
-clients ayant déjà un cache n'auraient pas la nouvelle table.
+### Tables allégées (projection)
+
+`src/lib/manifest/projection.ts` liste, par table, les champs gardés
+(`MANIFEST_PROJECTION`) ; tout le reste est retiré avant compression. Mesuré sur
+le manifeste français :
+
+| | JSON de Bungie | JSON allégé | Transféré (Brotli) |
+| --- | --- | --- | --- |
+| `DestinyInventoryItemDefinition` | 201 Mo | 85 Mo | 1,8 Mo |
+| Les 18 tables | 230 Mo | 99 Mo | 2,7 Mo |
+
+C'est la taille du JSON qui compte le plus : c'est ce que le navigateur analyse
+puis écrit dans IndexedDB. Pour comparaison, le gzip de bungie.net pèse à lui
+seul 8,5 Mo pour la table des objets.
+
+**Le danger est un champ lu mais retiré** : la lecture renvoie `undefined` et
+l'interface affiche du vide, sans erreur. Deux garde-fous :
+
+- **À la compilation** : `ManifestReads` associe à chaque table l'unique type
+  vers lequel ses lectures castent `data`. `tsc` échoue, en nommant le chemin,
+  quand un type déclare un champ que la projection retire (`MissingFields`), ou
+  quand la projection garde un champ qu'aucun type ne déclare (`UnreadFields`).
+- **`scripts/checks/projection.check.ts`** balaie les sources : toute lecture de
+  définition (`useDefinition<…>`, `getDefinitions<…>`, `.data as …`) doit passer
+  par un type de `ManifestReads`, et aucun ne doit être redéclaré localement
+  sous le même nom — il échapperait sinon au contrôle de compilation.
+
+La projection se fait **en flux**, entrée par entrée
+(`src/lib/manifest/json-entries.ts`) : un `JSON.parse` complet de la table des
+objets monte à 1,1 Go de mémoire au pic, de quoi faire tomber un petit serveur
+de production.
+
+`MANIFEST_SCHEMA_VERSION` est **calculée** : une empreinte de la liste des
+tables et de la projection. Elle entre dans l'URL et le chemin disque du relais,
+et les clients la comparent à leur cache — toute modification de l'une ou de
+l'autre renouvelle d'elle-même les deux caches.
+
+Pour exploiter plus de données du jeu : ajouter le champ à son type dans
+`ManifestReads` (en général `src/lib/destiny/types.ts`) ; `tsc` le réclame alors
+dans la projection. Pour une nouvelle table, l'ajouter aussi à
+`src/lib/manifest/tables.ts`, avec sa projection et son type dans
+`ManifestReads`.
+
+> **Les entrées ne sont pas filtrées, et c'est vérifié.** Le seul candidat
+> d'importance était les 10 542 objets de l'emplacement 2422292810 qu'aucun plug
+> set, socket ni ensemble d'armure ne référence — des aperçus de vendeurs selon
+> toute apparence, aucun équipable, 22 % du coût de la table des objets
+> (~0,6 s par chargement). Une sonde temporaire journalisant toute lecture de
+> l'un d'eux a réfuté l'hypothèse en quelques minutes, par deux chemins : les
+> sockets d'une arme façonnée en lisent deux comme **plugs** (« Arme
+> façonnée »), et un vrai profil en détient plusieurs (contrats, « Prime
+> ordinaire »…), lus par le lot de `ItemDefsProvider`. « Référencé nulle part
+> dans le manifeste » ne veut pas dire « jamais lu » : les sockets des instances
+> et les profils atteignent des objets que le manifeste ne relie à rien.
 
 ## Client Prisma
 
@@ -3754,12 +3968,12 @@ proposés n'est pas un tri de hashes — il vient
 des listes `loadoutColorHashes` / `loadoutIconHashes` / `loadoutNameHashes` de
 `DestinyLoadoutConstantsDefinition` (une seule entrée, hash 1).
 
-> **Ajouter une table du manifeste, c'est incrémenter `MANIFEST_SCHEMA_VERSION`.**
-> L'oublier, et les clients qui ont déjà mis la version précédente en cache ne
-> téléchargent jamais la nouvelle table : chaque lecture y renvoie `undefined`,
-> pour toujours, et l'interface se contente d'afficher du vide. `ensureManifest`
-> lève désormais quand une table demandée n'a aucun chemin dans le manifeste ou
-> revient vide — la prochaine erreur de ce genre sera bruyante et non muette.
+> **Une table ou un champ absent du cache d'un client est muet** : chaque
+> lecture y renvoie `undefined`, pour toujours, et l'interface se contente
+> d'afficher du vide. Cela tenait autrefois à un bump manuel de
+> `MANIFEST_SCHEMA_VERSION` ; c'est désormais une empreinte des tables et de leur
+> projection (voir « Tables allégées »). `ensureManifest` lève par ailleurs quand
+> une table demandée n'a pas d'URL ou revient vide.
 
 ### Raccourcis clavier
 
@@ -4009,9 +4223,8 @@ HTTPS_PROXY=http://utilisateur:motdepasse@mon-proxy.exemple:3128
 Si le proxy rejette les identifiants (407), le retry s'applique puis la route
 renvoie une erreur 502 propre : l'application ne plante pas.
 
-> **Portée** : seuls les appels faits par le serveur passent par ce proxy. Le
-> téléchargement des tables du manifeste part du **navigateur**, directement vers
-> bungie.net.
+> **Portée** : seuls les appels faits par le serveur passent par ce proxy —
+> tables du manifeste comprises, puisque le serveur les relaie.
 
 ## Styles (SCSS)
 
@@ -4190,7 +4403,7 @@ src/
     loadouts/        Équipements sauvegardés en jeu (contrat + écritures)
     loadouts/groups/ Groupes d'équipements (moteurs purs édition/équipement, store)
     loadouts/share/  Partages publics (instantané autonome, contrat, lecture)
-    manifest/        Téléchargement & cache du manifeste (IndexedDB)
+    manifest/        Téléchargement & cache du manifeste (IndexedDB), relais et projection serveur
     settings/        Préférences utilisateur (store adossé au cookie)
   components/        Composants UI
   scss/              Styles (voir « Styles »)

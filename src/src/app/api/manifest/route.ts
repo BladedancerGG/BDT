@@ -1,26 +1,33 @@
 import { NextResponse } from "next/server";
-import { bungieFetch } from "@/lib/bungie/client";
-
-// Type partiel de DestinyManifest (voir bungie-api-ts pour le type complet).
-interface DestinyManifest {
-  version: string;
-  // Chemins des tables JSON, par langue : { fr: { DestinyInventoryItemDefinition: "/common/...json", ... } }
-  jsonWorldComponentContentPaths: Record<string, Record<string, string>>;
-}
+import { getManifestMeta } from "@/lib/manifest/server-cache";
+import {
+  MANIFEST_SCHEMA_VERSION,
+  MANIFEST_TABLES,
+} from "@/lib/manifest/tables";
 
 // GET /api/manifest
-// Récupère les métadonnées du manifeste (version + chemins des tables).
-// Nécessite la clé API → passe par le serveur. Les fichiers de tables
-// eux-mêmes sont ensuite téléchargés directement par le client.
+// Version du manifeste + URL, par langue, des tables dont l'app a besoin.
+// Ces URL pointent vers le relais
+// (/api/manifest/<version>/<schéma>/<langue>/<table>), plus vers bungie.net :
+// le serveur garde les tables en cache, allégées des champs que l'app ne lit
+// pas, et les sert compressées en Brotli. Une table absente du manifeste de
+// Bungie est omise, pour que le client lève comme avant sur une table manquante.
 export async function GET() {
   try {
-    const manifest = await bungieFetch<DestinyManifest>("/Destiny2/Manifest/");
-    return NextResponse.json({
-      version: manifest.version,
-      componentPaths: manifest.jsonWorldComponentContentPaths,
-    });
+    const { version, paths } = await getManifestMeta();
+    const tableUrls: Record<string, Record<string, string>> = {};
+    for (const [language, tables] of Object.entries(paths)) {
+      tableUrls[language] = {};
+      for (const table of MANIFEST_TABLES) {
+        if (tables[table]) {
+          tableUrls[language][table] =
+            `/api/manifest/${encodeURIComponent(version)}/${MANIFEST_SCHEMA_VERSION}/${language}/${table}`;
+        }
+      }
+    }
+    return NextResponse.json({ version, tableUrls });
   } catch (err) {
-    console.error("Erreur manifeste:", err);
+    console.error("Manifest error:", err);
     return NextResponse.json(
       { error: "manifest_fetch_failed" },
       { status: 502 },

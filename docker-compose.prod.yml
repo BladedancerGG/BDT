@@ -6,7 +6,6 @@
 #   - aucun montage du code source : l'image contient le build
 #   - Postgres et l'app n'exposent AUCUN port sur l'hôte, ils ne sont joignables
 #     que par le réseau interne ; seul Caddy est exposé
-#   - pas d'Adminer (outil de développement)
 #   - les migrations tournent dans un conteneur dédié, avant l'app
 #   - redémarrage automatique et journaux plafonnés
 
@@ -73,6 +72,10 @@ services:
       HTTPS_PROXY: ${HTTPS_PROXY:-}
       NO_PROXY: ${NO_PROXY:-}
       NODE_OPTIONS: ${NODE_OPTIONS:-}
+    volumes:
+      # Cache des tables du manifeste servies aux clients : jetable, mais le
+      # garder évite de tout retélécharger chez Bungie à chaque déploiement.
+      - manifest_cache:/var/cache/manifest
     healthcheck:
       test:
         [
@@ -112,3 +115,4 @@ volumes:
   postgres_data:
   caddy_data:
   caddy_config:
+  manifest_cache:

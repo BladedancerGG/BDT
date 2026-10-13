@@ -13,8 +13,9 @@ import {LoadingIcon} from "@/components/icons";
  * une vue montée avant lui n'aurait que des cases vides à montrer.
  *
  * Un composant à part et non un appel dans chaque écran : `useManifest` doit
- * être monté **une seule fois** par page, deux montages lançant deux
- * téléchargements concurrents. Il sert l'espace connecté (`Dashboard`) comme la
+ * être monté **une seule fois** par page. Deux montages ne téléchargeraient
+ * plus deux fois (`ensureManifest` enchaîne ses appels), mais le second
+ * attendrait le premier pour rien. Il sert l'espace connecté (`Dashboard`) comme la
  * page publique d'un partage, qui n'a pas de compte mais a besoin du même
  * manifeste — il est public.
  */

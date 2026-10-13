@@ -83,6 +83,8 @@ Elles couvrent aujourd'hui `lib/loadouts/groups/edit.ts`, `lib/loadouts/groups/e
 `lib/loadouts/groups/sync-merge.ts`, `lib/destiny/insert-plan.ts`, `lib/settings/backup.ts`,
 `lib/destiny/subclass.ts`, `lib/destiny/gear.ts`, `lib/destiny/moves.ts` (les piles, les
 remplaçants), `lib/destiny/perk-upgrades.ts` (attributs améliorés et armes façonnées),
+`lib/manifest/projection.ts` et `lib/manifest/json-entries.ts` (allègement du manifeste),
+`lib/manifest/progress.ts` (progression pondérée du chargement),
 `lib/destiny/stat-breakdown.ts` (décomposition des statistiques, bonus de palier),
 `lib/loadouts/share/snapshot.ts` (l'instantané d'un partage)
 et `lib/loadouts/share/import.ts` (l'import d'un partage),
@@ -129,9 +131,11 @@ un certificat auto-signé : l'app est sur **https://localhost**, et tout `curl` 
 `lib/bungie/item-components.ts` les élague en `ItemDetail` (~250 Ko) — instance, stats, sockets,
 plugs équipables. Toute l'UI lit ce `ItemDetail`, jamais l'API par objet.
 
-**Le manifeste est en IndexedDB** (Dexie), pas en mémoire serveur. `lib/manifest/` le télécharge et
-le met en cache ; `lib/destiny/item-defs.tsx` (`ItemDefsProvider`) exécute **une seule requête
-groupée** pour tout l'arbre, et les composants lisent via `useSharedDefinition` /
+**Le manifeste est en IndexedDB** (Dexie), pas en mémoire serveur. Le serveur ne fait que relayer
+les fichiers de tables, allégés des champs non lus et précompressés en Brotli dans le volume
+`manifest_cache` (`lib/manifest/server-cache.ts`) ; `lib/manifest/` les télécharge depuis ce relais et les met en
+cache ; `lib/destiny/item-defs.tsx` (`ItemDefsProvider`) exécute **une seule requête groupée** pour
+tout l'arbre, et les composants lisent via `useSharedDefinition` /
 `useSharedIconDefinition`. Ne pas ajouter de requête Dexie par vignette : c'est l'optimisation
 majeure du projet (auparavant 2000+ souscriptions pour un coffre).
 
@@ -154,11 +158,13 @@ ne pas être rognées par le conteneur de défilement.
 - **Une constante exportée depuis un module `"use client"` arrive `undefined` côté serveur.** Tout
   ce qui est partagé avec le serveur va dans un module sans directive — voir
   `lib/settings/constants.ts`, dont l'en-tête le rappelle.
-- **Ajouter une table du manifeste sans incrémenter `MANIFEST_SCHEMA_VERSION` est invisible.**
-  Les clients ayant déjà la version précédente en cache ne téléchargent jamais la nouvelle table :
-  chaque lecture y renvoie `undefined`, pour toujours, et l'interface affiche simplement du vide,
-  sans erreur. `ensureManifest` lève désormais sur une table sans chemin ou vide, mais le bump
-  reste à faire à la main.
+- **Le serveur ne transmet que les champs du manifeste que l'app déclare lire.** Lire un champ
+  d'une définition, c'est d'abord le déclarer dans le type de sa table dans `ManifestReads`
+  (`lib/manifest/projection.ts`, en général via `lib/destiny/types.ts`) ; `tsc` réclame alors son
+  ajout à `MANIFEST_PROJECTION`. Un cast vers une interface locale ou un type en ligne y
+  échapperait : le champ arriverait `undefined`, sans erreur — `scripts/checks/projection.check.ts`
+  le refuse. `MANIFEST_SCHEMA_VERSION` est calculée (empreinte des tables et de la projection) :
+  plus de bump manuel.
 - **Ne jamais deviner un hash ou une sémantique Destiny** : les vérifier contre le manifeste.
   Exemples relevés ainsi, contre-intuitifs : les artéfacts ont `itemType: 0` et ne sont
   identifiables que par leur emplacement ; l'élément d'une doctrine est dans

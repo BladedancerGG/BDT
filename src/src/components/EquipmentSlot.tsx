@@ -1,9 +1,7 @@
 "use client";
 
-import {
-    useDefinition,
-    type DisplayProperties,
-} from "@/lib/manifest/use-definition";
+import {useDefinition} from "@/lib/manifest/use-definition";
+import type { InventoryBucketDefinition } from "@/lib/destiny/types";
 import type { DestinyItemComponent } from "@/lib/bungie/profile";
 import type { ItemDetail } from "@/lib/bungie/item-components";
 import {
@@ -12,12 +10,6 @@ import {
 } from "@/lib/destiny/buckets";
 import { ItemIcon } from "./ItemIcon";
 import {EmptySlotIcon} from "@/components/icons";
-
-interface BucketDefinition {
-    displayProperties: DisplayProperties;
-    /** Capacité de l'emplacement, objet équipé inclus */
-    itemCount?: number;
-}
 
 /** Vignette d'un objet, avec les données d'instance associées. */
 function SlotItem({
@@ -80,7 +72,7 @@ export function EquipmentSlot({
     pad?: boolean;
 }) {
     // Libellé et capacité de l'emplacement, fournis par le manifeste
-    const bucket = useDefinition<BucketDefinition>(
+    const bucket = useDefinition<InventoryBucketDefinition>(
         "DestinyInventoryBucketDefinition",
         bucketHash,
     );

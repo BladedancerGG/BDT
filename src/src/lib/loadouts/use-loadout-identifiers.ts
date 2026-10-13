@@ -5,11 +5,9 @@ import {manifestDb} from "@/lib/manifest/db";
 import {isRealHash} from "./loadout";
 import {
     LOADOUT_CONSTANTS_HASH,
-    type LoadoutColorDefinition,
     type LoadoutConstantsDefinition,
-    type LoadoutIconDefinition,
-    type LoadoutNameDefinition,
 } from "@/lib/destiny/types";
+import type {ManifestReads} from "@/lib/manifest/projection";
 
 // Identifiants d'un emplacement d'équipement : le fond coloré, le glyphe et le
 // nom.
@@ -46,10 +44,10 @@ const NO_IDENTIFIERS: LoadoutIdentifiers = {
 };
 
 /** Lit une table d'identifiants pour une liste de hashes, en une requête. */
-async function readIdentifiers<T>(
-    table: string,
+async function readIdentifiers<K extends keyof ManifestReads>(
+    table: K,
     hashes: readonly number[],
-    pick: (def: T) => string | undefined,
+    pick: (def: ManifestReads[K]) => string | undefined,
 ): Promise<Map<number, string>> {
     // `isRealHash` et non `Boolean` : un identifiant absent vaut la sentinelle
     // `INVALID_HASH`, qui est parfaitement truthy et n'a aucune définition.
@@ -61,7 +59,7 @@ async function readIdentifiers<T>(
         unique.map((hash) => [table, hash] as [string, number]),
     );
     rows.forEach((row, i) => {
-        const value = row ? pick(row.data as T) : undefined;
+        const value = row ? pick(row.data as ManifestReads[K]) : undefined;
         if (value) values.set(unique[i], value);
     });
     return values;
@@ -81,17 +79,17 @@ export function useLoadoutIdentifiers(
                 if (loadouts.length === 0) return NO_IDENTIFIERS;
 
                 const [colors, icons, names] = await Promise.all([
-                    readIdentifiers<LoadoutColorDefinition>(
+                    readIdentifiers(
                         "DestinyLoadoutColorDefinition",
                         loadouts.map((l) => l.colorHash),
                         (def) => def.colorImagePath,
                     ),
-                    readIdentifiers<LoadoutIconDefinition>(
+                    readIdentifiers(
                         "DestinyLoadoutIconDefinition",
                         loadouts.map((l) => l.iconHash),
                         (def) => def.iconImagePath,
                     ),
-                    readIdentifiers<LoadoutNameDefinition>(
+                    readIdentifiers(
                         "DestinyLoadoutNameDefinition",
                         loadouts.map((l) => l.nameHash),
                         (def) => def.name,
@@ -152,17 +150,17 @@ export function useLoadoutIdentifierChoices(): IdentifierChoices {
                     });
 
                 const [colors, icons, names] = await Promise.all([
-                    readIdentifiers<LoadoutColorDefinition>(
+                    readIdentifiers(
                         "DestinyLoadoutColorDefinition",
                         constants.loadoutColorHashes,
                         (def) => def.colorImagePath,
                     ),
-                    readIdentifiers<LoadoutIconDefinition>(
+                    readIdentifiers(
                         "DestinyLoadoutIconDefinition",
                         constants.loadoutIconHashes,
                         (def) => def.iconImagePath,
                     ),
-                    readIdentifiers<LoadoutNameDefinition>(
+                    readIdentifiers(
                         "DestinyLoadoutNameDefinition",
                         constants.loadoutNameHashes,
                         (def) => def.name,

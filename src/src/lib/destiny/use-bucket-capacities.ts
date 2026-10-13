@@ -2,6 +2,7 @@
 
 import { useLiveQuery } from "dexie-react-hooks";
 import { manifestDb } from "@/lib/manifest/db";
+import type { InventoryBucketDefinition } from "./types";
 import {
   BUCKET,
   CUSTOMIZATION_BUCKETS,
@@ -26,11 +27,6 @@ const TRACKED: readonly number[] = [
   BUCKET.Vault,
 ];
 
-interface BucketDefinition {
-  /** Capacité de l'emplacement, objet équipé compris */
-  itemCount?: number;
-}
-
 const EMPTY: ReadonlyMap<number, number> = new Map();
 
 /**
@@ -49,7 +45,7 @@ export function useBucketCapacities(): ReadonlyMap<number, number> {
 
       const capacities = new Map<number, number>();
       rows.forEach((row, index) => {
-        const count = (row?.data as BucketDefinition | undefined)?.itemCount;
+        const count = (row?.data as InventoryBucketDefinition | undefined)?.itemCount;
         if (typeof count === "number") capacities.set(TRACKED[index], count);
       });
       return capacities;
