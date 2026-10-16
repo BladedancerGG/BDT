@@ -225,8 +225,10 @@ export function ItemIcon({
       flip({
         fallbackPlacements: [
           "left-start",
-          "bottom-start",
-          "top-start",
+          "right",
+          "left",
+          "right-end",
+          "left-end",
           "bottom",
           "top",
         ],
