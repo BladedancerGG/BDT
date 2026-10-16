@@ -613,16 +613,16 @@ function AboutPanel() {
                 </a>
             </SettingRow>
 
-            <SettingRow label={tMenu("sourceCode")}>
-                <a
-                    className="btn btn--small"
-                    href="https://github.com/BladedancerGG/BDT"
-                    target="_blank"
-                    rel="noreferrer noopener"
-                >
-                    {tCommon("open")}
-                </a>
-            </SettingRow>
+            {/*<SettingRow label={tMenu("sourceCode")}>*/}
+            {/*    <a*/}
+            {/*        className="btn btn--small"*/}
+            {/*        href="https://github.com/BladedancerGG/BDT"*/}
+            {/*        target="_blank"*/}
+            {/*        rel="noreferrer noopener"*/}
+            {/*    >*/}
+            {/*        {tCommon("open")}*/}
+            {/*    </a>*/}
+            {/*</SettingRow>*/}
 
             <SettingRow label={t("support")}>
                 <a className="btn btn--small" href={`mailto:${SUPPORT_EMAIL}`}>
