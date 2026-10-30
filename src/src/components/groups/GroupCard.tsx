@@ -1,6 +1,6 @@
 "use client";
 
-import type {CSSProperties, ReactNode} from "react";
+import type {CSSProperties, MouseEvent, ReactNode} from "react";
 import {useTranslations} from "next-intl";
 import {useSortable} from "@dnd-kit/sortable";
 import type {DestinyLoadout} from "@/lib/bungie/profile";
@@ -32,6 +32,12 @@ interface GroupCardProps {
     onShare?: () => void;
     onDuplicate?: () => void;
     onDelete?: () => void;
+    /**
+     * Ouvre l'emplacement `slot`, à partir de 0 — dans l'éditeur du groupe, ou
+     * dans la vue des équipements pour la carte du jeu. Fourni, les vignettes
+     * deviennent des boutons qui l'appellent chacune sur la sienne.
+     */
+    onOpen?: (slot: number) => void;
 }
 
 /**
@@ -58,6 +64,7 @@ export function GroupCard({
                               onShare,
                               onDuplicate,
                               onDelete,
+                              onOpen,
                               handle,
                           }: GroupCardProps & {
     /** Poignée de déplacement, fournie par `SortableGroupCard` */
@@ -90,24 +97,38 @@ export function GroupCard({
                         const loadout = loadouts[index];
                         const free = isEmptyLoadout(loadout);
                         const label = loadout && identifiers.names.get(loadout.nameHash);
+                        // Un emplacement libre porte les identifiants par
+                        // défaut du jeu : afficher ce nom-là ferait croire
+                        // qu'il contient quelque chose.
+                        const title =
+                            (free ? undefined : label) ??
+                            tLoadouts("slot", {number: index + 1});
+                        const className = `loadout-slot${free ? " loadout-slot--empty" : ""}`;
+                        const tile = (
+                            <LoadoutSlotTile
+                                loadout={loadout}
+                                index={index}
+                                identifiers={identifiers}
+                            />
+                        );
 
-                        return (
-                            <div
+                        // Un bouton quand la vignette mène quelque part : c'est
+                        // ce qui la rend atteignable au clavier, la carte
+                        // elle-même ne l'étant pas.
+                        return onOpen ? (
+                            <button
                                 key={index}
-                                className={`loadout-slot${free ? " loadout-slot--empty" : ""}`}
-                                // Un emplacement libre porte les identifiants par
-                                // défaut du jeu : afficher ce nom-là ferait croire
-                                // qu'il contient quelque chose.
-                                title={
-                                    (free ? undefined : label) ??
-                                    tLoadouts("slot", {number: index + 1})
-                                }
+                                type="button"
+                                className={className}
+                                title={title}
+                                aria-label={title}
+                                onClick={() => onOpen(index)}
                             >
-                                <LoadoutSlotTile
-                                    loadout={loadout}
-                                    index={index}
-                                    identifiers={identifiers}
-                                />
+                                {tile}
+                            </button>
+                        ) : (
+                            <div key={index} className={className} title={title}>
+                                {tile}
                             </div>
                         );
                     })}
@@ -193,8 +214,15 @@ export function SortableGroupCard({
                 // variable, que la bordure de la carte lit — voir le SCSS.
                 ...(color ? ({"--group-color": color} as CSSProperties) : undefined),
             }}
-            className={`group-card${isDragging ? " group-card--dragging" : ""}`}
+            className={[
+                "group-card",
+                isDragging && "group-card--dragging",
+                card.onOpen && "group-card--openable",
+            ]
+                .filter(Boolean)
+                .join(" ")}
             aria-label={card.name}
+            onClick={cardClick(card.onOpen)}
         >
             <GroupCard
                 {...card}
@@ -223,14 +251,36 @@ export function SortableGroupCard({
  * La carte des équipements du jeu : ni déplaçable, ni colorée.
  *
  * Ses actions sont celles qui ont un sens sur l'état courant du personnage —
- * modifier (dans la vue qui les manipule), partager, dupliquer en groupe. La
- * carte elle-même n'est plus cliquable : elle porte désormais des boutons, et
- * un clic à côté d'eux ne doit rien déclencher.
+ * modifier (dans la vue qui les manipule), partager, dupliquer en groupe. Le
+ * clic s'y comporte comme sur une carte de groupe : il mène à la vue des
+ * équipements, sur l'emplacement cliqué.
  */
 export function StaticGroupCard(card: GroupCardProps) {
     return (
-        <section className="group-card group-card--static" aria-label={card.name}>
+        <section
+            className={`group-card group-card--static${
+                card.onOpen ? " group-card--openable" : ""
+            }`}
+            aria-label={card.name}
+            onClick={cardClick(card.onOpen)}
+        >
             <GroupCard {...card} />
         </section>
     );
+}
+
+/**
+ * Un clic sur la carte, hors de ses boutons, ouvre le premier emplacement.
+ *
+ * Les boutons sont écartés par leur cible plutôt que par un `stopPropagation`
+ * sur chacun : vignettes, actions et poignée en portent tous un, et en oublier
+ * un seul aurait ouvert l'éditeur par-dessus son geste — une suppression
+ * confirmée, par exemple.
+ */
+function cardClick(onOpen: ((slot: number) => void) | undefined) {
+    if (!onOpen) return undefined;
+    return (event: MouseEvent) => {
+        if ((event.target as Element).closest("button, a, input, select")) return;
+        onOpen(0);
+    };
 }

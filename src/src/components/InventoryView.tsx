@@ -980,6 +980,12 @@ function Inventory({
                         defs={defs}
                         hidden={!groupsMode}
                         onSelectCharacter={setSelectedId}
+                        // La sélection d'abord : la vue des équipements
+                        // s'ouvre ainsi directement sur l'emplacement cliqué.
+                        onOpenLoadout={(index) => {
+                            selectLoadout(index);
+                            setViewMode("loadouts");
+                        }}
                     />
                 </DragScopeProvider>
             </div>

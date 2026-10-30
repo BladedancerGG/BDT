@@ -17,6 +17,7 @@ import {useCharacterGroups, useLoadoutGroups} from "@/lib/loadouts/groups/store"
 import {
     useConfirmCreateInGame,
     useConfirmEquipGroup,
+    useConfirmEquipItems,
 } from "@/lib/loadouts/groups/use-confirm-equip";
 import {useRecordPlugs} from "@/lib/loadouts/groups/use-record-plugs";
 import {foreignItems, useGroupSelection} from "@/lib/loadouts/groups/selection";
@@ -43,10 +44,12 @@ import {LoadoutSlotHeading} from "@/components/loadouts/LoadoutSlotHeading";
 import {
     ArrowLeftIcon,
     ArrowDownTrayIcon,
+    ArrowDownOnSquareIcon,
     ShareIcon,
     Squares2X2Icon,
     XMarkIcon,
 } from "@heroicons/react/24/solid";
+import {GroupActionsMenu} from "./GroupActionsMenu";
 import {GroupColorPicker} from "./GroupColorPicker";
 import {GroupNameField} from "./GroupNameField";
 import {GroupSlotIdentifiers} from "./GroupSlotIdentifiers";
@@ -74,6 +77,7 @@ export function GroupEditor({
                                 loadouts,
                                 classType,
                                 slotCount,
+                                initialSlot = 0,
                                 hidden,
                                 onClose,
                             }: {
@@ -84,6 +88,12 @@ export function GroupEditor({
     loadouts: readonly DestinyLoadout[];
     classType: number | undefined;
     slotCount: number;
+    /**
+     * L'emplacement ouvert d'emblée, à partir de 0 — celui qu'on a cliqué sur
+     * la carte du groupe. Lu au montage seulement : c'est ensuite la grille de
+     * l'éditeur qui en décide.
+     */
+    initialSlot?: number;
     /** La vue est en retrait dans la pile : estompée, et hors d'atteinte */
     hidden: boolean;
     onClose: () => void;
@@ -97,13 +107,18 @@ export function GroupEditor({
     const setGroupColor = useLoadoutGroups((s) => s.setGroupColor);
     const confirmEquip = useConfirmEquipGroup(group.characterId);
     const confirmCreateInGame = useConfirmCreateInGame(group.characterId);
+    const confirmEquipItems = useConfirmEquipItems(group.characterId);
     const recordPlugs = useRecordPlugs();
     const startSelection = useGroupSelection((s) => s.start);
     const shareSource = useShareSource(data, defs);
     const {share, dialog: shareDialog} = useShare();
     const choices = useLoadoutIdentifierChoices();
 
-    const [selected, setSelected] = useState(0);
+    // Borné : le groupe peut compter moins d'emplacements que la carte n'en
+    // montrait, celle-ci suivant le personnage.
+    const [selected, setSelected] = useState(() =>
+        Math.min(Math.max(initialSlot, 0), Math.max(slotCount - 1, 0)),
+    );
     /**
      * L'emplacement de la grille du bas retenu comme source, ou `null`.
      *
@@ -395,7 +410,10 @@ export function GroupEditor({
 
 
 
+                {/* Les gestes du groupe et de l'emplacement, rangés dans une
+                    bulle : côte à côte, ils prenaient la barre entière. */}
                 <div className="group-edit__actions">
+                    <GroupActionsMenu>
                     {/* Le même geste que sur la carte du groupe, résumé et
                         confirmé de la même façon : on vient ici pour composer un
                         groupe, et repartir sur la grille pour l'équiper n'avait
@@ -407,6 +425,21 @@ export function GroupEditor({
                     >
                         <ArrowDownTrayIcon/>
                         {tCommon("equip")}
+                    </button>
+                    {/* L'emplacement sélectionné seulement, et sans rien
+                        enregistrer en jeu : « Équiper » remplace tous les
+                        emplacements du personnage, « Appliquer en jeu » l'un
+                        d'eux — ici on veut porter l'équipement, sans en payer
+                        un emplacement. Comme le vidage, il vise l'emplacement
+                        du GROUPE, prévisualisation ou non. */}
+                    <button
+                        type="button"
+                        className="btn btn--small btn--primary"
+                        disabled={groupEmpty}
+                        onClick={() => current && void confirmEquipItems(current)}
+                    >
+                        <ArrowDownOnSquareIcon/>
+                        {t("equipItems")}
                     </button>
                     <button
                         type="button"
@@ -529,6 +562,7 @@ export function GroupEditor({
                     >
                         {t("clearSlot", {number: selected + 1})}
                     </button>
+                    </GroupActionsMenu>
                 </div>
             </div>
 

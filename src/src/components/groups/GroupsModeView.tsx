@@ -82,6 +82,7 @@ export function GroupsModeView({
                                    defs,
                                    hidden,
                                    onSelectCharacter,
+                                   onOpenLoadout,
                                }: {
     characterId: string | null;
     /** Classe du personnage : filtre les objets proposés dans l'éditeur */
@@ -94,6 +95,12 @@ export function GroupsModeView({
     hidden: boolean;
     /** Changer de personnage depuis la barre d'outils, sans remonter l'en-tête */
     onSelectCharacter: (characterId: string) => void;
+    /**
+     * Ouvre la vue des équipements sur l'emplacement `index` du jeu, à partir
+     * de 0 — le pendant, pour la carte des équipements du jeu, de l'éditeur
+     * qu'ouvre une carte de groupe.
+     */
+    onOpenLoadout: (index: number) => void;
 }) {
     const t = useTranslations("groups");
     const groups = useCharacterGroups(characterId);
@@ -108,7 +115,12 @@ export function GroupsModeView({
     const shareSource = useShareSource(data, defs);
     const {share, dialog: shareDialog} = useShare();
 
-    const [editingId, setEditingId] = useState<string | null>(null);
+    /** Le groupe ouvert dans l'éditeur, et l'emplacement sur lequel l'ouvrir */
+    const [editingTarget, setEditingTarget] = useState<{
+        id: string;
+        slot: number;
+    } | null>(null);
+    const editingId = editingTarget?.id ?? null;
 
     // —— L'import d'un partage, demandé par la page publique.
     const [importLink, setImportLink] = useState(requestedImport);
@@ -160,8 +172,9 @@ export function GroupsModeView({
                 loadouts={loadouts}
                 classType={classType}
                 slotCount={slotCount}
+                initialSlot={editingTarget?.slot}
                 hidden={hidden}
-                onClose={() => setEditingId(null)}
+                onClose={() => setEditingTarget(null)}
             />
         );
     }
@@ -233,7 +246,8 @@ export function GroupsModeView({
                         loadouts={loadouts}
                         slotCount={slotCount}
                         identifiers={identifiers}
-                        onEdit={() => setViewMode("loadouts")}
+                        onEdit={() => onOpenLoadout(0)}
+                        onOpen={onOpenLoadout}
                         onShare={() =>
                             share(
                                 buildShare(
@@ -280,7 +294,10 @@ export function GroupsModeView({
                                 slotCount={slotCount}
                                 identifiers={identifiers}
                                 onEquip={() => void confirmEquip(group)}
-                                onEdit={() => setEditingId(group.id)}
+                                onEdit={() => setEditingTarget({id: group.id, slot: 0})}
+                                // La carte mène à l'éditeur, sur l'emplacement
+                                // cliqué — le premier si c'est la carte.
+                                onOpen={(slot) => setEditingTarget({id: group.id, slot})}
                                 // Le groupe entier, emplacements vides
                                 // compris : c'est sa forme qu'on partage, et
                                 // la grille de la page publique en montre

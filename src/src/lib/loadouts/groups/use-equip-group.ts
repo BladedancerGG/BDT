@@ -271,9 +271,35 @@ export function useEquipGroup(characterId: string | null) {
         [planLoadouts],
     );
 
+    /**
+     * Le plan d'un seul emplacement du groupe, **sans emplacement du jeu
+     * visé** : ses objets et leurs attributs seulement, à passer à `equip` avec
+     * `snapshot: false`.
+     *
+     * Aucun emplacement du jeu n'est transmis, rien n'est donc vidé — et
+     * l'écrasement est retiré à l'exécution, pas ici : le plan reste celui que
+     * `planGroupEquip` sait vérifier, et l'index 0 n'y est qu'une place.
+     */
+    const planItems = useCallback(
+        (loadout: GroupLoadout) => planLoadouts([loadout], false),
+        [planLoadouts],
+    );
+
     const equip = useCallback(
         /** Le plan est **reçu** : `useConfirmEquipGroup` l'a déjà chiffré. */
-        (result: GroupEquipPlan) => {
+        (
+            result: GroupEquipPlan,
+            {
+                snapshot = true,
+            }: {
+                /**
+                 * Écraser l'emplacement du jeu une fois les objets en place.
+                 * Sans lui, la séquence ne fait qu'équiper : les emplacements
+                 * du jeu restent tels quels.
+                 */
+                snapshot?: boolean;
+            } = {},
+        ) => {
             const profile = queryClient.getQueryData<ProfileData>(PROFILE_KEY);
             if (!characterId || !profile) return;
 
@@ -332,6 +358,8 @@ export function useEquipGroup(characterId: string | null) {
                     );
                 }
 
+                if (!snapshot) continue;
+
                 // —— Puis écraser l'emplacement avec ce qui est alors équipé.
                 runLoadout(
                     {
@@ -351,5 +379,5 @@ export function useEquipGroup(characterId: string | null) {
         [queryClient, characterId, enqueueMove, insert, runLoadout],
     );
 
-    return {plan, planSlot, equip};
+    return {plan, planSlot, planItems, equip};
 }

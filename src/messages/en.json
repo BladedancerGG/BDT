@@ -372,7 +372,11 @@
     "createInGameConfirm": "Recreate this loadout in in-game slot #{number}? Its items will be equipped on this character.",
     "createInGameOverwrite": "The in-game loadout “{name}” will be replaced.",
     "createInGameSummary": "About {requests} requests to Bungie, sent one at a time.",
-    "createInGameSkipped": "This loadout can’t be recreated in game: its items are gone from the account, or its appearance is incomplete."
+    "createInGameSkipped": "This loadout can’t be recreated in game: its items are gone from the account, or its appearance is incomplete.",
+    "equipItems": "Equip this loadout’s items",
+    "equipItemsConfirm": "Equip this loadout’s items on this character? No in-game loadout will be changed.",
+    "equipItemsSkipped": "These items cannot be equipped: they are no longer on the account.",
+    "actions": "Actions"
   },
   "share": {
     "title": "Share",

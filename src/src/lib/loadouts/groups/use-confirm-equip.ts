@@ -100,3 +100,42 @@ export function useConfirmCreateInGame(characterId: string | null) {
         [planSlot, equip, t],
     );
 }
+
+/**
+ * Équiper les objets d'un seul emplacement d'un groupe, après l'avoir chiffré.
+ *
+ * La séquence de `useConfirmCreateInGame` **sans son écrasement** : les objets
+ * sont équipés et leurs attributs posés, et aucun emplacement du jeu n'est
+ * touché. C'est le geste de qui veut porter un équipement du groupe sans
+ * sacrifier pour lui l'un de ses emplacements en jeu.
+ *
+ * Renvoie `false` quand rien n'a été engagé : profil absent, objets disparus,
+ * ou refus.
+ */
+export function useConfirmEquipItems(characterId: string | null) {
+    const t = useTranslations("groups");
+    const {planItems, equip} = useEquipGroup(characterId);
+
+    return useCallback(
+        async (loadout: GroupLoadout): Promise<boolean> => {
+            const result = await planItems(loadout);
+            if (!result) return false;
+
+            if (result.slots.length === 0) {
+                window.alert(t("equipItemsSkipped"));
+                return false;
+            }
+
+            const message = [
+                t("equipItemsConfirm"),
+                // Sans écrasement à compter : `planRequestCount` en ajouterait un.
+                t("createInGameSummary", {requests: result.changes}),
+            ].join("\n\n");
+
+            if (!window.confirm(message)) return false;
+            equip(result, {snapshot: false});
+            return true;
+        },
+        [planItems, equip, t],
+    );
+}

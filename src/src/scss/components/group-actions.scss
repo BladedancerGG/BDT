@@ -1,0 +1,44 @@
+// La bulle « Actions » de l'éditeur de groupe.
+//
+// Montée dans un portail Floating UI, comme le menu de création de groupe :
+// elle ne doit pas être rognée par la vue, ni passer sous ses grilles.
+
+.group-actions {
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 16rem;
+  padding: 0.375rem;
+  border: 1px solid var(--color-border-strong);
+  background-color: var(--color-panel);
+  box-shadow: 0 8px 24px var(--color-overlay-semi-transparent);
+
+  // Les boutons gardent leur habillage — teinte principale ou destructrice —
+  // mais s'empilent : en colonne, des largeurs inégales se liraient comme une
+  // hiérarchie qu'ils n'ont pas.
+  .btn {
+    justify-content: flex-start;
+    width: 100%;
+  }
+
+  // `.btn--primary` grossit le bouton et son texte : dans la bulle, les deux
+  // « Équiper » ne doivent se distinguer que par la teinte.
+  .btn--primary {
+    padding: 0.3rem 0.65rem;
+    font-size: 0.8125rem;
+  }
+
+  svg {
+    flex-shrink: 0;
+    width: 0.875rem;
+    height: 0.875rem;
+  }
+
+  // Le déclencheur, dans la barre d'outils : déclaré après `group-edit`, dont
+  // la règle des icônes de la barre a la même spécificité.
+  &__button svg {
+    width: 0.875rem;
+    height: 0.875rem;
+  }
+}

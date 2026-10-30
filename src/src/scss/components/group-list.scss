@@ -198,6 +198,29 @@
     }
   }
 
+  // Une carte de groupe ouvre son éditeur : la carte sur le premier
+  // emplacement, chaque vignette sur le sien. Les deux se signalent donc — et
+  // la vignette survolée prend l'accent, pour dire laquelle s'ouvrira.
+  &--openable {
+    cursor: pointer;
+
+    .group-card__grid .loadout-slot {
+      cursor: pointer;
+
+      @media (hover: hover) {
+        &:hover,
+        &--empty:hover {
+          border-color: var(--color-accent);
+        }
+      }
+
+      &:focus-visible {
+        outline: 2px solid var(--color-accent);
+        outline-offset: 1px;
+      }
+    }
+  }
+
   // —— Les actions, en icônes sous la grille ——————————————————
   //
   // Toujours visibles : le calque révélé au survol les rendait inatteignables

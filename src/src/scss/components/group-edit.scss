@@ -38,18 +38,12 @@
     font-weight: 600;
   }
 
-  // Poussé à droite : les deux écrasements agissent sur le groupe entier ou sur
-  // l'emplacement courant, pas sur son nom.
+  // Poussé à droite : les gestes agissent sur le groupe entier ou sur
+  // l'emplacement courant, pas sur son nom. Ils vivent dans la bulle
+  // « Actions » — voir `group-actions.scss`.
   &__actions {
     display: flex;
-    flex-wrap: wrap;
-    gap: 0.375rem;
     margin-left: auto;
-
-    svg {
-      width: 0.875rem;
-      height: 0.875rem;
-    }
   }
 
   // Les dix lignes à gauche, les deux grilles d'emplacements à droite : la même
