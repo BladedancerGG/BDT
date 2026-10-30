@@ -259,6 +259,15 @@
     "viewMode": "Display mode",
     "itemCategory": "Item category",
     "cycleHint": "to cycle",
+    "characterStats": "Character stats",
+    "enhancedStat": {
+      "health": "",
+      "melee": "",
+      "grenade": "",
+      "super": "",
+      "class": "",
+      "weapons": ""
+    },
     "ammo": {
       "primary": "Primary ammo",
       "special": "Special ammo",

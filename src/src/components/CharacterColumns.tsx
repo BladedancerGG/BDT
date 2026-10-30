@@ -100,7 +100,12 @@ export function CharacterColumn({
             {/* Entre l'emblème et les emplacements : statistiques totales et
                 bonus d'ensemble actifs. Les valeurs viennent du composant 200,
                 déjà totalisées par Bungie — voir `CharacterSummary`. */}
-            <CharacterSummary stats={character.stats} setCounts={setCounts}/>
+            <CharacterSummary
+                stats={character.stats}
+                setCounts={setCounts}
+                items={worn}
+                details={data.items}
+            />
 
             <div className="character-column__slots">
                 {buckets.map((bucketHash) => (

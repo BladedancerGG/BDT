@@ -24,10 +24,13 @@ export function StatTooltip({
                                 name,
                                 description,
                                 breakdown,
+                                enhanced,
                             }: {
     name: string;
     description?: string;
     breakdown?: StatBreakdown;
+    /** Effet amélioré (statistique de personnage au-delà de 100), en doré */
+    enhanced?: string;
 }) {
     const t = useTranslations("item.statBreakdown");
     const tCriteria = useTranslations("criteria");
@@ -43,10 +46,15 @@ export function StatTooltip({
                 <span className="plug-tooltip__name">{name}</span>
             </div>
 
-            {(description || breakdown) && (
+            {(description || enhanced || breakdown) && (
                 <div className="plug-tooltip__body">
                     {description && (
                         <p className="plug-tooltip__description">{description}</p>
+                    )}
+                    {enhanced && (
+                        <p className="plug-tooltip__description stat-tooltip__enhanced">
+                            {enhanced}
+                        </p>
                     )}
                     {breakdown && (
                         <dl className="stat-tooltip__breakdown">

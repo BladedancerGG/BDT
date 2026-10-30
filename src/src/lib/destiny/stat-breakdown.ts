@@ -548,3 +548,47 @@ export function barSegments(b: StatBreakdown): {
         malus: b.base - total,
     };
 }
+
+/**
+ * Décomposition des statistiques d'un personnage : la somme de celles de ses
+ * pièces d'armure, recalée sur le total qui fait foi.
+ *
+ * Ce que les pièces n'expliquent pas — fragments de la doctrine, artéfact,
+ * plafond du personnage — est l'écart entre `totals` et la somme de leurs
+ * totaux. Il n'est pas réattribué fragment par fragment : l'API ne le
+ * détaille pas, et le reconstruire raterait les bonus conditionnels. Positif,
+ * il rejoint le bleu ; négatif, le rouge. La base et la pièce maîtresse, elles,
+ * sont exactement celles des pièces.
+ */
+export function sumBreakdowns(
+    pieces: readonly Readonly<Record<number, StatBreakdown>>[],
+    totals: Readonly<Record<number, number>>,
+    statHashes: readonly number[],
+): Record<number, StatBreakdown> {
+    const result: Record<number, StatBreakdown> = {};
+    for (const statHash of statHashes) {
+        const total = totals[statHash];
+        if (total === undefined) continue;
+
+        const sum = {base: 0, bonus: 0, malus: 0, masterwork: 0, total: 0};
+        for (const piece of pieces) {
+            const b = piece[statHash];
+            if (!b) continue;
+            sum.base += b.base;
+            sum.bonus += b.bonus;
+            sum.malus += b.malus;
+            sum.masterwork += b.masterwork;
+            sum.total += b.total;
+        }
+        const rest = total - sum.total;
+        result[statHash] = {
+            base: sum.base,
+            bonus: sum.bonus + Math.max(0, rest),
+            malus: sum.malus + Math.max(0, -rest),
+            masterwork: sum.masterwork,
+            // Un total négatif s'affiche 0, comme dans le résumé.
+            total: Math.max(0, total),
+        };
+    }
+    return result;
+}

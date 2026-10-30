@@ -26,6 +26,8 @@
     // poser --color-text ici ne changerait rien.
     background-color: var(--color-dark-panel);
     color: var(--color-icon-ink);
+    // Survolé, il ouvre ses barres décomposées (voir CharacterStatsTooltip)
+    cursor: help;
   }
 
   &__stat {

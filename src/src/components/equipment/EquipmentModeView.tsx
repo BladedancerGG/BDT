@@ -153,7 +153,12 @@ export function EquipmentModeView({
                 ))}
             </div>
 
-            <CharacterSummary stats={stats} setCounts={setCounts}/>
+            <CharacterSummary
+                stats={stats}
+                setCounts={setCounts}
+                items={items}
+                details={details}
+            />
 
             {items.length === 0 && !quiet && (
                 <p className="equipment-mode__message">{t("loading")}</p>

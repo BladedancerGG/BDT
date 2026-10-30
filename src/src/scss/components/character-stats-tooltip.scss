@@ -1,0 +1,25 @@
+// Infobulle des statistiques du personnage, au survol de son résumé : les
+// barres d'une infobulle d'armure, sur l'habillage d'une infobulle d'attribut.
+
+.character-stats-tooltip {
+  // Le plafond de `plug-tooltip` (20rem) rognerait la piste : nom, icône,
+  // barre de 200px et valeur à trois chiffres doivent tenir sur une ligne.
+  max-width: none !important;
+  width: 23rem !important;
+
+  &__bars {
+    gap: 0.375rem !important;
+
+    // Le nom n'a pas de repère d'ajustement à côté de lui : la colonne
+    // réservée aux infobulles d'armure serait vide.
+    .stat-bar__name {
+      width: 3rem !important;
+    }
+
+    // Les totaux du personnage montent à 200
+    .stat-bar__value {
+      width: 1.75rem !important;
+      text-align: right !important;
+    }
+  }
+}

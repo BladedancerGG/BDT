@@ -43,6 +43,8 @@ export function StatBar({
                             signed = false,
                             breakdown,
                             tuned,
+                            marker,
+                            enhanced,
                         }: {
     statHash: number;
     value: number;
@@ -63,6 +65,13 @@ export function StatBar({
      * rien.
      */
     tuned?: boolean;
+    /**
+     * Valeur où poser un repère vertical sur la barre — le seuil des effets
+     * améliorés d'une statistique de personnage.
+     */
+    marker?: number;
+    /** Effet amélioré de la statistique, montré en doré dans son infobulle */
+    enhanced?: string;
 }) {
     const t = useTranslations("item");
     const def = useDefinition<StatDefinition>("DestinyStatDefinition", statHash);
@@ -100,6 +109,31 @@ export function StatBar({
     const segments = breakdown
         ? barSegments(breakdown)
         : {base: value, bonus: 0, masterwork: 0, malus: 0};
+
+    const track = (
+        <div className="stat-bar__track">
+            {/* Largeurs transmises au CSS par variables. Un segment
+            nul n'est pas rendu : un bloc de largeur zéro reste
+            un nœud de plus par ligne pour rien. */}
+            {(
+                [
+                    ["base", segments.base],
+                    ["bonus", segments.bonus],
+                    ["masterwork", segments.masterwork],
+                    ["malus", segments.malus],
+                ] as const
+            ).map(
+                ([kind, part]) =>
+                    part > 0 && (
+                        <div
+                            key={kind}
+                            className={`stat-bar__fill stat-bar__fill--${kind}`}
+                            style={{"--stat-pct": `${pct(part)}%`} as CSSProperties}
+                        />
+                    ),
+            )}
+        </div>
+    );
 
     return (
         <>
@@ -143,30 +177,20 @@ export function StatBar({
                     />
                 )}
 
-                {withBar && (
-                    <div className="stat-bar__track">
-                        {/* Largeurs transmises au CSS par variables. Un segment
-                        nul n'est pas rendu : un bloc de largeur zéro reste
-                        un nœud de plus par ligne pour rien. */}
-                        {(
-                            [
-                                ["base", segments.base],
-                                ["bonus", segments.bonus],
-                                ["masterwork", segments.masterwork],
-                                ["malus", segments.malus],
-                            ] as const
-                        ).map(
-                            ([kind, part]) =>
-                                part > 0 && (
-                                    <div
-                                        key={kind}
-                                        className={`stat-bar__fill stat-bar__fill--${kind}`}
-                                        style={{"--stat-pct": `${pct(part)}%`} as CSSProperties}
-                                    />
-                                ),
-                        )}
-                    </div>
-                )}
+                {withBar &&
+                    (marker === undefined ? (
+                        track
+                    ) : (
+                        // Enveloppe à part : la piste rogne ses segments, le
+                        // repère doit déborder au-dessus et en dessous.
+                        <div
+                            className="stat-bar__gauge"
+                            style={{"--stat-marker": `${pct(marker)}%`} as CSSProperties}
+                        >
+                            {track}
+                            <span className="stat-bar__marker" aria-hidden/>
+                        </div>
+                    ))}
 
                 <span
                     className={`stat-bar__value${
@@ -203,6 +227,7 @@ export function StatBar({
                             name={name}
                             description={def?.displayProperties?.description}
                             breakdown={breakdown}
+                            enhanced={enhanced}
                         />
                     </div>
                 </FloatingPortal>

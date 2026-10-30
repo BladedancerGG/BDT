@@ -45,4 +45,11 @@
   &__value--masterwork {
     color: var(--color-accent);
   }
+
+  // Effet amélioré d'une statistique de personnage : doré comme la pièce
+  // maîtresse, la teinte du jeu pour ce qui dépasse le palier de base. Imbriqué
+  // pour l'emporter sur la teinte muette de la description.
+  .plug-tooltip__body &__enhanced {
+    color: var(--color-accent);
+  }
 }

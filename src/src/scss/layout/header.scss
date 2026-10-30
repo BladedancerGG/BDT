@@ -11,10 +11,12 @@
 // qu'il commande (voir `.inventory__toolbar` et `.group-list__toolbar`).
 
 .header {
-  // Hauteur d'une rangée. Sur téléphone, c'est la cible tactile minimale
-  // (44 px) ; au-delà, les 40 px que les blocs tiraient de `height: 100%` dans
-  // une barre de 3,5 rem — la barre y est donc rendue à l'identique.
-  --header-row: 2.75rem;
+  // Hauteur d'une rangée, et la SEULE source de hauteur de l'en-tête : chaque
+  // bloc la prend (`> *` ci-dessous), ses boutons la tiennent de lui, et la
+  // barre en découle. Sur téléphone, elle couvre la cible tactile minimale
+  // (44 px). Qu'un bloc la tire d'ailleurs — un `height: 100%` contre une barre
+  // de hauteur fixe — et il se décale de quelques pixels sur ses voisins.
+  --header-row: 2.8rem;
 
   // —— Téléphone : une grille de deux rangées ————————————————
   //
@@ -26,8 +28,8 @@
   // toucher à l'ordre du document, dont dépendent la lecture et le clavier.
   display: grid;
   grid-template-columns: auto 1fr auto auto;
-  // Première rangée de hauteur DÉFINIE. Plusieurs blocs tirent la leur d'un
-  // `height: 100%` (`.main-menu-button`, `.header-actions`), lequel ne résout
+  // Première rangée de hauteur DÉFINIE. Leurs descendants tirent la leur d'un
+  // `height: 100%` (boutons d'infobulle, `.header-actions *`), lequel ne résout
   // rien contre une rangée dimensionnée par son contenu : ils reprenaient alors
   // la hauteur du plus grand d'entre eux, et l'en-tête enflait de 60 à 77 px.
   // Les rangées suivantes — recherche, sélection — restent implicites, donc
@@ -44,9 +46,17 @@
   // Les blocs tenaient leur hauteur de la barre (`height: 100%`). Dans une
   // grille dont la rangée se mesure sur son contenu, ce pourcentage ne résout
   // plus rien — et le sélecteur de personnage, carré par `aspect-ratio`,
-  // s'effondrait à la taille de ses marges intérieures.
+  // s'effondrait à la taille de ses marges intérieures. Aucun bloc ne doit
+  // donc redéclarer sa hauteur : la règle la plus tardive l'emporterait.
   > * {
     height: var(--header-row);
+  }
+
+  // Les infobulles enveloppent leur bouton d'un `<span>` dimensionné par son
+  // contenu : les onglets s'y arrêtaient à la hauteur de leur icône, quelques
+  // pixels sous leurs voisins. L'enveloppe transmet la rangée au bouton.
+  .hint {
+    height: 100%;
   }
 
   .main-menu-button {
@@ -95,9 +105,11 @@
   //
   // Les placements ci-dessus sont sans effet dans un conteneur flex.
   @include m.from(v.$bp-md) {
-    --header-row: 2.5rem;
+    --header-row: 2.4rem;
     display: flex;
-    height: 3.5rem;
+    // Pas de hauteur propre : elle découle de la rangée. Une barre figée
+    // (3,5 rem) laissait 39 px utiles à des blocs de 48 — les uns s'y
+    // tassaient, les autres débordaient.
 
     .view-mode-tabs {
       display: flex;
@@ -110,6 +122,30 @@
 
     .search-bar {
       display: block;
+    }
+
+    // Sur une seule ligne, la sélection partage la rangée des autres blocs.
+    // Passée à la ligne, elle rejetait ses boutons SOUS l'en-tête — même à
+    // 1400 px. C'est donc la consigne, seule à pouvoir se tronquer sans rien
+    // retirer d'utile, qui cède la place ; libellé et boutons restent entiers.
+    .group-selection {
+      height: var(--header-row);
+      flex-wrap: nowrap;
+    }
+
+    .group-selection__label,
+    .group-selection__actions {
+      flex-shrink: 0;
+    }
+
+    // Deux lignes de 0,75 rem tiennent dans la rangée, pas trois.
+    .group-selection__hint {
+      min-width: 0;
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+      line-clamp: 2;
+      overflow: hidden;
     }
   }
 
@@ -127,7 +163,6 @@
     display: flex;
     gap: 0.75rem;
     flex-wrap: wrap;
-    height: 100%;
   }
 }
 
@@ -152,12 +187,12 @@
   }
 }
 
-// Boutons d'action du header (rafraîchir, paramètres)
+// Boutons d'action du header (rafraîchir, paramètres). Sa hauteur vient de la
+// rangée de l'en-tête (`.header > *`).
 .header-actions {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  height: 100%;
 
   * {
     height: 100%;

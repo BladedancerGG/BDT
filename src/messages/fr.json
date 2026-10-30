@@ -259,6 +259,15 @@
     "viewMode": "Mode d’affichage",
     "itemCategory": "Famille d’objets",
     "cycleHint": "pour alterner",
+    "characterStats": "Statistiques du personnage",
+    "enhancedStat": {
+      "health": "",
+      "melee": "",
+      "grenade": "",
+      "super": "",
+      "class": "",
+      "weapons": ""
+    },
     "ammo": {
       "primary": "Munitions principales",
       "special": "Munitions spéciales",

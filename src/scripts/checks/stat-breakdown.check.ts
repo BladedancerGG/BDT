@@ -14,6 +14,7 @@ import {
     enhancementTier,
     interpolate,
     invert,
+    sumBreakdowns,
     type BreakdownInput,
     type StatScale,
 } from "../../src/lib/destiny/stat-breakdown";
@@ -497,6 +498,28 @@ section("Segments de barre : rouge seulement sous la base");
         "rouge jamais au-delà de la base",
         barSegments({base: 10, bonus: 0, malus: 30, masterwork: 0, total: 0}),
         {base: 0, bonus: 0, masterwork: 0, malus: 10},
+    );
+}
+
+section("sumBreakdowns — statistiques d'un personnage");
+{
+    const piece = (base: number, bonus: number, malus: number, masterwork: number) => ({
+        [HEALTH]: {base, bonus, malus, masterwork, total: base + bonus + masterwork - malus},
+    });
+    check(
+        "somme des pièces, fragment positif versé au bleu",
+        sumBreakdowns([piece(20, 10, 0, 0), piece(30, 0, 0, 5)], {[HEALTH]: 75}, [HEALTH]),
+        {[HEALTH]: {base: 50, bonus: 20, malus: 0, masterwork: 5, total: 75}},
+    );
+    check(
+        "fragment négatif versé au rouge",
+        sumBreakdowns([piece(20, 0, 0, 0), piece(30, 0, 0, 0)], {[HEALTH]: 40}, [HEALTH]),
+        {[HEALTH]: {base: 50, bonus: 0, malus: 10, masterwork: 0, total: 40}},
+    );
+    check(
+        "total négatif ramené à 0, statistique absente ignorée",
+        sumBreakdowns([piece(5, 0, 0, 0)], {[HEALTH]: -5}, [HEALTH, GRENADE]),
+        {[HEALTH]: {base: 5, bonus: 0, malus: 10, masterwork: 0, total: 0}},
     );
 }
 

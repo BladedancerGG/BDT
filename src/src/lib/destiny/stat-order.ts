@@ -66,6 +66,18 @@ export const SWORD_STAT_ORDER: readonly number[] = [
  */
 export const ARMOR_STAT_MAX = 45;
 
+/**
+ * Plafond d'une statistique de personnage : la somme des pièces s'arrête à
+ * 200. Échelle fixe de la barre, pour la même raison qu'`ARMOR_STAT_MAX`.
+ */
+export const CHARACTER_STAT_MAX = 200;
+
+/**
+ * Seuil des effets améliorés d'une statistique de personnage : au-delà de 100,
+ * chaque point ajoute un second effet. Marqué d'un repère sur la barre.
+ */
+export const CHARACTER_STAT_ENHANCED = 100;
+
 /** Armures. */
 export const ARMOR_STAT_ORDER: readonly number[] = [
     392767087, // Santé

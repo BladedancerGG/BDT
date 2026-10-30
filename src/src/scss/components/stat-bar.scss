@@ -79,6 +79,31 @@
     max-width: 200px;
   }
 
+  // Piste portant un repère (seuil des effets améliorés d'une statistique de
+  // personnage). L'enveloppe reprend la place de la piste : celle-ci rogne ses
+  // segments, le repère doit déborder au-dessus et en dessous.
+  &__gauge {
+    position: relative;
+    display: flex;
+    flex: 1;
+    max-width: 200px;
+
+    .stat-bar__track {
+      max-width: none;
+    }
+  }
+
+  &__marker {
+    position: absolute;
+    top: -3px;
+    bottom: -3px;
+    left: var(--stat-marker, 50%);
+    width: 2px;
+    transform: translateX(-50%);
+    background-color: var(--color-text);
+    pointer-events: none;
+  }
+
   // Largeur fournie en inline via une variable CSS. Les teintes sont celles
   // du jeu : base claire, attributs et mods en bleu, pièce maîtresse dorée. Le
   // rouge suit la partie pleine quand le total passe sous la base : il marque

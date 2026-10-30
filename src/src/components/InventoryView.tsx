@@ -773,6 +773,8 @@ function Inventory({
                                             <CharacterSummary
                                                 stats={character?.stats ?? {}}
                                                 setCounts={equippedSetCounts}
+                                                items={displayedEquipped}
+                                                details={data.items}
                                             />
                                         )}
                                     </section>
