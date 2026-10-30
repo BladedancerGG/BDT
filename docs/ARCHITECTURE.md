@@ -371,6 +371,10 @@ A JPEG fallback stays in place for the few items with no `foreground`
 The rarity background is restored in SCSS via `item-thumb--tier-*` classes; the
 palette lives once in `layout/theme.scss` and `tierColor()` returns those CSS
 variables. "Holofoil" items get an image background instead of a flat colour.
+The manifest has two (`holofoilBackgroundPath()`): those released before v900
+(BRAVE, Rite of the Nine — traits `releases.v730.season` / `releases.v820.season`)
+keep the transparent gold-striped `holofoilBackgroundOverlayPath` over their
+rarity colour; every later one takes the purple `holofoil900BackgroundOverlayPath`.
 
 > Subclasses are an exception: their `displayProperties.icon` is already a
 > complete PNG, whereas `DestinyIconDefinition.foreground` is sometimes just the
@@ -2518,7 +2522,11 @@ Le repli sur le JPEG reste en place pour les quelques objets sans `foreground`
 Le fond de rareté est rétabli en SCSS via les classes `item-thumb--tier-*` ; la
 palette vit une seule fois dans `layout/theme.scss` et `tierColor()` renvoie ces
 variables CSS. Les objets « holofoil » reçoivent une image de fond au lieu d'une
-couleur unie.
+couleur unie. Le manifeste en fournit deux (`holofoilBackgroundPath()`) : ceux sortis
+avant la v900 (BRAVE, Rite des Neuf — traits `releases.v730.season` /
+`releases.v820.season`) gardent `holofoilBackgroundOverlayPath`, transparent à rayures
+dorées, sur leur couleur de rareté ; tous les suivants prennent le fond violet
+`holofoil900BackgroundOverlayPath`.
 
 > Les doctrines font exception : leur `displayProperties.icon` est déjà un PNG
 > complet, alors que `DestinyIconDefinition.foreground` n'est parfois que le

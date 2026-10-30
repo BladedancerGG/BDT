@@ -75,6 +75,27 @@ export function ornamentBackgroundPath(
 }
 
 /**
+ * Traits de sortie des objets holofoil antérieurs à la v900 (BRAVE et Rite des
+ * Neuf) : ils gardent l'ancien fond, transparent à rayures dorées, posé sur la
+ * couleur de rareté. Tous les holofoil sortis depuis Edge of Fate (v900) prennent
+ * le fond violet `holofoil900…`. Le manifeste n'expose aucun autre champ qui les
+ * distingue : relevé sur les 240 définitions `isHolofoil` (seuls `v730.season`
+ * et `v820.season` précèdent la v900), et c'est aussi la règle de DIM.
+ */
+const PRE_900_HOLOFOIL_TRAITS = ["releases.v730.season", "releases.v820.season"];
+
+/** Fond d'un objet « holofoil », ou undefined s'il n'en est pas un. */
+export function holofoilBackgroundPath(
+    constants: ItemConstantsDefinition | undefined,
+    def: InventoryItemDefinition | undefined,
+): string | undefined {
+    if (!constants || !def?.isHolofoil) return undefined;
+    return def.traitIds?.some((trait) => PRE_900_HOLOFOIL_TRAITS.includes(trait))
+        ? constants.holofoilBackgroundOverlayPath
+        : constants.holofoil900BackgroundOverlayPath;
+}
+
+/**
  * Filigrane à afficher pour un objet.
  * Un objet réédité possède plusieurs filigranes : celui à utiliser dépend du
  * `versionNumber` de l'instance.

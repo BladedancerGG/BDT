@@ -9,10 +9,10 @@ import type {GroupIcon, ItemOwner} from "@/lib/destiny/grouping";
 import type {ItemCategory} from "@/lib/settings/constants";
 import {useGroupedItems} from "@/lib/destiny/use-grouped-items";
 import {useGridMetrics} from "@/lib/destiny/use-grid-metrics";
-import {useSearchFiltered} from "@/lib/search/provider";
+import {matchKey, useSearchFiltered, useSearchMatches} from "@/lib/search/provider";
 import {useSettings} from "@/lib/settings/store";
 import {ItemIcon} from "./ItemIcon";
-import {GroupHeader} from "./GroupHeader";
+import {GroupHeader, type HeaderCount} from "./GroupHeader";
 
 /**
  * Une ligne de la grille virtualisée. Les en-têtes en font partie au même titre
@@ -26,7 +26,7 @@ type GridRow =
     key: string;
     label: string;
     icon?: GroupIcon;
-    count: number;
+    count: HeaderCount;
     collapsed: boolean;
     height: number;
 }
@@ -36,7 +36,8 @@ type GridRow =
     label: string;
     /** Seuls les personnages de « Autres personnages » en portent une */
     icon?: GroupIcon;
-    count: number;
+    /** Absent pour ces mêmes personnages : leurs emplacements le portent */
+    count?: HeaderCount;
     collapsed: boolean;
     height: number;
 }
@@ -45,7 +46,7 @@ type GridRow =
     key: string;
     label: string;
     icon?: GroupIcon;
-    count: number;
+    count: HeaderCount;
     collapsed: boolean;
     height: number;
 }
@@ -65,6 +66,10 @@ export interface LeadGroup {
     label: string;
     icon?: GroupIcon;
     items: DestinyItemComponent[];
+    /** Capacité de ce personnage */
+    max?: number;
+    /** Voir `HeaderCount.alert` */
+    alert?: number;
 }
 
 /**
@@ -84,6 +89,13 @@ export interface LeadSection {
     icon?: GroupIcon;
     items: DestinyItemComponent[];
     groups?: LeadGroup[];
+    /**
+     * Capacité, quand la section ne vaut que pour un personnage. Découpée par
+     * personnage, la limite est celle de chacun et se lit sur `groups`.
+     */
+    max?: number;
+    /** Voir `HeaderCount.alert`, et `max` pour le découpage par personnage */
+    alert?: number;
 }
 
 /**
@@ -101,6 +113,12 @@ export interface CharacterSection {
     icon?: GroupIcon;
     equipped: DestinyItemComponent[];
     stored: DestinyItemComponent[];
+    /**
+     * Objets par emplacement, tous types confondus et avant tout filtre de
+     * vue : c'est la place réellement prise, que `equipped` et `stored` ne
+     * disent plus une fois filtrés.
+     */
+    occupancy: ReadonlyMap<number, number>;
 }
 
 // Référence stable : `useSearchFiltered` mémorise sur l'identité de sa liste
@@ -141,6 +159,9 @@ export function VirtualItemGrid({
                                     category,
                                     owners,
                                     fixedColumns,
+                                    fill,
+                                    capacities,
+                                    capped,
                                 }: {
     title: string;
     items: DestinyItemComponent[];
@@ -165,6 +186,19 @@ export function VirtualItemGrid({
      * `useGridMetrics.fixedColumns`).
      */
     fixedColumns?: number;
+    /**
+     * Occupation de la racine, tous types confondus : l'onglet ne fait que
+     * choisir ce qu'on regarde, pas ce qui prend de la place.
+     */
+    fill: {total: number; max?: number; alert?: number};
+    /** Capacité de chaque emplacement — voir `useBucketCapacities` */
+    capacities: ReadonlyMap<number, number>;
+    /**
+     * Sections dont la capacité s'affiche. Celle d'un emplacement d'origine
+     * au coffre ne voudrait rien dire : seul compte le total du coffre.
+     * Découpée par personnage, la limite passe sur chacun d'eux.
+     */
+    capped?: ReadonlySet<number>;
 }) {
     const t = useTranslations("inventory");
     // La recherche s'applique avant le regroupement : les compteurs des
@@ -188,6 +222,8 @@ export function VirtualItemGrid({
     const characterFound = useSearchFiltered(characterItems);
     const characterSections = useGroupedItems(characterFound, details, category);
     const charactersLabel = t("otherCharacters");
+    // `null` hors recherche : les compteurs n'affichent alors pas de « trouvés »
+    const matched = useSearchMatches();
     const viewportRef = useRef<HTMLDivElement>(null);
     // La taille réglée dans les paramètres change la grille sans changer sa
     // largeur : on la passe pour forcer une re-mesure. C'est le réglage dédié au
@@ -207,13 +243,36 @@ export function VirtualItemGrid({
         });
     }, []);
 
-    const total = useMemo(
-        () => sections.reduce((sum, section) => sum + section.count, 0),
-        [sections],
-    );
+    // Place prise par emplacement, et par personnage pour ceux qu'on découpe
+    // ainsi : comptée sur la liste brute, ni filtrée par l'onglet ni par la
+    // recherche. L'emplacement du MOMENT, car c'est lui qui est plein.
+    const occupancy = useMemo(() => {
+        const byBucket = new Map<number, number>();
+        const byOwner = new Map<string, number>();
+        if (!capped) return {byBucket, byOwner};
+        for (const item of items) {
+            byBucket.set(item.bucketHash, (byBucket.get(item.bucketHash) ?? 0) + 1);
+            const owner = owners?.get(item);
+            if (owner) {
+                const key = `${item.bucketHash}/owner:${owner.key}`;
+                byOwner.set(key, (byOwner.get(key) ?? 0) + 1);
+            }
+        }
+        return {byBucket, byOwner};
+    }, [items, owners, capped]);
 
     const rows = useMemo(() => {
         const out: GridRow[] = [];
+
+        // Ce que la recherche retient d'une liste affichée. Compté sur les
+        // correspondances et non sur la liste : le réglage qui estompe au lieu
+        // de masquer y laisse les objets écartés.
+        const countFound = (list: readonly DestinyItemComponent[]) =>
+            matched === null
+                ? undefined
+                : list.filter((item) =>
+                      matched.has(matchKey(item.itemHash, item.itemInstanceId)),
+                  ).length;
 
         // Découpe une liste en lignes de `columns` objets
         const pushItems = (
@@ -240,7 +299,12 @@ export function VirtualItemGrid({
                 key: lead.key,
                 label: lead.label,
                 icon: lead.icon,
-                count: leadFound.length,
+                count: {
+                    total: lead.items.length,
+                    found: countFound(leadFound),
+                    max: lead.max,
+                    alert: lead.alert,
+                },
                 collapsed: leadCollapsed,
                 height: rootHeight,
             });
@@ -263,7 +327,12 @@ export function VirtualItemGrid({
                             key: groupKey,
                             label: group.label,
                             icon: group.icon,
-                            count: items.length,
+                            count: {
+                                total: group.items.length,
+                                found: countFound(items),
+                                max: group.max,
+                                alert: group.alert,
+                            },
                             collapsed: groupCollapsed,
                             height: groupHeight,
                         });
@@ -282,7 +351,14 @@ export function VirtualItemGrid({
         // Les lignes sont préparées à part : la racine annonce le total, qui
         // n'est connu qu'une fois tous les personnages parcourus.
         const characterRows: GridRow[] = [];
+        // Le total de la racine compte tous les personnages, même celui dont
+        // la recherche n'a rien retenu : c'est leur occupation, pas un résultat.
         let characterTotal = 0;
+        for (const character of characters ?? []) {
+            for (const n of character.occupancy.values()) characterTotal += n;
+        }
+        let shownCharacters = 0;
+        const characterShown: DestinyItemComponent[] = [];
         for (const character of characters ?? []) {
             const equipped = new Set(character.equipped);
             const owned = new Set([...character.equipped, ...character.stored]);
@@ -303,8 +379,7 @@ export function VirtualItemGrid({
             // Rien de ce personnage ne survit à la recherche : pas d'en-tête
             if (buckets.length === 0) continue;
 
-            const count = buckets.reduce((sum, {items}) => sum + items.length, 0);
-            characterTotal += count;
+            shownCharacters++;
 
             const characterKey = `${CHARACTERS_KEY}/${character.key}`;
             const characterCollapsed = collapsed.has(characterKey);
@@ -313,10 +388,10 @@ export function VirtualItemGrid({
                 key: characterKey,
                 label: character.label,
                 icon: character.icon,
-                count,
                 collapsed: characterCollapsed,
                 height: sectionHeight,
             });
+            for (const {items} of buckets) characterShown.push(...items);
             if (characterCollapsed) continue;
 
             for (const {section, items} of buckets) {
@@ -326,20 +401,26 @@ export function VirtualItemGrid({
                     kind: "group",
                     key: bucketKey,
                     label: section.label,
-                    count: items.length,
+                    count: {
+                        total:
+                            character.occupancy.get(section.bucketHash) ??
+                            items.length,
+                        found: countFound(items),
+                        max: capacities.get(section.bucketHash),
+                    },
                     collapsed: bucketCollapsed,
                     height: groupHeight,
                 });
                 if (!bucketCollapsed) pushItems(bucketKey, items, characterRows);
             }
         }
-        if (characterTotal > 0) {
+        if (shownCharacters > 0) {
             const charactersCollapsed = collapsed.has(CHARACTERS_KEY);
             out.push({
                 kind: "root",
                 key: CHARACTERS_KEY,
                 label: charactersLabel,
-                count: characterTotal,
+                count: {total: characterTotal, found: countFound(characterShown)},
                 collapsed: charactersCollapsed,
                 height: rootHeight,
             });
@@ -352,7 +433,14 @@ export function VirtualItemGrid({
             key: VAULT_KEY,
             label: title,
             icon: {kind: "vault"},
-            count: total,
+            count: {
+                total: fill.total,
+                found: countFound(
+                    sections.flatMap((s) => s.groups.flatMap((g) => g.items)),
+                ),
+                max: fill.max,
+                alert: fill.alert,
+            },
             collapsed: vaultCollapsed,
             height: rootHeight,
         });
@@ -360,11 +448,27 @@ export function VirtualItemGrid({
 
         for (const section of sections) {
             const sectionCollapsed = collapsed.has(section.key);
+            const capacity = capped?.has(section.bucketHash)
+                ? capacities.get(section.bucketHash)
+                : undefined;
+            // Découpée par personnage, la section n'a pas de limite à elle :
+            // chacun a la sienne.
+            const perOwner = section.groups.some((g) => g.key.startsWith("owner:"));
             out.push({
                 kind: "section",
                 key: section.key,
                 label: section.label,
-                count: section.count,
+                count: capped?.has(section.bucketHash)
+                    ? {
+                          total:
+                              occupancy.byBucket.get(section.bucketHash) ??
+                              section.count,
+                          found: countFound(
+                              section.groups.flatMap((g) => g.items),
+                          ),
+                          max: perOwner ? undefined : capacity,
+                      }
+                    : {total: section.count},
                 collapsed: sectionCollapsed,
                 height: sectionHeight,
             });
@@ -383,7 +487,17 @@ export function VirtualItemGrid({
                         key: groupKey,
                         label: group.label,
                         icon: group.icon,
-                        count: group.items.length,
+                        count:
+                            perOwner && capacity !== undefined
+                                ? {
+                                      total:
+                                          occupancy.byOwner.get(
+                                              `${section.bucketHash}/${group.key}`,
+                                          ) ?? group.items.length,
+                                      found: countFound(group.items),
+                                      max: capacity,
+                                  }
+                                : {total: group.items.length},
                         collapsed: groupCollapsed,
                         height: groupHeight,
                     });
@@ -403,7 +517,11 @@ export function VirtualItemGrid({
         characterSections,
         charactersLabel,
         title,
-        total,
+        fill,
+        capacities,
+        capped,
+        occupancy,
+        matched,
         collapsed,
         columns,
         rowHeight,

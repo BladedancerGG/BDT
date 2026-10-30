@@ -26,6 +26,8 @@ const TRACKED: readonly number[] = [
   ...STORAGE_BUCKETS,
   BUCKET.Engrams,
   BUCKET.Vault,
+  // Rien ne s'y dépose, mais l'en-tête des objets perdus affiche sa limite
+  BUCKET.Postmaster,
 ];
 
 const EMPTY: ReadonlyMap<number, number> = new Map();

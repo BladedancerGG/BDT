@@ -9,6 +9,7 @@ import {
   useOriginalOnHover,
 } from "@/lib/destiny/item-defs";
 import {
+  holofoilBackgroundPath,
   isMasterwork,
   itemOverlays,
   ornamentBackgroundPath,
@@ -94,11 +95,10 @@ export function ItemThumb({
 
   // Le fond de rareté n'est utile que pour les icônes détourées : le JPEG le
   // porte déjà. Il est fourni par le SCSS via une classe de rareté, sauf pour
-  // les objets « holofoil » qui reçoivent une image animée à la place.
+  // les objets « holofoil » qui reçoivent une image à la place (deux variantes,
+  // selon la saison de sortie : voir holofoilBackgroundPath).
   const tierType = def?.inventory?.tierType;
-  const holofoil = def?.isHolofoil
-    ? constants?.holofoil900BackgroundOverlayPath
-    : undefined;
+  const holofoil = holofoilBackgroundPath(constants, def);
 
   // Les icônes d'ornement sont détourées : le jeu leur ajoute un fond, choisi
   // selon la rareté. Il se place DERRIÈRE l'image.

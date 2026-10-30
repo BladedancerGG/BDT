@@ -29,6 +29,7 @@ import {useDisplayableItems} from "@/lib/destiny/use-displayable-items";
 import {useLoadoutItems} from "@/lib/destiny/use-loadout-items";
 import {isEmptyLoadout} from "@/lib/loadouts/loadout";
 import {CLASS_ANY, homeBucket} from "@/lib/destiny/moves";
+import {useBucketCapacities} from "@/lib/destiny/use-bucket-capacities";
 import {SearchProvider} from "@/lib/search/provider";
 import {SearchActionsBridge} from "./search/SearchActionsBridge";
 import {useActionRunner} from "@/lib/actions/use-action-runner";
@@ -88,6 +89,24 @@ const NOT_IN_STORAGE: ReadonlySet<number> = new Set([
     BUCKET.Subclass,
     BUCKET.Artifact,
     BUCKET.Postmaster,
+]);
+
+/**
+ * Seuils d'alerte des compteurs, en deçà des limites : au coffre (1300), il
+ * reste de quoi trier ; au Courrier (21 par personnage), chaque objet en trop
+ * en efface un autre.
+ */
+const VAULT_ALERT = 1200;
+const POSTMASTER_ALERT = 16;
+
+/**
+ * Sections du rangement partagé qui affichent leur limite. Les engrammes
+ * l'affichent par personnage, leur section les y découpant.
+ */
+const POUCH_CAPPED: ReadonlySet<number> = new Set([
+    BUCKET.Consumables,
+    BUCKET.Modifications,
+    BUCKET.Engrams,
 ]);
 
 /**
@@ -170,7 +189,12 @@ function usePostmasterSection(
     items: DestinyItemComponent[],
     /** Découpage par personnage — voir `LeadSection.groups` */
     groups?: LeadGroup[],
+    /** Voir `LeadSection.max` */
+    max?: number,
 ): LeadSection {
+    // Le seuil va avec la limite : sans elle, la section réunit plusieurs
+    // personnages et chacun porte le sien.
+    const alert = max === undefined ? undefined : POSTMASTER_ALERT;
     const bucket = useDefinition<InventoryBucketDefinition>(
         "DestinyInventoryBucketDefinition",
         BUCKET.Postmaster,
@@ -184,8 +208,10 @@ function usePostmasterSection(
             icon: {kind: "postmaster"},
             items,
             groups,
+            max,
+            alert,
         }),
-        [label, items, groups],
+        [label, items, groups, max, alert],
     );
 }
 
@@ -279,29 +305,39 @@ function Inventory({
     // n'appartient à aucun personnage.
     const columns = COLUMNS[category];
 
+    // Capacité de chaque emplacement, pour les compteurs du stockage
+    const capacities = useBucketCapacities();
+
     // Le Courrier. Reconnu à son emplacement plutôt que par différence avec les
     // colonnes : sous l'onglet du rangement partagé il n'y a aucune colonne, et
     // tout l'inventaire du personnage se serait retrouvé sous l'en-tête
     // « Objets perdus ».
+    //
+    // Tous types confondus, quel que soit l'onglet : un objet perdu qu'on ne
+    // voit pas est un objet qu'on perd pour de bon quand le Courrier déborde.
     const ownLeftovers = useMemo(
-        () => shownInventory.filter((i) => i.bucketHash === BUCKET.Postmaster),
-        [shownInventory],
+        () => currentInventory.filter((i) => i.bucketHash === BUCKET.Postmaster),
+        [currentInventory],
     );
 
     // Les objets perdus des TROIS personnages, découpés par personnage, quelle
     // que soit la disposition : celle à un seul personnage montre déjà les
     // deux autres dans son stockage. Toujours calculés — une liste de quelques
     // dizaines d'objets, et un hook ne se monte pas conditionnellement.
-    const allLeftovers = useMemo(
+    const leftovers = useMemo(
         () =>
-            data.characters.flatMap((c) =>
-                (data.inventory[c.characterId] ?? NO_ITEMS).filter(
+            data.characters.map((c) => ({
+                character: c,
+                items: (data.inventory[c.characterId] ?? NO_ITEMS).filter(
                     (i) => i.bucketHash === BUCKET.Postmaster,
                 ),
-            ),
+            })),
         [data.characters, data.inventory],
     );
-    const shownLeftovers = useDisplayableItems(allLeftovers, category);
+    const allLeftovers = useMemo(
+        () => leftovers.flatMap((l) => l.items),
+        [leftovers],
+    );
 
     /**
      * Sous l'onglet du rangement partagé, la vue se coupe en deux : ce qui est
@@ -331,23 +367,24 @@ function Inventory({
     // rangement partagé fait exception — il reste la colonne du seul
     // personnage affiché, porte d'entrée de ces objets de portée compte.
     const names = useCharacterNames(data.characters);
+    const postmasterCapacity = capacities.get(BUCKET.Postmaster);
     const postmasterGroups = useMemo(() => {
         if (shared) return undefined;
-        // Les sous-groupes se taillent dans les listes d'origine, pas dans la
-        // liste filtrée : celle-ci ne dit plus de qui vient chaque objet.
-        const kept = new Set(shownLeftovers);
-        return data.characters.map((c): LeadGroup => ({
+        return leftovers.map(({character: c, items}): LeadGroup => ({
             key: c.characterId,
             label: names.get(c.characterId) ?? "",
             icon: {kind: "class", classType: c.classType},
-            items: (data.inventory[c.characterId] ?? NO_ITEMS).filter(
-                (i) => i.bucketHash === BUCKET.Postmaster && kept.has(i),
-            ),
+            items,
+            max: postmasterCapacity,
+            alert: POSTMASTER_ALERT,
         }));
-    }, [shared, data.characters, data.inventory, names, shownLeftovers]);
+    }, [shared, leftovers, names, postmasterCapacity]);
+    // Le rangement partagé ne montre que le personnage regardé : la limite de
+    // celui-ci est alors celle de toute la section.
     const postmaster = usePostmasterSection(
-        shared ? ownLeftovers : shownLeftovers,
+        shared ? ownLeftovers : allLeftovers,
         postmasterGroups,
+        shared ? postmasterCapacity : undefined,
     );
 
     // Les engrammes des TROIS personnages, chacun sous son en-tête : ils ne
@@ -401,6 +438,26 @@ function Inventory({
                 ? data.vault.filter((i) => i.bucketHash === BUCKET.Vault)
                 : data.vault,
         [shared, data.vault],
+    );
+
+    // Compteurs des deux racines, tous types confondus : l'onglet choisit ce
+    // qu'on regarde, pas ce qui prend de la place. Le coffre ne compte que ce
+    // qui y dort — `profileInventory` livre avec lui le rangement partagé.
+    const vaultCapacity = capacities.get(BUCKET.Vault);
+    const vaultFill = useMemo(
+        () => ({
+            total: data.vault.filter((i) => i.bucketHash === BUCKET.Vault).length,
+            max: vaultCapacity,
+            alert: VAULT_ALERT,
+        }),
+        [data.vault, vaultCapacity],
+    );
+    // Le rangement partagé n'existe que sous son propre onglet : ce qu'il
+    // montre y est déjà tout ce qu'il contient.
+    const pouchShown = useDisplayableItems(pouchItems, "inventory");
+    const pouchFill = useMemo(
+        () => ({total: pouchShown.length}),
+        [pouchShown],
     );
 
     // —— Équipements sauvegardés ————————————————————————————————
@@ -505,17 +562,29 @@ function Inventory({
 
     const otherCharacters = useMemo((): CharacterSection[] | undefined => {
         if (!single) return undefined;
-        const keep = (i: DestinyItemComponent) =>
-            !NOT_IN_STORAGE.has(i.bucketHash) && !foreignArmor?.(i);
+        const stored = (i: DestinyItemComponent) =>
+            !NOT_IN_STORAGE.has(i.bucketHash);
+        const keep = (i: DestinyItemComponent) => !foreignArmor?.(i);
         return data.characters
             .filter((c) => c.characterId !== current)
-            .map((c) => ({
-                key: c.characterId,
-                label: names.get(c.characterId) ?? "",
-                icon: {kind: "class", classType: c.classType},
-                equipped: (data.equipment[c.characterId] ?? NO_ITEMS).filter(keep),
-                stored: (data.inventory[c.characterId] ?? NO_ITEMS).filter(keep),
-            }));
+            .map((c) => {
+                const equipped = (data.equipment[c.characterId] ?? NO_ITEMS).filter(stored);
+                const inventory = (data.inventory[c.characterId] ?? NO_ITEMS).filter(stored);
+                // Avant le filtre de classe : une armure masquée occupe sa
+                // place tout autant.
+                const occupancy = new Map<number, number>();
+                for (const i of [...equipped, ...inventory]) {
+                    occupancy.set(i.bucketHash, (occupancy.get(i.bucketHash) ?? 0) + 1);
+                }
+                return {
+                    key: c.characterId,
+                    label: names.get(c.characterId) ?? "",
+                    icon: {kind: "class", classType: c.classType},
+                    equipped: equipped.filter(keep),
+                    stored: inventory.filter(keep),
+                    occupancy,
+                };
+            });
     }, [
         single,
         foreignArmor,
@@ -557,6 +626,9 @@ function Inventory({
                 lead={postmaster}
                 category={category}
                 owners={engramOwners}
+                fill={pouchFill}
+                capacities={capacities}
+                capped={POUCH_CAPPED}
             />
         </div>
     );
@@ -575,6 +647,8 @@ function Inventory({
                 // tient au personnage, pas au coffre.
                 lead={shared ? undefined : postmaster}
                 category={category}
+                fill={vaultFill}
+                capacities={capacities}
             />
         </div>
     );
