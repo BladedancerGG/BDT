@@ -338,6 +338,32 @@ check("sans substitution, l'ancien hash serait demandé pour rien",
         socketsOf: () => [101],
     }).slots[0].plugs.map((plug) => plug.plugItemHash), [100]);
 
+// —— Les attributs que l'API ne laisse pas changer ———————————————
+//
+// Pièce maîtresse, catalyseur, mémento : `InsertSocketPlugFree` les refuse. Les
+// demander coûtait une requête et marquait l'emplacement en échec.
+section("pièces maîtresses et améliorations écartées");
+
+/** 555 est une pièce maîtresse : le socket 1 de `a1` n'est pas à toucher. */
+const LOCKED: GroupEquipContext = {...ctx, isLockedPlug: (hash) => hash === 555};
+
+check("la pièce maîtresse enregistrée n'est pas demandée",
+    planGroupEquip([full([{id: "a1", plugs: [100, 555, 777]}])], [], LOCKED)
+        .slots[0].plugs.map((plug) => plug.plugItemHash), [777]);
+check("elle ne compte pas dans les requêtes annoncées",
+    planGroupEquip([full([{id: "a1", plugs: [100, 555]}])], [], LOCKED).changes, 1);
+// Deux emplacements qui l'enregistrent sous deux valeurs ne rendent pas son
+// socket volatil : l'attribut voisin, déjà en place, reste écarté.
+check("deux pièces maîtresses différentes ne rendent rien volatil",
+    plugsByIndex(planGroupEquip(group([
+        full([{id: "a1", plugs: [100, 555]}]),
+        full([{id: "a1", plugs: [100, 556]}]),
+    ]), [], {...ctx, isLockedPlug: (hash) => hash === 555 || hash === 556})),
+    [[], []]);
+check("sans le prédicat, elle serait demandée",
+    planGroupEquip([full([{id: "a1", plugs: [100, 555]}])], [], ctx)
+        .slots[0].plugs.map((plug) => plug.plugItemHash), [555]);
+
 // —— Le plan n'altère rien ————————————————————————————————————
 section("immuabilité");
 

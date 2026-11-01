@@ -55,6 +55,11 @@ export function GroupNameField({
                     event.preventDefault();
                     event.currentTarget.blur();
                 } else if (event.key === "Escape") {
+                    // Une saisie en cours s'annule sans quitter l'éditeur : la
+                    // touche n'est consommée que là. Pas de `blur()` ici, il
+                    // validerait l'ancien brouillon, encore lu par `commit`.
+                    if (draft === name) return;
+                    event.preventDefault();
                     setDraft(name);
                 }
             }}

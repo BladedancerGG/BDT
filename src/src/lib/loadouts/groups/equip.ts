@@ -109,6 +109,21 @@ export interface GroupEquipContext {
         plugItemHash: number,
     ) => number;
     /**
+     * L'attribut enregistré occupe-t-il un emplacement que l'API ne laisse pas
+     * changer — pièce maîtresse d'arme ou d'armure, catalyseur, mémento ?
+     *
+     * `InsertSocketPlugFree`, la seule insertion ouverte à une application,
+     * refuse ce qui coûte des matériaux. Demander un tel attribut ne menait
+     * qu'à un refus de Bungie, une requête perdue sur un débit limité, et un
+     * emplacement marqué en échec alors que tout le reste avait abouti. Il est
+     * donc traité comme un socket non enregistré : le jeu garde ce que l'objet
+     * porte, et l'écrasement l'enregistre tel quel. Omis, aucun ne l'est.
+     *
+     * Le test porte sur la valeur **enregistrée**, avant `resolvePlug` : une
+     * pièce maîtresse n'a pas de version améliorée à substituer.
+     */
+    isLockedPlug?: (plugItemHash: number) => boolean;
+    /**
      * Instances équipées sur le personnage avant toute action.
      *
      * Elles décident par quel emplacement commencer : celui qui ressemble le
@@ -191,7 +206,8 @@ function volatileSockets(
  * des requêtes que Bungie limite :
  *
  *  - la sentinelle `INVALID_HASH` — socket non enregistré, ou socket à choix
- *    unique dont le jeu n'écrit pas le vrai hash (voir `savedSockets`) ;
+ *    unique dont le jeu n'écrit pas le vrai hash (voir `savedSockets`), ou
+ *    attribut que l'API ne laisse pas changer (voir `isLockedPlug`) ;
  *  - `0` — socket vide. Il n'y a pas d'attribut « rien » à insérer ; vider un
  *    socket demanderait son plug d'origine, que l'instantané ne porte pas ;
  *  - celle déjà en place — **mais à une condition**, voir ci-dessous.
@@ -262,17 +278,24 @@ function plugsToInsert(
  * comparent eux aussi des hashes enregistrés, et deux emplacements demandant le
  * même attribut — l'un sous sa version d'origine, l'autre sous sa version
  * améliorée — se seraient crus en désaccord. Voir `GroupEquipContext.resolvePlug`.
+ *
+ * Les attributs que l'API ne laisse pas changer y deviennent la sentinelle, pour
+ * la même raison : écartés ici, ils ne comptent ni dans les sockets volatils, ni
+ * dans le coût qui choisit l'ordre. Voir `GroupEquipContext.isLockedPlug`.
  */
 function resolveGroupPlugs(
     groupLoadouts: readonly GroupLoadout[],
     resolvePlug: GroupEquipContext["resolvePlug"],
+    isLockedPlug: GroupEquipContext["isLockedPlug"],
 ): GroupLoadout[] {
     return groupLoadouts.map((loadout) => ({
         ...loadout,
         items: loadout.items.map((entry) => ({
             ...entry,
             plugItemHashes: entry.plugItemHashes.map((plugItemHash, socketIndex) =>
-                resolvePlug(entry.itemInstanceId, socketIndex, plugItemHash),
+                isLockedPlug?.(plugItemHash)
+                    ? INVALID_HASH
+                    : resolvePlug(entry.itemInstanceId, socketIndex, plugItemHash),
             ),
         })),
     }));
@@ -295,7 +318,11 @@ export function planGroupEquip(
     characterLoadouts: readonly DestinyLoadout[],
     ctx: GroupEquipContext,
 ): GroupEquipPlan {
-    const groupLoadouts = resolveGroupPlugs(savedLoadouts, ctx.resolvePlug);
+    const groupLoadouts = resolveGroupPlugs(
+        savedLoadouts,
+        ctx.resolvePlug,
+        ctx.isLockedPlug,
+    );
     const slots: PlannedGroupSlot[] = [];
     const skipped: SkippedGroupSlot[] = [];
     const volatiles = volatileSockets(groupLoadouts);

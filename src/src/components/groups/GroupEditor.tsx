@@ -1,6 +1,6 @@
 "use client";
 
-import {useMemo, useState} from "react";
+import {useEffect, useMemo, useState} from "react";
 import {useTranslations} from "next-intl";
 import type {DestinyItemComponent, DestinyLoadout} from "@/lib/bungie/profile";
 import type {ProfileData} from "@/lib/bungie/use-profile";
@@ -41,6 +41,7 @@ import {useShareSource} from "@/lib/loadouts/share/use-share-source";
 import {useShare} from "@/components/share/useShare";
 import {EquipmentModeView} from "@/components/equipment/EquipmentModeView";
 import {LoadoutSlotHeading} from "@/components/loadouts/LoadoutSlotHeading";
+import {DestinySymbol} from "@/components/DestinySymbol";
 import {
     ArrowLeftIcon,
     ArrowDownTrayIcon,
@@ -375,6 +376,24 @@ export function GroupEditor({
         if (done) setTargeting(false);
     };
 
+    // Échap ramène à la liste, une pression par panneau ouvert : le mode
+    // « créer en jeu » se referme d'abord. L'écoute est sur `window` et non sur
+    // `document` : les calques Floating UI (menus, sélecteurs, modales) y
+    // arrêtent la propagation d'Échap qui les ferme, si bien que la touche ne
+    // parvient ici que lorsque rien d'autre ne la réclamait.
+    useEffect(() => {
+        if (hidden) return;
+        const onKeyDown = (event: globalThis.KeyboardEvent) => {
+            if (event.key !== "Escape" || event.defaultPrevented) return;
+            const target = event.target as HTMLElement | null;
+            if (target?.closest("[role='dialog']")) return;
+            if (targeting) setTargeting(false);
+            else onClose();
+        };
+        window.addEventListener("keydown", onKeyDown);
+        return () => window.removeEventListener("keydown", onKeyDown);
+    }, [hidden, targeting, onClose]);
+
     return (
         <section
             className={`view group-edit${hidden ? " view--hidden" : ""}`}
@@ -388,6 +407,7 @@ export function GroupEditor({
                 >
                     <ArrowLeftIcon/>
                     {t("back")}
+                    <DestinySymbol name={"key_escape"}/>
                 </button>
 
                 {/* Le liseré s'applique au clic, sans confirmation : il ne

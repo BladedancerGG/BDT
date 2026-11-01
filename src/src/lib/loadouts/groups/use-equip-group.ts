@@ -11,6 +11,7 @@ import {getDefinitions} from "@/lib/manifest/manifest";
 import type {ItemDetail} from "@/lib/bungie/item-components";
 import type {InventoryItemDefinition} from "@/lib/destiny/types";
 import {upgradedPlug} from "@/lib/destiny/perk-upgrades";
+import {isFixedPlug, isMasterworkPlug} from "@/lib/destiny/sockets";
 import {TIER} from "@/lib/destiny/display";
 import {INVALID_HASH} from "../loadout";
 import {planGroupEquip, type GroupEquipContext, type GroupEquipPlan} from "./equip";
@@ -102,6 +103,58 @@ async function buildPlugResolver(
     return (itemInstanceId, socketIndex, plugItemHash) =>
         upgrades.get(staleKey(itemInstanceId, socketIndex, plugItemHash)) ??
         plugItemHash;
+}
+
+/**
+ * Les attributs enregistrés que l'API ne laisse pas changer — voir
+ * `GroupEquipContext.isLockedPlug`.
+ *
+ * Seules les valeurs qui **diffèrent de celle en place** sont lues : les autres
+ * ne demandent rien de toute façon. Un socket qu'un seul emplacement du groupe
+ * fait différer y entre pourtant avec *toutes* ses valeurs — le plan le tient
+ * alors pour volatil (voir `volatileSockets`), et une valeur égale à celle en
+ * place, restée inconnue ici, partirait quand même en requête.
+ *
+ * `isFixedPlug` couvre les familles découpées par des points — pièces
+ * maîtresses `…masterworks…` d'armes et d'armures, mémentos ; `isMasterworkPlug`
+ * celles qui ne le sont pas (`v300_new_auto_rifle0_masterwork`,
+ * `v400.new.bow0.masterwork`) et les catalyseurs.
+ */
+async function loadLockedPlugs(
+    groupLoadouts: readonly GroupLoadout[],
+    items: Record<string, ItemDetail>,
+): Promise<Set<number>> {
+    const values = new Map<string, Set<number>>();
+    const differing = new Set<string>();
+
+    for (const loadout of groupLoadouts) {
+        for (const entry of loadout.items) {
+            const current = items[entry.itemInstanceId]?.sockets ?? [];
+            entry.plugItemHashes.forEach((saved, socketIndex) => {
+                if (!saved || saved === INVALID_HASH) return;
+                const key = `${entry.itemInstanceId}:${socketIndex}`;
+                let set = values.get(key);
+                if (!set) values.set(key, (set = new Set()));
+                set.add(saved);
+                if (current[socketIndex] !== saved) differing.add(key);
+            });
+        }
+    }
+
+    const hashes = [
+        ...new Set([...differing].flatMap((key) => [...(values.get(key) ?? [])])),
+    ];
+    if (hashes.length === 0) return new Set();
+
+    const rows = await getDefinitions<InventoryItemDefinition>(
+        "DestinyInventoryItemDefinition",
+        hashes,
+    );
+    return new Set(
+        hashes.filter(
+            (_, index) => isFixedPlug(rows[index]) || isMasterworkPlug(rows[index]),
+        ),
+    );
 }
 
 /**
@@ -209,9 +262,10 @@ export function useEquipGroup(characterId: string | null) {
                     ),
             );
 
-            const [resolvePlug, exotics] = await Promise.all([
+            const [resolvePlug, exotics, locked] = await Promise.all([
                 buildPlugResolver(groupLoadouts, profile.items),
                 loadExotics(groupLoadouts, (id) => items.get(id)?.itemHash),
+                loadLockedPlugs(groupLoadouts, profile.items),
             ]);
 
             return planGroupEquip(
@@ -231,6 +285,7 @@ export function useEquipGroup(characterId: string | null) {
                     },
                     socketsOf: (id) => profile.items[id]?.sockets ?? [],
                     resolvePlug,
+                    isLockedPlug: (plugItemHash) => locked.has(plugItemHash),
                     // Ce que le personnage porte déjà : c'est par là que la
                     // séquence commencera si un emplacement s'en approche.
                     equippedNow: (profile.equipment[characterId] ?? []).flatMap(
