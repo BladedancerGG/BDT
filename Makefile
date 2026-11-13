@@ -5,68 +5,56 @@
 .PHONY: prod-up prod-down prod-restart prod-build prod-logs prod-ps prod-migrate \
         prod-backup prod-restore prod-restart-next prod-build-next prod-cold-start prod-update \
         prod-update-next pull \
-        help start stop restart build up down logs logs-db shell db-shell backup restore \
-        ps migrate generate studio adminer install lint clean reset
+        help start stop restart build up down app-shell db-shell backup restore \
+        migrate generate studio lint clean reset
 
 # Cible par défaut (exécutée quand on tape juste "make")
 .DEFAULT_GOAL := start
 
 ## —— Docker ————————————————————————————————————————————————
 
-start: up ## Alias de "up" : démarre l'app + la base
-up: ## Démarre les conteneurs en arrière-plan (build si nécessaire)
+start: up ## Alias of "up"
+up: ## Starts the application and builds the containers if needed
 	docker compose up
 
-stop: down ## Alias de "down" : arrête et supprime les conteneurs
-down: ## Arrête et supprime les conteneurs (conserve les données)
+stop: down ## Alias of "down"
+down: ## Stops the application (application and DB data are saved)
 	docker compose down
 
-restart: ## Redémarre les conteneurs
+restart: ## Restarts the application
 	docker compose restart
 
-build: ## (Re)construit les images sans démarrer
+build: ## Builds the containers without starting the application
 	docker compose build
-
-ps: ## Liste l'état des conteneurs
-	docker compose ps
-
-logs: ## Suit les logs du serveur Next.js
-	docker compose logs -f app
-
-logs-db: ## Suit les logs de PostgreSQL
-	docker compose logs -f db
 
 ## —— Accès aux conteneurs ——————————————————————————————————
 
-shell: ## Ouvre un shell dans le conteneur de l'app
+app-shell: ## Enter the application container through a bash shell
 	docker compose exec app sh
 
-db-shell: ## Ouvre une console psql dans la base
+db-shell: ## Enter the database container through a psql shell
 	docker compose exec db psql -U $${POSTGRES_USER:-bdt} -d $${POSTGRES_DB:-bdt}
 
-get-user-count: ## Récupère le nombre total d'utilisateurs inscrits sur le site
+get-user-count: ## Lists the current amount of registered users
 	docker compose exec db psql -U $${POSTGRES_USER:-bdt} -d $${POSTGRES_DB:-bdt} -c 'select count("id") from "User";'
 
-get-user-list: ## Récupère le nombre total d'utilisateurs inscrits sur le site
+get-user-list: ## Lists the current amount and names of registered users
 	docker compose exec db psql -U $${POSTGRES_USER:-bdt} -d $${POSTGRES_DB:-bdt} -c 'select "displayName", "createdAt" from "User" order by "createdAt";'
 
 ## —— Base de données (Prisma) ——————————————————————————————
 
-migrate: ## Crée et applique les migrations (dev)
+migrate: ## Run database migrations
 	docker compose exec app npm run db:migrate
 
-generate: ## Régénère le client Prisma
+generate: ## Regenerate the Prisma client
 	docker compose exec app npm run db:generate
 
-studio: ## Ouvre Prisma Studio (http://localhost:5555)
+studio: ## Opens Prisma Studio (http://localhost:5555)
 	docker compose exec app npm run db:studio
 
 ## —— Projet ————————————————————————————————————————————————
 
-install: ## Installe une dépendance npm (ex: make install pkg=zod)
-	docker compose exec app npm install $(pkg)
-
-lint: ## Lance le linter
+lint: ## Starts the code linter
 	docker compose exec app npm run lint
 
 ## —— Sauvegarde / restauration ————————————————————————————
@@ -94,10 +82,10 @@ define restore_db
 	@echo "Dump importé."
 endef
 
-backup: ## Sauvegarde la base locale dans backup-<date>.sql.gz
+backup: ## Dumps local database content inside a new backup-<date>.sql.gz file
 	$(call dump_db,docker compose)
 
-restore: ## Importe un dump dans la base locale (ex: make restore file=backup.sql.gz)
+restore: ## Restores a database from a file (ex: make restore file=backup.sql.gz)
 	$(call restore_db,docker compose)
 
 ## —— Production ————————————————————————————————————————————
@@ -106,64 +94,58 @@ restore: ## Importe un dump dans la base locale (ex: make restore file=backup.sq
 
 COMPOSE_PROD = docker compose -f docker-compose.prod.yml
 
-prod-up: ## Démarre le conteneur de production
+prod-up: ## Starts the application in production mode
 	$(COMPOSE_PROD) up -d
 
-prod-down: ## Arrête la production (conserve données et certificats)
+prod-down: ## Stops the production application
 	$(COMPOSE_PROD) down
 
-prod-restart: ## Redémarre les conteneurs de production
+prod-restart: ## Restarts the production application
 	$(COMPOSE_PROD) restart
 
-prod-build: ## Build les conteneurs de production
+prod-build: ## Builds the containers for the production application
 	$(COMPOSE_PROD) build
 
-prod-logs: ## Suit les logs de l'application en production
-	$(COMPOSE_PROD) logs -f app
-
-prod-ps: ## État des conteneurs de production
-	$(COMPOSE_PROD) ps
-
-prod-migrate: ## Rejoue les migrations seules
+prod-migrate: ## Runs production database migrations
 	$(COMPOSE_PROD) run --rm migrate
 
-prod-backup: ## Sauvegarde la base de production dans backup-<date>.sql.gz
+prod-backup: ## Dumps production database content inside a new backup-<date>.sql.gz file
 	$(call dump_db,$(COMPOSE_PROD))
 
-prod-restore: ## Importe un dump en production (ex: make prod-restore file=backup.sql.gz)
+prod-restore: ## Restores a production database from a file (ex: make restore file=backup.sql.gz)
 	$(call restore_db,$(COMPOSE_PROD))
 
 
 ## -- Commandes de prod spécifiques
 
-prod-restart-next: ## Redémarre le conteneur next.js
+prod-restart-next: ## Restarts the next.js container only
 	$(COMPOSE_PROD) restart app
 
-prod-build-next: ## (Re)construit uniquement l'image de l'app Next.js
+prod-build-next: ## Builds the next.js container
 	$(COMPOSE_PROD) build app
 
-prod-cold-start: pull prod-build prod-up ## Build et démarre la production (idéal lors du premier lancement du projet)
+prod-cold-start: pull prod-build prod-up ## Pull latest version of, builds and starts all of the containers
 
-prod-update: pull prod-build prod-down prod-up ## Récupère la dernière version du code, build et redémarre TOUT les conteneurs (idéal pour envoyer des mises à jour sur plusieurs conteneurs en même temps)
+prod-update: pull prod-build prod-down prod-up ## Pull latest version of, builds and restarts all of the containers
 
-prod-update-next: pull prod-build-next ## Récupère la dernière version du code, build et recrée UNIQUEMENT le conteneur Next.js (les migrations ne sont pas rejouées : voir prod-migrate)
+prod-update-next: pull prod-build-next ## Pull latest version of, builds and restarts the next.js container (les migrations ne sont pas rejouées : voir prod-migrate)
 	$(COMPOSE_PROD) up -d --no-deps --force-recreate app
 
 ## —— Nettoyage —————————————————————————————————————————————
 
-clean: ## Arrête tout et SUPPRIME les données de la base (volume)
+clean: ## Stops the applications and deletes ALL local application data (DB, etc.)
 	docker compose down -v
 
-reset: clean build up ## Remise à zéro complète : clean + rebuild + démarrage
+reset: clean build up ## Resets the app to a clean state and restarts it
 
 ## -- Git ---------------------------------------------------
 
-pull: ## Récupère et met à jour le projet depuis le repo Git
+pull: ## Pulls the latest changes from the remote GitHub repository
 	git pull
 
 ## —— Aide ——————————————————————————————————————————————————
 
-help: ## Affiche cette aide
+help: ## Prints this help message
 	@echo "Commandes disponibles :"
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
 		| awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'

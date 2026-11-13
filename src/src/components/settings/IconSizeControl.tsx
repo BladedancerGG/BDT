@@ -1,6 +1,7 @@
 "use client";
 
 import {useState} from "react";
+import {Toggle} from "@/components/ui/SettingRow";
 import {
     ICON_SIZE,
     PLUG_SIZE,
@@ -45,6 +46,7 @@ export function IconSizeControl({
                                     onChange,
                                     unitLabel,
                                     bounds = ICON_BOUNDS,
+                                    auto,
                                 }: {
     /** Identifiant du champ, pour le lier au libellé de sa ligne */
     id: string;
@@ -52,7 +54,19 @@ export function IconSizeControl({
     onChange: (size: number) => void;
     unitLabel: string;
     bounds?: SizeBounds;
+    /**
+     * Réglage automatique de la même taille, pour les vues qui savent la
+     * calculer. Allumé, le curseur et la saisie sont grisés : la valeur qu'ils
+     * portent n'a plus cours que là où l'automatique ne s'applique pas (petit
+     * écran), et la garder visible dit ce qu'on y retrouvera.
+     */
+    auto?: {
+        checked: boolean;
+        onChange: (checked: boolean) => void;
+        label: string;
+    };
 }) {
+    const manualDisabled = auto?.checked ?? false;
     const [draft, setDraft] = useState(String(value));
     const [synced, setSynced] = useState(value);
 
@@ -73,37 +87,52 @@ export function IconSizeControl({
 
     return (
         <div className="icon-size">
-            <input
-                type="range"
-                className="icon-size__slider"
-                min={bounds.min}
-                max={bounds.max}
-                step={1}
-                value={value}
-                onChange={(e) => onChange(Number(e.target.value))}
-                aria-label={unitLabel}
-            />
-            <div className="icon-size__field">
+            <div className="icon-size__controls">
                 <input
-                    id={id}
-                    type="number"
-                    className="icon-size__input"
+                    type="range"
+                    className="icon-size__slider"
                     min={bounds.min}
                     max={bounds.max}
-                    value={draft}
-                    // Ne borne rien pendant la frappe : le premier chiffre
-                    // d'une valeur à deux chiffres est toujours hors bornes
-                    // (« 4 » pour 48), et le remonter au minimum sur-le-champ
-                    // rendait le champ inutilisable — la valeur ne partait au
-                    // store qu'à la validation.
-                    onChange={(e) => setDraft(e.target.value)}
-                    onBlur={commit}
-                    onKeyDown={(e) => {
-                        if (e.key === "Enter") commit();
-                    }}
+                    step={1}
+                    value={value}
+                    disabled={manualDisabled}
+                    onChange={(e) => onChange(Number(e.target.value))}
+                    aria-label={unitLabel}
                 />
-                <span className="icon-size__unit">px</span>
+                <div className="icon-size__field">
+                    <input
+                        id={id}
+                        type="number"
+                        className="icon-size__input"
+                        min={bounds.min}
+                        max={bounds.max}
+                        value={draft}
+                        disabled={manualDisabled}
+                        // Ne borne rien pendant la frappe : le premier chiffre
+                        // d'une valeur à deux chiffres est toujours hors bornes
+                        // (« 4 » pour 48), et le remonter au minimum sur-le-champ
+                        // rendait le champ inutilisable — la valeur ne partait au
+                        // store qu'à la validation.
+                        onChange={(e) => setDraft(e.target.value)}
+                        onBlur={commit}
+                        onKeyDown={(e) => {
+                            if (e.key === "Enter") commit();
+                        }}
+                    />
+                    <span className="icon-size__unit">px</span>
+                </div>
             </div>
+            {auto && (
+                <div className="icon-size__auto">
+                    <Toggle
+                        id={`${id}-auto`}
+                        checked={auto.checked}
+                        onChange={auto.onChange}
+                        label={auto.label}
+                    />
+                    <span aria-hidden>{auto.label}</span>
+                </div>
+            )}
         </div>
     );
 }

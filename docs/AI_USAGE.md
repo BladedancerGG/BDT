@@ -6,6 +6,8 @@ BDT was at first my own idea (see [DLM.md](DLM.md)), I did however use generativ
 
 **I take full responsibility of the generated code.**
 
+**AI should always be treated as a tool, not a human replacement.**
+
 ## Where AI was used
 
 - Parts of the underlying logic

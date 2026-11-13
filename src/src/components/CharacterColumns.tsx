@@ -1,6 +1,6 @@
 "use client";
 
-import {useMemo} from "react";
+import {useMemo, useRef} from "react";
 import type {DestinyItemComponent} from "@/lib/bungie/profile";
 import type {Character, ProfileData} from "@/lib/bungie/use-profile";
 import {
@@ -12,6 +12,8 @@ import {useDisplayableItems} from "@/lib/destiny/use-displayable-items";
 import {useItemDefs} from "@/lib/destiny/item-defs";
 import {countEquippedSets} from "@/lib/destiny/set-bonus";
 import type {ItemCategory} from "@/lib/settings/constants";
+import {useSettings} from "@/lib/settings/store";
+import {useAutoItemSize} from "@/lib/ui/use-auto-item-size";
 import {CharacterSummary} from "./equipment/CharacterSummary";
 import {CharacterTab} from "./CharacterTab";
 import {EquipmentSlot} from "./EquipmentSlot";
@@ -131,6 +133,28 @@ export function CharacterColumn({
     );
 }
 
+/** Part de la largeur de la fenêtre que les colonnes ne dépassent pas en automatique. */
+const AUTO_WIDTH_SHARE = 2 / 3;
+
+/**
+ * La taille de vignette pour laquelle les colonnes de `el` occupent
+ * `AUTO_WIDTH_SHARE` de la fenêtre.
+ *
+ * Calculée et non mesurée, contrairement à la hauteur : la largeur d'une
+ * colonne est posée par le SCSS (`.character-column`, quatre vignettes et
+ * trois gouttières), et la largeur de `.character-columns` ne la dit pas — la
+ * grille de l'inventaire la comprime dès que le coffre manque de place.
+ */
+function columnsWidthCap(el: HTMLElement): number {
+    const style = getComputedStyle(el);
+    const columnGap = parseFloat(style.columnGap) || 0;
+    const itemGap = parseFloat(style.getPropertyValue("--item-gap")) || 0;
+    const count = Math.max(1, el.children.length);
+    const budget = document.documentElement.clientWidth * AUTO_WIDTH_SHARE;
+    const column = (budget - (count - 1) * columnGap) / count;
+    return (column - 3 * itemGap) / 4;
+}
+
 /**
  * Les trois personnages côte à côte — la disposition « trois personnages » de
  * la vue d'inventaire.
@@ -151,8 +175,18 @@ export function CharacterColumns({
     category: ItemCategory;
     selectedId: string | null;
 }) {
+    const ref = useRef<HTMLDivElement>(null);
+    const auto = useSettings((s) => s.columnsIconSizeAuto);
+    // `--columns-item-size` et non `--item-size` : c'est elle que la règle de
+    // `.character-columns` lit pour poser la seconde.
+    useAutoItemSize(ref, {
+        enabled: auto,
+        variable: "--columns-item-size",
+        widthCap: () => (ref.current ? columnsWidthCap(ref.current) : Infinity),
+    });
+
     return (
-        <div className="character-columns">
+        <div ref={ref} className="character-columns">
             {characters.map((character) => (
                 <CharacterColumn
                     key={character.characterId}

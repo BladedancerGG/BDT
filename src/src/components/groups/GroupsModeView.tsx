@@ -30,6 +30,7 @@ import {ImportShareDialog} from "@/components/share/ImportShareDialog";
 import {parseShareLink, type ShareLink} from "@/lib/loadouts/share/types";
 import {useLoadoutIdentifiers} from "@/lib/loadouts/use-loadout-identifiers";
 import {useSettings} from "@/lib/settings/store";
+import {restrictToScrollArea} from "@/lib/ui/restrict-to-scroll-area";
 import {CharacterPicker} from "../CharacterPicker";
 import {SortableGroupCard, StaticGroupCard} from "./GroupCard";
 import {GroupCreateButton} from "./GroupCreateButton";
@@ -225,6 +226,7 @@ export function GroupsModeView({
             <DndContext
                 sensors={sensors}
                 collisionDetection={closestCenter}
+                modifiers={[restrictToScrollArea]}
                 onDragEnd={({active, over}: DragEndEvent) => {
                     if (!over || active.id === over.id || !characterId) return;
                     const from = groups.findIndex((g) => g.id === active.id);

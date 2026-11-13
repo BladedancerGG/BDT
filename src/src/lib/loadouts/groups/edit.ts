@@ -28,6 +28,21 @@ export function moveItem<T>(list: readonly T[], from: number, to: number): T[] {
 }
 
 /**
+ * Échange deux entrées d'une liste, les autres restant à leur place.
+ *
+ * Le geste des emplacements d'un groupe : un emplacement a un rang qui a du sens
+ * (le premier est celui qu'on équipe en premier en jeu), et faire glisser le
+ * quatrième sur le premier ne doit pas décaler les trois autres.
+ */
+export function swapItems<T>(list: readonly T[], from: number, to: number): T[] {
+    const next = [...list];
+    if (from === to || from < 0 || to < 0) return next;
+    if (from >= next.length || to >= next.length) return next;
+    [next[from], next[to]] = [next[to], next[from]];
+    return next;
+}
+
+/**
  * Complète la liste jusqu'à `count` emplacements.
  *
  * Un groupe créé quand le compte en possédait moins en a une liste plus courte,

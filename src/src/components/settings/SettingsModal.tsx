@@ -265,10 +265,14 @@ function AppearancePanel() {
     const setIconSize = useSettings((s) => s.setIconSize);
     const columnsIconSize = useSettings((s) => s.columnsIconSize);
     const setColumnsIconSize = useSettings((s) => s.setColumnsIconSize);
+    const columnsIconSizeAuto = useSettings((s) => s.columnsIconSizeAuto);
+    const setColumnsIconSizeAuto = useSettings((s) => s.setColumnsIconSizeAuto);
     const vaultIconSize = useSettings((s) => s.vaultIconSize);
     const setVaultIconSize = useSettings((s) => s.setVaultIconSize);
     const loadoutIconSize = useSettings((s) => s.loadoutIconSize);
     const setLoadoutIconSize = useSettings((s) => s.setLoadoutIconSize);
+    const loadoutIconSizeAuto = useSettings((s) => s.loadoutIconSizeAuto);
+    const setLoadoutIconSizeAuto = useSettings((s) => s.setLoadoutIconSizeAuto);
     const plugSize = useSettings((s) => s.plugSize);
     const setPlugSize = useSettings((s) => s.setPlugSize);
     const visualEffects = useSettings((s) => s.visualEffects);
@@ -381,6 +385,11 @@ function AppearancePanel() {
                     value={columnsIconSize}
                     onChange={setColumnsIconSize}
                     unitLabel={t("columnsIconSize")}
+                    auto={{
+                        checked: columnsIconSizeAuto,
+                        onChange: setColumnsIconSizeAuto,
+                        label: t("autoIconSize"),
+                    }}
                 />
             </SettingRow>
 
@@ -407,6 +416,11 @@ function AppearancePanel() {
                     value={loadoutIconSize}
                     onChange={setLoadoutIconSize}
                     unitLabel={t("loadoutIconSize")}
+                    auto={{
+                        checked: loadoutIconSizeAuto,
+                        onChange: setLoadoutIconSizeAuto,
+                        label: t("autoIconSize"),
+                    }}
                 />
             </SettingRow>
 

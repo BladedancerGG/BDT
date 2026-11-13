@@ -13,7 +13,7 @@
 //    plusieurs sont entrelacés.
 
 import {
-    moveItem, padLoadouts, setLoadout, setItems, setIdentifiers,
+    moveItem, swapItems, padLoadouts, setLoadout, setItems, setIdentifiers,
     removeItem, putPlug, moveGroup,
 } from "../../src/lib/loadouts/groups/edit";
 import {
@@ -31,6 +31,9 @@ const defaults = {colorHash: 7, iconHash: 8, nameHash: 9};
 // —— moveItem / padLoadouts
 check("move 0->2", moveItem([1, 2, 3, 4], 0, 2), [2, 3, 1, 4]);
 check("move hors bornes", moveItem([1, 2], 0, 5), [1, 2]);
+check("swap 3<->0 : les autres ne bougent pas", swapItems([1, 2, 3, 4], 3, 0), [4, 2, 3, 1]);
+check("swap sur place", swapItems([1, 2], 1, 1), [1, 2]);
+check("swap hors bornes", swapItems([1, 2], 0, 5), [1, 2]);
 check("pad complète", padLoadouts([], 3).length, 3);
 check("pad ne tronque pas", padLoadouts(padLoadouts([], 4), 2).length, 4);
 check("emptyGroupLoadout est libre", isEmptyLoadout(emptyGroupLoadout()), true);

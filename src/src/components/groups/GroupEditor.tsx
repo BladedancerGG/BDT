@@ -1,6 +1,6 @@
 "use client";
 
-import {useEffect, useMemo, useState} from "react";
+import {useEffect, useMemo, useRef, useState} from "react";
 import {useTranslations} from "next-intl";
 import type {DestinyItemComponent, DestinyLoadout} from "@/lib/bungie/profile";
 import type {ProfileData} from "@/lib/bungie/use-profile";
@@ -23,7 +23,7 @@ import {useRecordPlugs} from "@/lib/loadouts/groups/use-record-plugs";
 import {foreignItems, useGroupSelection} from "@/lib/loadouts/groups/selection";
 import {SnapshotEditProvider} from "@/lib/loadouts/groups/snapshot-edit";
 import {
-    moveItem,
+    swapItems,
     padLoadouts,
     putPlug,
     removeItem,
@@ -48,6 +48,7 @@ import {
     ArrowDownOnSquareIcon,
     ShareIcon,
     Squares2X2Icon,
+    TrashIcon,
     XMarkIcon,
 } from "@heroicons/react/24/solid";
 import {GroupActionsMenu} from "./GroupActionsMenu";
@@ -55,6 +56,8 @@ import {GroupColorPicker} from "./GroupColorPicker";
 import {GroupNameField} from "./GroupNameField";
 import {GroupSlotIdentifiers} from "./GroupSlotIdentifiers";
 import {GroupSlotGrid} from "./GroupSlotGrid";
+import {useSettings} from "@/lib/settings/store";
+import {useAutoItemSize} from "@/lib/ui/use-auto-item-size";
 
 /**
  * L'éditeur d'un groupe : les emplacements à droite, le contenu du sélectionné
@@ -103,9 +106,16 @@ export function GroupEditor({
     const tCommon = useTranslations("common");
     const tLoadouts = useTranslations("loadouts");
 
+    // Taille automatique des vignettes des deux grilles : posée sur
+    // `.group-edit__slots` seulement, elle ne touche ni les cartes de groupes
+    // ni la vue « équipements », qui lisent la même variable depuis `:root`.
+    const slotsRef = useRef<HTMLDivElement>(null);
+    const autoSlots = useSettings((s) => s.loadoutIconSizeAuto);
+
     const setGroupLoadouts = useLoadoutGroups((s) => s.setGroupLoadouts);
     const renameGroup = useLoadoutGroups((s) => s.renameGroup);
     const setGroupColor = useLoadoutGroups((s) => s.setGroupColor);
+    const deleteGroup = useLoadoutGroups((s) => s.deleteGroup);
     const confirmEquip = useConfirmEquipGroup(group.characterId);
     const confirmCreateInGame = useConfirmCreateInGame(group.characterId);
     const confirmEquipItems = useConfirmEquipItems(group.characterId);
@@ -148,6 +158,14 @@ export function GroupEditor({
      * tomber sous le doigt de qui voulait seulement regarder.
      */
     const [targeting, setTargeting] = useState(false);
+    // Gelée pendant le ciblage : la grille du groupe s'y efface et la place
+    // libérée ferait grandir les vignettes le temps du geste, pour les faire
+    // rétrécir au retour.
+    useAutoItemSize(slotsRef, {
+        enabled: autoSlots,
+        variable: "--loadout-item-size",
+        frozen: targeting,
+    });
 
     // La liste normalisée à la taille du personnage. Toutes les écritures
     // partent de là : un groupe créé quand le compte possédait moins
@@ -157,6 +175,12 @@ export function GroupEditor({
         [group.loadouts, slotCount],
     );
     const current = slots[selected];
+    // Ce que « Vider tous les équipements » emporterait : compté sur la liste
+    // normalisée, le seul contenu que l'éditeur montre.
+    const filledCount = useMemo(
+        () => slots.filter((slot) => !isEmptyLoadout(slot)).length,
+        [slots],
+    );
 
     // Les autres groupes du personnage, sources possibles de la grille du bas.
     // Le groupe en cours d'édition en est exclu : il est déjà au-dessus, et se
@@ -430,10 +454,12 @@ export function GroupEditor({
 
 
 
-                {/* Les gestes du groupe et de l'emplacement, rangés dans une
-                    bulle : côte à côte, ils prenaient la barre entière. */}
+                {/* Les gestes du groupe et de l'emplacement, rangés en trois
+                    bulles par famille : côte à côte, ils prenaient la barre
+                    entière, et réunis dans une seule, le destructeur se
+                    mêlait à l'anodin. */}
                 <div className="group-edit__actions">
-                    <GroupActionsMenu>
+                    <GroupActionsMenu label={tCommon("equip")} variant="primary">
                     {/* Le même geste que sur la carte du groupe, résumé et
                         confirmé de la même façon : on vient ici pour composer un
                         groupe, et repartir sur la grille pour l'équiper n'avait
@@ -444,7 +470,7 @@ export function GroupEditor({
                         onClick={() => void confirmEquip(group)}
                     >
                         <ArrowDownTrayIcon/>
-                        {tCommon("equip")}
+                        {t("equipAll")}
                     </button>
                     {/* L'emplacement sélectionné seulement, et sans rien
                         enregistrer en jeu : « Équiper » remplace tous les
@@ -464,6 +490,23 @@ export function GroupEditor({
                     <button
                         type="button"
                         className="btn btn--small btn--primary"
+                        // Rien à recréer depuis un emplacement vide, ni nulle
+                        // part où le poser sans emplacement en jeu.
+                        disabled={groupEmpty || loadouts.length === 0}
+                        aria-pressed={targeting}
+                        onClick={() => {
+                            setTargeting(true);
+                            // La grille du bas passe au personnage : une
+                            // prévisualisation ouverte y viserait autre chose.
+                            setSource(null);
+                        }}
+                    >
+                        <ArrowDownTrayIcon/>
+                        {t("createInGame")}
+                    </button>
+                    <button
+                        type="button"
+                        className="btn btn--small btn--primary"
                         // Sans emplacement à remplir, rien à sélectionner
                         disabled={!ready || slotCount === 0}
                         title={ready ? undefined : t("waitIdentifiers")}
@@ -472,6 +515,8 @@ export function GroupEditor({
                         <Squares2X2Icon/>
                         {t("pickItems")}
                     </button>
+                    </GroupActionsMenu>
+                    <GroupActionsMenu label={tCommon("share")}>
                     {/* Deux partages et non un : on vient ici pour composer
                         UN emplacement autant que le groupe, et c'est souvent
                         celui-là qu'on veut montrer. Le second porte donc sur
@@ -530,23 +575,8 @@ export function GroupEditor({
                         <ShareIcon/>
                         {t("shareLoadout")}
                     </button>
-                    <button
-                        type="button"
-                        className="btn btn--small"
-                        // Rien à recréer depuis un emplacement vide, ni nulle
-                        // part où le poser sans emplacement en jeu.
-                        disabled={groupEmpty || loadouts.length === 0}
-                        aria-pressed={targeting}
-                        onClick={() => {
-                            setTargeting(true);
-                            // La grille du bas passe au personnage : une
-                            // prévisualisation ouverte y viserait autre chose.
-                            setSource(null);
-                        }}
-                    >
-                        <ArrowDownTrayIcon/>
-                        {t("createInGame")}
-                    </button>
+                    </GroupActionsMenu>
+                    <GroupActionsMenu label={t("dangerActions")} variant="danger">
                     <button
                         type="button"
                         className="btn btn--small btn--danger"
@@ -568,6 +598,49 @@ export function GroupEditor({
                         }}
                     >
                         {t("overwriteAll")}
+                    </button>
+                    {/* Confirmé, puis l'éditeur se referme : il n'aurait plus
+                        rien à montrer. La vue des groupes y reviendrait
+                        d'elle-même, le groupe disparu, mais en laissant
+                        l'emplacement ouvert en mémoire. */}
+                    <button
+                        type="button"
+                        className="btn btn--small btn--danger"
+                        onClick={() => {
+                            if (
+                                window.confirm(
+                                    t("deleteConfirm", {name: group.name}),
+                                )
+                            ) {
+                                deleteGroup(group.id);
+                                onClose();
+                            }
+                        }}
+                    >
+                        <TrashIcon/>
+                        {t("deleteGroup")}
+                    </button>
+                    {/* Le groupe garde son nom, sa teinte et sa place : seul son
+                        contenu part. Confirmé, comme l'écrasement : rien ne le
+                        rend. */}
+                    <button
+                        type="button"
+                        className="btn btn--small btn--danger"
+                        disabled={filledCount === 0}
+                        onClick={() => {
+                            if (
+                                window.confirm(
+                                    t("clearAllConfirm", {
+                                        name: group.name,
+                                        count: filledCount,
+                                    }),
+                                )
+                            ) {
+                                write(slots.map(() => emptyGroupLoadout()));
+                            }
+                        }}
+                    >
+                        {t("clearAll")}
                     </button>
                     <button
                         type="button"
@@ -662,24 +735,7 @@ export function GroupEditor({
                     </SnapshotEditProvider>
                 </div>
 
-                <div className="group-edit__slots">
-                    <GroupSlotGrid
-                        title={t("groupSlots")}
-                        loadouts={slots}
-                        slotCount={slotCount}
-                        identifiers={identifiers}
-                        selected={selected}
-                        // Revenir au groupe referme la prévisualisation : les
-                        // deux grilles se disputent le même panneau, et rien ne
-                        // dirait laquelle on regarde si le contenu ne suivait
-                        // pas le dernier emplacement touché.
-                        onSelect={(index) => {
-                            setSelected(index);
-                            setSource(null);
-                        }}
-                        onMove={(from, to) => write(moveItem(slots, from, to))}
-                    />
-
+                <div ref={slotsRef} className="group-edit__slots">
                     {/* La grille du bas : un clic en ouvre le contenu à
                         gauche, en lecture seule, et le bouton ci-dessous le
                         recopie dans l'emplacement sélectionné du groupe. C'est
@@ -690,7 +746,7 @@ export function GroupEditor({
                         par défaut, ou l'un des autres groupes. Le sélecteur ne
                         paraît que s'il y a un choix à faire — seul, un groupe
                         n'a aucun voisin d'où recopier. */}
-                    {targeting && (
+                    {targeting ? (
                         <div className="group-edit__target">
                             <p className="group-edit__hint">
                                 {t("createInGameHint", {number: selected + 1})}
@@ -704,6 +760,23 @@ export function GroupEditor({
                                 {tCommon("cancel")}
                             </button>
                         </div>
+                    ) : (
+                        <GroupSlotGrid
+                            title={t("groupSlots")}
+                            loadouts={slots}
+                            slotCount={slotCount}
+                            identifiers={identifiers}
+                            selected={selected}
+                            // Revenir au groupe referme la prévisualisation : les
+                            // deux grilles se disputent le même panneau, et rien ne
+                            // dirait laquelle on regarde si le contenu ne suivait
+                            // pas le dernier emplacement touché.
+                            onSelect={(index) => {
+                                setSelected(index);
+                                setSource(null);
+                            }}
+                            onMove={(from, to) => write(swapItems(slots, from, to))}
+                        />
                     )}
                     <GroupSlotGrid
                         title={
@@ -757,29 +830,39 @@ export function GroupEditor({
                         écrase, et un bouton d'écrasement posé là en permanence
                         n'aurait rien eu à écraser — désactivé la plupart du
                         temps, il aurait surtout fallu deviner pourquoi. C'est le
-                        clic sur un emplacement du personnage qui l'appelle. */}
-                    {previewed && (
-                        <div className="group-edit__slot-action">
-                            <button
-                                type="button"
-                                className="btn btn--small"
-                                onClick={() =>
-                                    write(
-                                        setLoadout(
-                                            slots,
-                                            selected,
-                                            copyGroupLoadouts(
-                                                [previewed],
-                                                recordPlugs,
-                                            )[0],
-                                        ),
-                                    )
-                                }
-                            >
-                                {t("overwriteOne", {number: selected + 1})}
-                            </button>
-                        </div>
-                    )}
+                        clic sur un emplacement du personnage qui l'appelle.
+
+                        Il est pourtant toujours monté, masqué par
+                        `visibility` : sa hauteur reste ainsi réservée, et la
+                        taille automatique des vignettes (`useAutoItemSize`) ne
+                        rétrécit pas les grilles au moment où il paraît. */}
+                    <div
+                        className={`group-edit__slot-action${
+                            previewed ? "" : " group-edit__slot-action--idle"
+                        }`}
+                        aria-hidden={!previewed}
+                    >
+                        <button
+                            type="button"
+                            className="btn btn--small"
+                            disabled={!previewed}
+                            onClick={() => {
+                                if (!previewed) return;
+                                write(
+                                    setLoadout(
+                                        slots,
+                                        selected,
+                                        copyGroupLoadouts(
+                                            [previewed],
+                                            recordPlugs,
+                                        )[0],
+                                    ),
+                                );
+                            }}
+                        >
+                            {t("overwriteOne", {number: selected + 1})}
+                        </button>
+                    </div>
                 </div>
             </div>
 

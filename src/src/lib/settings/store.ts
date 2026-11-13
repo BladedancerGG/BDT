@@ -55,6 +55,12 @@ export interface SettingsState {
      * convient à l'une est trop grande pour l'autre.
      */
     columnsIconSize: number;
+    /**
+     * Régler `columnsIconSize` d'après la fenêtre plutôt qu'au curseur : la
+     * plus grande taille pour laquelle les colonnes ne défilent pas, sans
+     * dépasser les deux tiers de la largeur — voir `CharacterColumns`.
+     */
+    columnsIconSizeAuto: boolean;
     /** Taille des icônes du coffre et des objets perdus en px, bornée à [40, 96] */
     vaultIconSize: number;
     /**
@@ -64,6 +70,12 @@ export interface SettingsState {
      * se règle pas avec celle du coffre, où elles vivaient auparavant.
      */
     loadoutIconSize: number;
+    /**
+     * Régler la taille des emplacements de l'éditeur de groupes d'après la
+     * fenêtre : la plus grande pour laquelle ses grilles ne défilent pas. Les
+     * cartes de groupes et la vue « équipements » gardent `loadoutIconSize`.
+     */
+    loadoutIconSizeAuto: boolean;
     /**
      * Taille des icônes de plugs — attributs, mods, aspects, fragments — en px,
      * bornée à [24, 80]. Un plug n'est pas un objet : il vit dans les colonnes
@@ -138,8 +150,10 @@ export interface SettingsState {
     setTheme: (theme: ThemePreference) => void;
     setIconSize: (size: number) => void;
     setColumnsIconSize: (size: number) => void;
+    setColumnsIconSizeAuto: (auto: boolean) => void;
     setVaultIconSize: (size: number) => void;
     setLoadoutIconSize: (size: number) => void;
+    setLoadoutIconSizeAuto: (auto: boolean) => void;
     setPlugSize: (size: number) => void;
     setVisualEffects: (enabled: boolean) => void;
     setShowOrnaments: (show: boolean) => void;
@@ -179,8 +193,10 @@ export function persistedSettings(state: SettingsState) {
         visualEffects: state.visualEffects,
         iconSize: state.iconSize,
         columnsIconSize: state.columnsIconSize,
+        columnsIconSizeAuto: state.columnsIconSizeAuto,
         vaultIconSize: state.vaultIconSize,
         loadoutIconSize: state.loadoutIconSize,
+        loadoutIconSizeAuto: state.loadoutIconSizeAuto,
         plugSize: state.plugSize,
         showOrnaments: state.showOrnaments,
         showOriginalOnHover: state.showOriginalOnHover,
@@ -223,6 +239,8 @@ export function mergeSettings(
         itemCategory,
         inventoryLayout,
         ownClassArmor,
+        columnsIconSizeAuto,
+        loadoutIconSizeAuto,
         syncEnabled,
         ...rest
     } = (persisted ?? {}) as Partial<SettingsState> & {sorts?: unknown};
@@ -244,6 +262,14 @@ export function mergeSettings(
             parseInventoryLayout(inventoryLayout) ?? current.inventoryLayout,
         ownClassArmor:
             typeof ownClassArmor === "boolean" ? ownClassArmor : current.ownClassArmor,
+        columnsIconSizeAuto:
+            typeof columnsIconSizeAuto === "boolean"
+                ? columnsIconSizeAuto
+                : current.columnsIconSizeAuto,
+        loadoutIconSizeAuto:
+            typeof loadoutIconSizeAuto === "boolean"
+                ? loadoutIconSizeAuto
+                : current.loadoutIconSizeAuto,
         syncEnabled: syncEnabled === true,
     };
 }
@@ -255,8 +281,10 @@ export const useSettings = create<SettingsState>()(
             visualEffects: true,
             iconSize: ICON_SIZE.default,
             columnsIconSize: ICON_SIZE.default,
+            columnsIconSizeAuto: false,
             vaultIconSize: ICON_SIZE.default,
             loadoutIconSize: ICON_SIZE.default,
+            loadoutIconSizeAuto: false,
             plugSize: PLUG_SIZE.default,
             showOrnaments: true,
             showOriginalOnHover: true,
@@ -276,9 +304,13 @@ export const useSettings = create<SettingsState>()(
             setIconSize: (size) => set({iconSize: clampIconSize(size)}),
             setColumnsIconSize: (size) =>
                 set({columnsIconSize: clampIconSize(size)}),
+            setColumnsIconSizeAuto: (columnsIconSizeAuto) =>
+                set({columnsIconSizeAuto}),
             setVaultIconSize: (size) => set({vaultIconSize: clampIconSize(size)}),
             setLoadoutIconSize: (size) =>
                 set({loadoutIconSize: clampIconSize(size)}),
+            setLoadoutIconSizeAuto: (loadoutIconSizeAuto) =>
+                set({loadoutIconSizeAuto}),
             setPlugSize: (size) => set({plugSize: clampPlugSize(size)}),
             setShowOrnaments: (showOrnaments) => set({showOrnaments}),
             setShowOriginalOnHover: (showOriginalOnHover) =>

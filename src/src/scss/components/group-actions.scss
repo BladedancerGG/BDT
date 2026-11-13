@@ -1,4 +1,4 @@
-// La bulle « Actions » de l'éditeur de groupe.
+// Les bulles de gestes de l'éditeur de groupe (équiper, partager, écraser).
 //
 // Montée dans un portail Floating UI, comme le menu de création de groupe :
 // elle ne doit pas être rognée par la vue, ni passer sous ses grilles.
@@ -22,8 +22,8 @@
     width: 100%;
   }
 
-  // `.btn--primary` grossit le bouton et son texte : dans la bulle, les deux
-  // « Équiper » ne doivent se distinguer que par la teinte.
+  // `.btn--primary` grossit le bouton et son texte : dans la bulle, les gestes
+  // ne doivent se distinguer que par la teinte.
   .btn--primary {
     padding: 0.3rem 0.65rem;
     font-size: 0.8125rem;

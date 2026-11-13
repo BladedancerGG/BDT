@@ -13,7 +13,7 @@ import {
 } from "@dnd-kit/core";
 import {
     SortableContext,
-    rectSortingStrategy,
+    rectSwappingStrategy,
     sortableKeyboardCoordinates,
     useSortable,
 } from "@dnd-kit/sortable";
@@ -21,6 +21,7 @@ import type {DestinyLoadout} from "@/lib/bungie/profile";
 import {isEmptyLoadout} from "@/lib/loadouts/loadout";
 import type {LoadoutIdentifiers} from "@/lib/loadouts/use-loadout-identifiers";
 import {LoadoutSlotTile} from "@/components/loadouts/LoadoutSlotTile";
+import {restrictToScrollArea} from "@/lib/ui/restrict-to-scroll-area";
 
 /**
  * Une grille d'emplacements d'équipement, quatre par ligne comme en jeu.
@@ -96,12 +97,16 @@ export function GroupSlotGrid({
                 <DndContext
                     sensors={sensors}
                     collisionDetection={closestCenter}
+                    modifiers={[restrictToScrollArea]}
                     onDragEnd={({active, over}: DragEndEvent) => {
                         if (!over || active.id === over.id) return;
                         onMove(Number(active.id), Number(over.id));
                     }}
                 >
-                    <SortableContext items={places} strategy={rectSortingStrategy}>
+                    {/* Un échange et non un tri : seule la vignette survolée
+                        cède sa place, les autres ne bougent pas — c'est ce
+                        qu'écrit `swapItems` au dépôt. */}
+                    <SortableContext items={places} strategy={rectSwappingStrategy}>
                         {grid}
                     </SortableContext>
                 </DndContext>
@@ -141,7 +146,17 @@ function GroupSlot({
     label: string;
 }) {
     const {attributes, listeners, setNodeRef, transform, transition, isDragging} =
-        useSortable({id: index, disabled: !sortable});
+        useSortable({
+            id: index,
+            disabled: !sortable,
+            // Pas d'animation après le dépôt. L'identifiant est la place, si bien
+            // que rien n'a bougé pour dnd-kit : c'est le contenu qui a changé de
+            // vignette. Il ferait pourtant revenir en glissant la vignette lâchée
+            // et celle qu'elle a délogée, comme si l'échange se rejouait à
+            // l'envers. Sans changement de mise en page à animer, la transition
+            // n'est plus posée qu'en cours de déplacement.
+            animateLayoutChanges: () => false,
+        });
 
     const free = isEmptyLoadout(loadout);
     const name = loadout && identifiers.names.get(loadout.nameHash);

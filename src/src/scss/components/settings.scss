@@ -262,7 +262,8 @@
 
 .icon-size {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-end;
   gap: 0.75rem;
 
   &__slider {
@@ -289,6 +290,27 @@
   }
 
   &__unit {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+  }
+
+  &__controls {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  // Le curseur et la saisie restent visibles en automatique : ils disent la
+  // taille retrouvée sur petit écran, où l'automatique ne s'applique pas.
+  &__slider:disabled,
+  &__input:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  &__auto {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
     font-size: 0.75rem;
     color: var(--color-text-muted);
   }
