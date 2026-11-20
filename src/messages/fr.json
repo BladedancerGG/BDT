@@ -15,7 +15,9 @@
     "confirm": "Confirmer",
     "join": "Rejoindre",
     "share": "Partager",
-    "import": "Importer"
+    "import": "Importer",
+    "expand": "Déplier",
+    "collapse": "Replier"
   },
   "auth": {
     "login": "Se connecter avec Bungie"
@@ -250,8 +252,6 @@
     "error": "Impossible de charger le profil.",
     "vault": "Coffre",
     "character": "Personnage",
-    "expand": "Déplier",
-    "collapse": "Replier",
     "otherGroup": "Autres",
     "currentEquipment": "Objets équipés",
     "backToGroups": "Retour aux groupes",
@@ -585,5 +585,122 @@
       "bow": "Arc",
       "glaive": "Glaive"
     }
+  },
+  "admin": {
+    "title": "Administration",
+    "summary": "Sommaire",
+    "user": "Utilisateur",
+    "date": "Date",
+    "yes": "Oui",
+    "no": "Non",
+    "never": "Jamais",
+    "anonymous": "Aucun",
+    "empty": "Rien pour l’instant.",
+    "nav": {
+      "label": "Pages d’administration",
+      "stats": "Statistiques",
+      "logs": "Logs serveur",
+      "back": "Retour à l’application"
+    },
+    "pager": {
+      "label": "Pages des appels",
+      "previous": "Précédents",
+      "next": "Suivants",
+      "position": "Page {page} sur {pages}"
+    },
+    "users": {
+      "title": "Utilisateurs",
+      "displayName": "Nom d’affichage",
+      "createdAt": "Inscription",
+      "lastSeenAt": "Dernière activité",
+      "admin": "Admin"
+    },
+    "groups": {
+      "title": "Groupes d’équipements",
+      "note": "Seuls les groupes des comptes synchronisés sont en base : les autres ne vivent que dans le navigateur de leur auteur.",
+      "name": "Groupe",
+      "noColor": "Sans couleur",
+      "loadouts": "Équipements enregistrés"
+    },
+    "calls": {
+      "title": "Appels à l’API Bungie",
+      "endpoint": "Point d’entrée",
+      "status": "Statut",
+      "duration": "Durée",
+      "ms": "{ms} ms",
+      "attempts": "{count} tentatives",
+      "statuses": {
+        "pending": "En attente",
+        "running": "En cours",
+        "success": "Succès",
+        "failure": "Échec"
+      },
+      "httpStatus": "Statut HTTP",
+      "attemptsLabel": "Tentatives"
+    },
+    "shares": {
+      "title": "Partages",
+      "link": "Lien",
+      "kind": "Type",
+      "createdAt": "Création",
+      "kinds": {
+        "group": "Groupe",
+        "loadout": "Équipement unique"
+      }
+    },
+    "logs": {
+      "title": "Logs serveur",
+      "search": "Rechercher dans les logs",
+      "searchPlaceholder": "Rechercher dans tous les logs…",
+      "level": "Niveau minimal",
+      "allLevels": "Tous les niveaux",
+      "levels": {
+        "debug": "Debug",
+        "info": "Info",
+        "log": "Log",
+        "warn": "Avertissement",
+        "error": "Erreur"
+      },
+      "pause": "Pause",
+      "resume": "Reprendre",
+      "connection": {
+        "connecting": "Connexion…",
+        "live": "En direct",
+        "paused": "En pause",
+        "error": "Connexion perdue, nouvelle tentative…"
+      },
+      "loading": "Chargement…",
+      "failed": "Les logs n’ont pas pu être chargés.",
+      "count": "{count, plural, =0 {Aucune ligne} one {# ligne} other {# lignes}}",
+      "truncated": "Les {count} lignes correspondantes les plus récentes",
+      "empty": "Aucune ligne ne correspond."
+    },
+    "noMatch": "Aucune ligne ne correspond aux filtres.",
+    "filters": {
+      "toggle": "Filtres",
+      "clear": "Effacer les filtres",
+      "min": "Du",
+      "max": "Au",
+      "op": "Comparaison",
+      "value": "Valeur",
+      "ops": {
+        "lt": "Inférieur à",
+        "lte": "Inférieur ou égal à",
+        "eq": "Égal à",
+        "gte": "Supérieur ou égal à",
+        "gt": "Supérieur à"
+      },
+      "any": "Tous",
+      "selected": "{count, plural, one {# sélectionné} other {# sélectionnés}}",
+      "filterOptions": "Filtrer la liste…",
+      "clearSelection": "Tout décocher",
+      "noOptions": "Aucune option"
+    },
+    "sort": {
+      "asc": "Trier par ordre croissant",
+      "desc": "Trier par ordre décroissant",
+      "none": "Retirer le tri"
+    },
+    "backToTop": "Remonter en haut de la page"
   }
 }

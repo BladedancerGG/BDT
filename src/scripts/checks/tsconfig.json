@@ -35,6 +35,8 @@
     "plug-families.check.ts",
     "stat-breakdown.check.ts",
     "projection.check.ts",
-    "progress.check.ts"
+    "progress.check.ts",
+    "admin-filters.check.ts",
+    "admin-sort.check.ts"
   ]
 }

@@ -28,6 +28,8 @@ casse en silence.
 | `stat-breakdown.check.ts` | `lib/destiny/stat-breakdown.ts` (base, attributs, pièce maîtresse, bonus de palier) |
 | `projection.check.ts`  | `lib/manifest/projection.ts` et `json-entries.ts` (allègement du manifeste), et qu'aucune lecture de définition n'échappe au registre `ManifestReads` |
 | `progress.check.ts`    | `lib/manifest/progress.ts` (barre de progression pondérée du manifeste) |
+| `admin-filters.check.ts` | `lib/admin/filters.ts` (filtres des statistiques d'administration) |
+| `admin-sort.check.ts` | `lib/admin/sort.ts` (tri des statistiques d'administration) |
 | `css-duplicates.py`    | la feuille de styles compilée (voir plus bas)  |
 
 ## Lancer

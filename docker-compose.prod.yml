@@ -30,6 +30,8 @@ services:
       ACME_EMAIL: ${ACME_EMAIL:?ACME_EMAIL est requis}
     volumes:
       - ./src/Caddyfile.prod:/etc/caddy/Caddyfile:ro
+      # Tables du manifeste, servies par Caddy (voir Caddyfile.prod)
+      - manifest_cache:/srv/manifest:ro
       # Certificats et état ACME : à conserver, sous peine de réémission
       - caddy_data:/data
       - caddy_config:/config
@@ -76,6 +78,9 @@ services:
       # Cache des tables du manifeste servies aux clients : jetable, mais le
       # garder évite de tout retélécharger chez Bungie à chaque déploiement.
       - manifest_cache:/var/cache/manifest
+      # Journal serveur lu par /admin/logs : 100 Mo au plus, rotation comprise
+      # (lib/admin/server-log.ts)
+      - app_logs:/var/log/bdt
     healthcheck:
       test:
         [
@@ -116,3 +121,4 @@ volumes:
   caddy_data:
   caddy_config:
   manifest_cache:
+  app_logs:

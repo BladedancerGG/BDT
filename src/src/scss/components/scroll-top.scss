@@ -1,0 +1,45 @@
+// Bouton flottant de retour en haut de page (components/admin/ScrollTopButton.tsx).
+
+.scroll-top {
+  position: fixed;
+  // Au-dessus de la barre de geste et des encoches (viewport-fit=cover)
+  right: calc(1rem + env(safe-area-inset-right, 0px));
+  bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-full);
+  background-color: var(--color-panel-alt);
+  box-shadow: var(--shadow-panel);
+  cursor: pointer;
+  animation: scroll-top-in 150ms ease;
+
+  @media (hover: hover) {
+    &:hover {
+      border-color: var(--color-accent);
+      color: var(--color-accent);
+    }
+  }
+
+  &__icon {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+}
+
+@keyframes scroll-top-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.5rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scroll-top {
+    animation: none;
+  }
+}

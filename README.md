@@ -118,6 +118,17 @@ If you only want to update the Next.js container run :
 make prod-update-next
 ```
 
+## Administration and stats
+
+To access to the statistics and log pages, run the following commands :
+
+```bash
+make db-shell # Open the DB query shell
+```
+```sql
+UPDATE "User" SET admin = true WHERE "displayName" = 'Name#1234'; -- Replace 'Name#1234' with the Bungie name of your user
+```
+
 ## Repository layout
 
 - root — Docker and environment info:

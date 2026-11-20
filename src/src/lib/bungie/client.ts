@@ -11,6 +11,8 @@
 //
 // Les types précis des réponses proviennent du package "bungie-api-ts".
 
+import { trackBungieCall, type CallTracker } from "./call-log";
+
 const BUNGIE_ROOT = "https://www.bungie.net/Platform";
 
 const API_KEY = process.env.BUNGIE_API_KEY;
@@ -85,16 +87,41 @@ function backoffDelay(attempt: number): number {
 
 export async function bungieFetch<T>(
   path: string,
+  options: FetchOptions = {},
+): Promise<T> {
+  if (!API_KEY) throw new BungieApiError("BUNGIE_API_KEY missing, check the .env file if it's present");
+
+  // Une ligne par appel logique, nouvelles tentatives comprises (voir
+  // call-log.ts). Le suivi enveloppe tout l'appel plutôt que de s'insérer à
+  // chaque sortie de la boucle : il y en a cinq, et une oubliée laisserait
+  // l'appel « en cours » pour toujours.
+  const call = trackBungieCall({
+    method: (options.method ?? "GET").toUpperCase(),
+    path,
+    accessToken: options.accessToken,
+  });
+  try {
+    const result = await runBungieFetch<T>(path, options, call, API_KEY);
+    call.succeed();
+    return result;
+  } catch (error) {
+    call.fail(error);
+    throw error;
+  }
+}
+
+async function runBungieFetch<T>(
+  path: string,
   {
     accessToken,
     headers,
     retries = DEFAULT_RETRIES,
     timeoutMs = DEFAULT_TIMEOUT_MS,
     ...init
-  }: FetchOptions = {},
+  }: FetchOptions,
+  call: CallTracker,
+  apiKey: string,
 ): Promise<T> {
-  if (!API_KEY) throw new BungieApiError("BUNGIE_API_KEY missing, check the .env file if it's present");
-
   const method = (init.method ?? "GET").toUpperCase();
   // On ne retente que les requêtes sans effet de bord
   const attempts = method === "GET" || method === "HEAD" ? retries + 1 : 1;
@@ -103,16 +130,18 @@ export async function bungieFetch<T>(
 
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
     try {
+      call.attempt();
       const res = await fetch(`${BUNGIE_ROOT}${path}`, {
         ...init,
         // Évite qu'un 522 (Cloudflare attend ~90s) bloque la requête entrante
         signal: AbortSignal.timeout(timeoutMs),
         headers: {
-          "X-API-Key": API_KEY,
+          "X-API-Key": apiKey,
           ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
           ...headers,
         },
       });
+      call.response(res.status);
 
       if (!res.ok) {
         // Bungie renvoie parfois son enveloppe complète AVEC un statut HTTP

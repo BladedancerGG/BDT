@@ -33,10 +33,38 @@
 		-Server
 	}
 
-	reverse_proxy app:3000 {
-		# Coupe court si l'application ne répond plus
-		health_uri /api/health
-		health_interval 30s
-		health_timeout 5s
+	# `encode` plus haut ne recompresse pas ces fichiers : Caddy laisse
+	# passer une réponse qui porte déjà son Content-Encoding.
+	# Tables du manifeste, servies directement depuis le cache de l'app
+	# (volume manifest_cache, en lecture seule) : `<table>.json.br` à qui
+	# demande `<table>.json`, avec son Content-Encoding. Elles ne peuvent plus
+	# passer par Next, qui retire cet en-tête depuis 16.4.6 — voir
+	# TABLE_FILES_PREFIX dans src/lib/manifest/server-cache.ts.
+	#
+	# Réécriture explicite et non `file_server { precompressed br }` : celui-ci
+	# exige que le fichier non compressé existe aussi, et le cache n'a que le
+	# `.br` (404 sur chaque table, vérifié avec Caddy 2.11). Pas de repli non
+	# compressé : tout navigateur accepte Brotli en HTTPS. Version et schéma
+	# sont dans le chemin : le contenu d'une URL ne change jamais.
+	handle_path /manifest-files/* {
+		root * /srv/manifest
+		@table file {path}.br
+		handle @table {
+			rewrite * {path}.br
+			header Content-Type "application/json; charset=utf-8"
+			header Content-Encoding br
+			header Cache-Control "public, max-age=31536000, immutable"
+			file_server
+		}
+		respond 404
+	}
+
+	handle {
+		reverse_proxy app:3000 {
+			# Coupe court si l'application ne répond plus
+			health_uri /api/health
+			health_interval 30s
+			health_timeout 5s
+		}
 	}
 }

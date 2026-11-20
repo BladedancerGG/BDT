@@ -11,13 +11,43 @@
 // chargement se figeait.
 
 import {manifestDb} from "./db";
-import {WeightedProgress} from "./progress";
+import {WeightedProgress, type TableSize} from "./progress";
 import {MANIFEST_TABLES, MANIFEST_SCHEMA_VERSION} from "./tables";
 
 export interface ManifestMeta {
     version: string;
-    // URL du relais serveur, par langue puis par table (voir api/manifest)
+    // URL du relais serveur, par langue puis par table (voir api/manifest).
+    // Elles DÉCRIVENT la table (`TableInfo`) ; le fichier est ailleurs.
     tableUrls: Record<string, Record<string, string>>;
+}
+
+/**
+ * Ce que le relais dit d'une table : où télécharger le fichier — servi par
+ * Caddy, en Brotli — et ce qu'il pèse une fois décompressé. Même forme que
+ * `TableInfoBody` (app/api/manifest/…/[table]/info/route.ts).
+ */
+interface TableInfo extends TableSize {
+    url: string;
+}
+
+/** Une table téléchargée : sa réponse (corps non lu) et ce qu'elle pèse. */
+interface TableDownload {
+    res: Response;
+    size: TableSize;
+}
+
+/**
+ * Décrit puis télécharge une table : deux allers-retours, le premier minuscule.
+ * Le relais attend que la table soit dans son cache avant de répondre, si bien
+ * que le fichier existe toujours quand on le demande à Caddy.
+ */
+async function fetchTable(table: string, infoUrl: string, signal: AbortSignal): Promise<TableDownload> {
+    const infoRes = await fetch(infoUrl, {signal});
+    if (!infoRes.ok) throw new Error(`Failed describing ${table} manifest table`);
+    const info = (await infoRes.json()) as TableInfo;
+    const res = await fetch(info.url, {signal});
+    if (!res.ok) throw new Error(`Failed downloading ${table} manifest table`);
+    return {res, size: {bytes: info.bytes, rows: info.rows}};
 }
 
 /**
@@ -78,7 +108,7 @@ export async function downloadManifest(
     // tables à la fois sur le fil principal.
     const abort = new AbortController();
     const responses = MANIFEST_TABLES.map((table) =>
-        fetch(urls[table], {signal: abort.signal}),
+        fetchTable(table, urls[table], abort.signal),
     );
     // Un rejet survenant avant qu'on attende la réponse serait signalé comme
     // non géré ; il ressort de toute façon au `await` de sa table.
@@ -119,29 +149,23 @@ const WRITE_BATCH = 5000;
 
 /** Lit les tables dans l'ordre de MANIFEST_TABLES et les écrit en IndexedDB. */
 async function storeTables(
-    responses: Promise<Response>[],
+    responses: Promise<TableDownload>[],
     onProgress?: (p: ManifestProgress) => void,
 ): Promise<void> {
     // Les en-têtes de toutes les tables d'abord : il faut leurs tailles pour
     // pondérer la progression. Ce n'est pas une attente de plus — celle de la
     // première table, la plus grosse, est de loin la plus longue.
     const heads = await Promise.all(responses);
-    heads.forEach((res, i) => {
-        if (!res.ok) throw new Error(`Failed downloading ${MANIFEST_TABLES[i]} manifest table`);
-    });
     const progress = new WeightedProgress(
         // Annoncées par le relais (server-cache.ts)
-        heads.map((res) => ({
-            bytes: Number(res.headers.get("X-Manifest-Size")),
-            rows: Number(res.headers.get("X-Manifest-Rows")),
-        })),
+        heads.map((head) => head.size),
         (done, total, i) => onProgress?.({table: MANIFEST_TABLES[i], done, total}),
     );
 
     for (const [i, table] of MANIFEST_TABLES.entries()) {
         // Servie par le relais du serveur, qui la garde en cache, allégée et
         // compressée (lib/manifest/server-cache.ts)
-        const json = await readJson(heads[i], (bytes) => progress.received(i, bytes));
+        const json = await readJson(heads[i].res, (bytes) => progress.received(i, bytes));
         progress.parsed(i);
 
         const rows = Object.entries(json).map(([hash, data]) => ({

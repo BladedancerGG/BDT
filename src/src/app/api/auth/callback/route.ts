@@ -39,12 +39,14 @@ export async function GET(req: NextRequest) {
         accessToken: tokens.accessToken,
         refreshToken: tokens.refreshToken,
         tokenExpiresAt: tokens.expiresAt,
+        lastSeenAt: new Date(),
       },
       update: {
         displayName,
         accessToken: tokens.accessToken,
         refreshToken: tokens.refreshToken,
         tokenExpiresAt: tokens.expiresAt,
+        lastSeenAt: new Date(),
       },
     });
 

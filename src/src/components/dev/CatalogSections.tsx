@@ -1169,10 +1169,11 @@ function GroupsSection({profile}: {profile: CatalogProfile}) {
 function StorageSection({profile}: {profile: CatalogProfile}) {
     const t = useTranslations("catalog");
     const tInventory = useTranslations("inventory");
+    const tCommon = useTranslations("common");
     const {data} = profile;
     const [collapsed, setCollapsed] = useState(false);
     const capacities = useBucketCapacities();
-    const toggleLabels = {expandLabel: tInventory("expand"), collapseLabel: tInventory("collapse")};
+    const toggleLabels = {expandLabel: tCommon("expand"), collapseLabel: tCommon("collapse")};
 
     return (
         <Section id="storage">

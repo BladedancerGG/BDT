@@ -35,9 +35,18 @@ model User {
   // l'activer par défaut pour un nouveau compte, là où l'absence de ligne
   // valait auparavant « synchronisation coupée ».
   syncEnabled    Boolean    @default(true)
+  // Accès aux pages d'administration (/admin). Aucune interface ne le pose :
+  // il s'accorde à la main, en base (voir le README).
+  admin          Boolean    @default(false)
+  // Dernière activité, et non dernier passage par OAuth : une session dure
+  // trente jours sans jamais y repasser. Mise à jour au plus une fois par heure
+  // (cf. lib/auth/current-user.ts). Nulle tant que le compte n'a rien chargé
+  // depuis l'ajout de la colonne.
+  lastSeenAt     DateTime?
   settings       UserSettings?
   loadoutGroups  UserLoadoutGroups?
   sharedLoadouts SharedLoadout[]
+  bungieCalls    BungieApi[]
 }
 
 // Préférences synchronisées d'un utilisateur.
@@ -105,5 +114,45 @@ model SharedLoadout {
   userId    String
   createdAt DateTime @default(now())
 
+  @@index([userId])
+}
+
+// Journal des appels sortants vers bungie.net, pour les statistiques
+// d'administration.
+//
+// Une ligne par appel LOGIQUE et non par tentative : les nouvelles tentatives
+// de `bungieFetch` restent dans la même ligne (`attempts`), sans quoi une
+// panne passagère de Bungie gonflerait les compteurs d'autant.
+//
+// Aucune purge : la rétention est volontairement illimitée. D'où l'index sur la
+// date, seul tri que lit la page.
+model BungieApi {
+  id         String    @id @default(cuid())
+  /** GET, POST… */
+  method     String
+  /**
+   * Chemin normalisé, identifiants remplacés par `{id}` et sans paramètres :
+   * c'est ce qui permet de regrouper les appels par point d'entrée.
+   */
+  endpoint   String
+  /** pending, running, success, failure — cf. lib/bungie/call-log.ts */
+  status     String
+  /** Statut HTTP de la dernière réponse, absent sur une panne réseau */
+  httpStatus Int?
+  /** Code symbolique Bungie d'un refus applicatif, ou message tronqué */
+  error      String?
+  attempts   Int       @default(0)
+  durationMs Int?
+  /**
+   * Vide pour les appels sans compte (manifeste) ou d'avant la création du
+   * compte (premier échange de jetons). SetNull et non Cascade : supprimer un
+   * compte ne doit pas réécrire l'historique des appels.
+   */
+  user       User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userId     String?
+  createdAt  DateTime  @default(now())
+  finishedAt DateTime?
+
+  @@index([createdAt])
   @@index([userId])
 }

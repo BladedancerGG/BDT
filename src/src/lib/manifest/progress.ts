@@ -7,7 +7,7 @@
 //
 // Module pur : ni réseau, ni IndexedDB.
 
-/** Ce que le relais annonce d'une table (en-têtes X-Manifest-Size / -Rows). */
+/** Ce que le relais annonce d'une table (réponse de /api/manifest/…/<table>). */
 export interface TableSize {
     /** Taille du JSON décompressé */
     bytes: number;

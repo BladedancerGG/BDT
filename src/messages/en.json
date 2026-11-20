@@ -15,7 +15,9 @@
     "confirm": "Confirm",
     "join": "Join",
     "share": "Share",
-    "import": "Import"
+    "import": "Import",
+    "expand": "Expand",
+    "collapse": "Collapse"
   },
   "auth": {
     "login": "Sign in with Bungie"
@@ -250,8 +252,6 @@
     "error": "Unable to load the profile.",
     "vault": "Vault",
     "character": "Character",
-    "expand": "Expand",
-    "collapse": "Collapse",
     "otherGroup": "Other",
     "currentEquipment": "Currently equipped",
     "backToGroups": "Back to groups",
@@ -585,5 +585,122 @@
       "bow": "Bow",
       "glaive": "Glaive"
     }
+  },
+  "admin": {
+    "title": "Administration",
+    "summary": "Summary",
+    "user": "User",
+    "date": "Date",
+    "yes": "Yes",
+    "no": "No",
+    "never": "Never",
+    "anonymous": "None",
+    "empty": "Nothing yet.",
+    "nav": {
+      "label": "Administration pages",
+      "stats": "Statistics",
+      "logs": "Server logs",
+      "back": "Back to the app"
+    },
+    "pager": {
+      "label": "Call pages",
+      "previous": "Newer",
+      "next": "Older",
+      "position": "Page {page} of {pages}"
+    },
+    "users": {
+      "title": "Users",
+      "displayName": "Display name",
+      "createdAt": "Signed up",
+      "lastSeenAt": "Last activity",
+      "admin": "Admin"
+    },
+    "groups": {
+      "title": "Loadout groups",
+      "note": "Only synced accounts have their groups in the database: the others live solely in their author’s browser.",
+      "name": "Group",
+      "noColor": "No colour",
+      "loadouts": "Saved loadouts"
+    },
+    "calls": {
+      "title": "Bungie API calls",
+      "endpoint": "Endpoint",
+      "status": "Status",
+      "duration": "Duration",
+      "ms": "{ms} ms",
+      "attempts": "{count} attempts",
+      "statuses": {
+        "pending": "Pending",
+        "running": "Running",
+        "success": "Success",
+        "failure": "Failure"
+      },
+      "httpStatus": "HTTP status",
+      "attemptsLabel": "Attempts"
+    },
+    "shares": {
+      "title": "Shares",
+      "link": "Link",
+      "kind": "Type",
+      "createdAt": "Created",
+      "kinds": {
+        "group": "Group",
+        "loadout": "Single loadout"
+      }
+    },
+    "logs": {
+      "title": "Server logs",
+      "search": "Search the logs",
+      "searchPlaceholder": "Search all logs…",
+      "level": "Minimum level",
+      "allLevels": "All levels",
+      "levels": {
+        "debug": "Debug",
+        "info": "Info",
+        "log": "Log",
+        "warn": "Warning",
+        "error": "Error"
+      },
+      "pause": "Pause",
+      "resume": "Resume",
+      "connection": {
+        "connecting": "Connecting…",
+        "live": "Live",
+        "paused": "Paused",
+        "error": "Connection lost, retrying…"
+      },
+      "loading": "Loading…",
+      "failed": "The logs could not be loaded.",
+      "count": "{count, plural, =0 {No lines} one {# line} other {# lines}}",
+      "truncated": "The {count} most recent matching lines",
+      "empty": "No line matches."
+    },
+    "noMatch": "No row matches the filters.",
+    "filters": {
+      "toggle": "Filters",
+      "clear": "Clear filters",
+      "min": "From",
+      "max": "To",
+      "op": "Comparison",
+      "value": "Value",
+      "ops": {
+        "lt": "Less than",
+        "lte": "Less than or equal to",
+        "eq": "Equal to",
+        "gte": "Greater than or equal to",
+        "gt": "Greater than"
+      },
+      "any": "All",
+      "selected": "{count, plural, one {# selected} other {# selected}}",
+      "filterOptions": "Filter the list…",
+      "clearSelection": "Uncheck all",
+      "noOptions": "No option"
+    },
+    "sort": {
+      "asc": "Sort ascending",
+      "desc": "Sort descending",
+      "none": "Remove sorting"
+    },
+    "backToTop": "Back to top"
   }
 }

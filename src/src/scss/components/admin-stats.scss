@@ -1,0 +1,40 @@
+// Page de statistiques d'administration (app/[locale]/admin/stats/page.tsx).
+@use "../abstracts/mixins" as m;
+
+.admin-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+
+  &__summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+    gap: 0.75rem;
+  }
+
+  &__summary-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--color-border);
+    background-color: var(--color-panel);
+    color: var(--color-text-muted);
+    font-size: 0.8125rem;
+    text-decoration: none;
+
+    @media (hover: hover) {
+      &:hover {
+        border-color: var(--color-border-strong);
+        color: var(--color-text);
+      }
+    }
+  }
+
+  &__summary-count {
+    color: var(--color-text);
+    font-size: 1.5rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+}

@@ -1,0 +1,103 @@
+// Liste déroulante à cases à cocher (components/admin/MultiSelect.tsx).
+@use "../abstracts/mixins" as m;
+
+.multi-select {
+  &__trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.3rem 0.5rem;
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius);
+    background-color: var(--color-panel-alt);
+    font-size: 0.8125rem;
+    text-align: left;
+    cursor: pointer;
+
+    &[data-active] {
+      border-color: var(--color-accent);
+    }
+  }
+
+  &__summary {
+    @include m.truncate;
+  }
+
+  &__chevron {
+    flex: none;
+    width: 0.875rem;
+    height: 0.875rem;
+  }
+
+  // Hauteur et largeur posées par Floating UI (middleware `size`)
+  &__panel {
+    z-index: 50;
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+    min-width: var(--multi-select-min-width, 12rem);
+    max-width: min(36rem, calc(100vw - 16px));
+    max-height: min(24rem, var(--multi-select-max-height, 24rem));
+    padding: 0.5rem;
+    border: 1px solid var(--color-border-strong);
+    background-color: var(--color-panel-alt);
+    box-shadow: var(--shadow-panel);
+    box-sizing: border-box;
+  }
+
+  &__search {
+    padding: 0.3rem 0.5rem;
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius);
+    background-color: var(--color-bg);
+    color: var(--color-text);
+    font: inherit;
+    font-size: 0.8125rem;
+  }
+
+  &__clear {
+    align-self: flex-start;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--color-accent);
+    font-size: 0.75rem;
+    cursor: pointer;
+  }
+
+  &__list {
+    flex: 1;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    overflow-y: auto;
+    list-style: none;
+  }
+
+  &__option {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    padding: 0.25rem 0.25rem;
+    font-size: 0.8125rem;
+    cursor: pointer;
+
+    @media (hover: hover) {
+      &:hover {
+        background-color: color-mix(in srgb, var(--color-panel-alt) 85%, var(--color-text));
+      }
+    }
+  }
+
+  &__label {
+    word-break: break-all;
+  }
+
+  &__empty {
+    padding: 0.25rem;
+    color: var(--color-text-muted);
+    font-size: 0.8125rem;
+  }
+}

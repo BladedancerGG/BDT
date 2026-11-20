@@ -13,7 +13,7 @@ export default async function Home() {
         <main className="app-main">
             {user ? (
                 <>
-                    <MainMenu displayName={user.displayName}/>
+                    <MainMenu displayName={user.displayName} admin={user.admin}/>
                     <Dashboard
                         bungieMembershipId={user.bungieMembershipId}
                         displayName={user.displayName}

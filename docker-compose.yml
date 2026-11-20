@@ -7,6 +7,8 @@ services:
       - "443:443"
     volumes:
       - ./src/Caddyfile:/etc/caddy/Caddyfile:ro
+      # Tables du manifeste, servies par Caddy (voir Caddyfile)
+      - manifest_cache:/srv/manifest:ro
       - caddy_data:/data
       - caddy_config:/config
 
@@ -43,6 +45,8 @@ services:
       - ./src:/app
       - /app/.next
       - manifest_cache:/var/cache/manifest
+      # Journal serveur lu par /admin/logs (lib/admin/server-log.ts)
+      - app_logs:/var/log/bdt
     depends_on:
       - db
       - caddy
@@ -70,3 +74,4 @@ volumes:
   caddy_data:
   caddy_config:
   manifest_cache:
+  app_logs:

@@ -33,11 +33,25 @@ serves it to every client.
   up-to-date client cache, so the version is kept in memory and served
   **stale while it is re-read** in the background after a minute: the Bungie
   API sometimes takes over 15 s to answer.
-- `GET /api/manifest/<version>/<schema>/<language>/<table>` serves one table
-  from the server's disk cache (`src/lib/manifest/server-cache.ts`), building it
-  on first request. Files are stored **pre-compressed in Brotli** (quality 9;
-  quality 11 saves barely 10 % more, for ~25× the CPU). Since version and schema
-  are in the URL, responses are `immutable`.
+- `GET /api/manifest/<version>/<schema>/<language>/<table>/info` makes sure one
+  table is in the server's disk cache (`src/lib/manifest/server-cache.ts`),
+  building it on first request, then **describes** it: `{url, bytes, rows}`.
+  Files are stored **pre-compressed in Brotli** (quality 9; quality 11 saves
+  barely 10 % more, for ~25× the CPU).
+- The file itself, `/manifest-files/<version>/<schema>/<language>/<table>.json`,
+  is served by **Caddy** straight from the volume (mounted read-only), which
+  rewrites the path to the `.json.br` file and sets `Content-Encoding: br`.
+  Not by Next: since 16.4.6 it strips `Content-Encoding` (and `Content-Length`)
+  from every route response — `FORBIDDEN_HEADERS` in
+  `next/dist/server/send-response.js` — so the Brotli bytes reached the browser
+  unlabelled and `JSON.parse` failed on the first character. Caddy's own
+  `file_server { precompressed br }` is not usable either: it only serves the
+  `.br` variant when the uncompressed file exists too. There is no uncompressed
+  fallback, every browser accepts Brotli over HTTPS; in production, `encode`
+  leaves an already-encoded response alone. The file is `immutable` (version and
+  schema are in its URL); the description is only `no-cache`, and lives at a
+  **new** URL (`/info`): the old one served the table itself as `immutable` for
+  a year, and browsers would have kept reading that instead.
 - The cache lives in the `manifest_cache` Docker volume
   (`/var/cache/manifest/<version>/<schema>/<language>/`, overridable with
   `MANIFEST_CACHE_DIR`). The first time the server sees a new version, it
@@ -77,8 +91,8 @@ serves it to every client.
 - The progress bar (`src/lib/manifest/progress.ts`) weighs each table by an
   **estimate of its duration**, not by a table count: counted by tables, it sat
   at 0 % for most of the load, the items table coming first. The relay
-  announces each table's decompressed size and row count (`X-Manifest-Size`,
-  `X-Manifest-Rows`, kept next to the file in `<file>.stats.json`); the bar
+  announces each table's decompressed size and row count (`bytes` and `rows` in
+  its description, kept next to the file in `<file>.stats.json`); the bar
   moves with the bytes received, then with each batch of 5,000 rows written.
   Writing costs mostly **per row** — the icons table, 7 MB but 26,645 rows,
   takes 930 ms to write — so weighting by bytes alone left the last tables
@@ -1954,6 +1968,106 @@ returns a clean 502 — the app does not crash.
 > **Scope**: only server-side calls go through this proxy — manifest tables
 > included, since the server relays them.
 
+## Administration
+
+`/[locale]/admin/stats` and `/[locale]/admin/logs`, reserved to users whose
+`User.admin` is `true` (set by hand, see the README). `requireAdmin()`
+(`lib/auth/admin.ts`) answers **404**, not 403, and is called by the layout
+**and** by every page and route: a layout does not re-run on every navigation
+and does not protect what a page reads. The main menu only shows the links to an
+admin.
+
+### Last activity
+
+`User.lastSeenAt` is the last *activity*, not the last OAuth sign-in — a session
+lasts 30 days without going back through Bungie. `getCurrentUser()` updates it,
+at most once an hour and without awaiting, so a page load never pays for it.
+
+### Bungie call log (`BungieApi`)
+
+One row per **logical** call, retries included (`attempts`), so a Bungie outage
+does not inflate the counters. Three entry points are tracked: `bungieFetch`, the
+OAuth token exchange, and manifest table downloads (`lib/bungie/call-log.ts`).
+The row is created `pending`, moves to `running` when the request leaves, then
+`success` or `failure`. The writes are chained on one promise — so the order of
+the statuses is the order of the events — and never awaited by the caller nor
+allowed to throw: the log must not slow down or break the call it describes.
+
+`bungieFetch` receives a token, not a user. Rather than threading an id through
+every signature, `getValidAccessToken()` — which every token handed to a call
+goes through — records its owner in an in-memory map (`rememberTokenOwner`).
+Calls without a user: the manifest, and the very first token exchange (the
+account does not exist yet).
+
+Endpoints are normalised (numeric segments → `{id}`, query string dropped) so
+that calls group by endpoint rather than by account. **No retention**: the table
+is never purged, and the page paginates it.
+
+Each statistics table sits under a collapsible header — the vault's own
+`GroupHeader` (root level), so it looks and behaves like an inventory group,
+showing "shown · total" when filters hold rows back. The collapsed state is not
+saved, but survives filter and sort changes, which replace the URL without
+remounting the page. A floating button brings the page back to the top; it only
+exists once the page has scrolled, so it is never reachable by keyboard while
+invisible.
+
+### Statistics filters
+
+Every table of `/admin/stats` has a **Filters** panel: a text field per string
+column (case-insensitive "contains"), from/to dates, a comparison operator plus a
+value for numbers, and a checkbox list for fixed values — call status, share
+kind, admin flag, every HTTP status ever received, and every endpoint ever
+recorded (`GET /…` and `POST /…` are distinct options). Both lists are read from
+the whole table, not from the current page or filters; calls without a response
+(network failure, timeout) have no HTTP status and cannot be picked there.
+
+The **URL is the single source of truth**, each parameter prefixed by its table
+(`calls.status=success&calls.duration=500&calls.duration.op=gt`): a filter can be
+shared, survives a reload, and the server reads it directly. The panel keeps its
+fields in local state and replaces the URL 300 ms after the last change.
+Calls are filtered in SQL (the table is paginated and never purged); users,
+groups and shares are filtered in memory with the same semantics — both sides
+rely on `lib/admin/filters.ts`, a pure module covered by
+`scripts/checks/admin-filters.check.ts`. Dates are typed as **local** days and
+travel as instants (start of the first day, end of the last), so "up to the
+20th" includes the whole 20th in the viewer's time zone.
+
+### Statistics sorting
+
+Clicking a column header cycles it through **none → ascending → descending →
+none**; one column sorts a table at a time, and "none" gives back the table's
+default order. The headers are plain links computed by the server
+(`components/admin/SortHeader.tsx`), which sorts — calls in SQL, the other
+tables in memory through the same column accessors as the filters, so a column
+sorts on exactly what it filters on.
+
+The state lives in the URL as `sort.<table>=key` or `sort.<table>=-key`. The
+prefix is `sort.` rather than `<table>.` on purpose: rewriting a table's filters
+drops every `<table>.*` parameter, and would take the sort with it. Missing
+values ("never", no user) go **last in both directions**, and the default order
+breaks ties so a page of calls never repeats or skips a row — except for the
+user column of calls, where Prisma cannot place the nulls of a relation and
+Postgres' rule applies. `lib/admin/sort.ts` is pure and covered by
+`scripts/checks/admin-sort.check.ts`.
+
+### Server logs
+
+`instrumentation.ts` wraps `console.*` at server start: the line still goes to
+stdout (`docker compose logs`), and is also appended as JSONL to
+`/var/log/bdt/server.log` (`app_logs` volume), rotated at 10 MB, 9 old files
+kept. A file rather than the database: a log written while Postgres is down is
+exactly the one you want to read. Only what the app's process prints through
+`console` is captured — not Caddy's nor Postgres' output.
+
+- **Search** (`GET /api/admin/logs?q=&level=`) reads every kept file, newest
+  first, and stops at 1,000 matches.
+- **Live** (`GET /api/admin/logs/stream`, Server-Sent Events) polls the current
+  file every second rather than using `fs.watch` — inotify does not always cross
+  Docker volumes (WSL) — and rather than an in-memory emitter, since in
+  development the capture and the route are not guaranteed to share a process.
+  The stream is unfiltered: the page applies its filter to incoming lines, so
+  changing the search does not reconnect.
+
 ## Styles (SCSS)
 
 No styles live in components: JSX carries only semantic classes
@@ -2109,11 +2223,13 @@ which names what is about to be overwritten.
 src/
   app/[locale]/      Pages (i18n routing: "/" = FR, "/en" = EN)
   app/api/           Server routes (auth, manifest, profile, item, loadouts,
-                     loadout-groups, shares, health)
+                     loadout-groups, shares, health, admin)
+  instrumentation.ts Server start: console capture for the admin logs page
   proxy.ts           i18n routing middleware (named "proxy" since Next 16)
   i18n/              next-intl configuration (routing + request)
   lib/
-    auth/            Session (signed cookie) + valid Bungie token
+    admin/           Admin pages: statistics queries, server log (write, search, follow)
+    auth/            Session (signed cookie) + valid Bungie token + admin guard
     bungie/          Bungie API wrapper (OAuth, profile, items)
     db/              Prisma client
     destiny/         Game constants, types, socket logic

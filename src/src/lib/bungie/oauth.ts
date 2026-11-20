@@ -4,6 +4,8 @@
 // Le client_secret ne quitte JAMAIS le serveur : toutes ces fonctions
 // s'exécutent côté serveur (routes /api/auth/*).
 
+import { trackBungieCall } from "./call-log";
+
 const AUTHORIZE_URL = "https://www.bungie.net/en/OAuth/Authorize";
 const TOKEN_URL = "https://www.bungie.net/platform/app/oauth/token/";
 
@@ -63,33 +65,56 @@ export async function exchangeCodeForTokens(
 /** Renouvelle l'access token à partir du refresh token. */
 export async function refreshTokens(
   refreshToken: string,
+  /** Pour le journal des appels uniquement */
+  userId?: string,
 ): Promise<BungieTokens> {
-  return requestTokens({
-    grant_type: "refresh_token",
-    refresh_token: refreshToken,
-  });
+  return requestTokens(
+    {
+      grant_type: "refresh_token",
+      refresh_token: refreshToken,
+    },
+    userId,
+  );
 }
 
 async function requestTokens(
   body: Record<string, string>,
+  userId?: string,
 ): Promise<BungieTokens> {
   if (!CLIENT_ID || !CLIENT_SECRET || !API_KEY) {
     throw new Error("Bungie OAuth variables missing, check .env file if they are present");
   }
 
-  const res = await fetch(TOKEN_URL, {
+  // Hors de bungieFetch (pas d'enveloppe Bungie, pas de nouvelle tentative) :
+  // suivi à la main. Le premier échange n'a pas encore d'utilisateur — le
+  // compte n'est créé qu'avec sa réponse.
+  const call = trackBungieCall({
     method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-      "X-API-Key": API_KEY,
-      Authorization: basicAuthHeader(),
-    },
-    body: new URLSearchParams(body).toString(),
+    path: new URL(TOKEN_URL).pathname,
+    userId,
   });
+  try {
+    call.attempt();
+    const res = await fetch(TOKEN_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "X-API-Key": API_KEY,
+        Authorization: basicAuthHeader(),
+      },
+      body: new URLSearchParams(body).toString(),
+    });
+    call.response(res.status);
 
-  if (!res.ok) {
-    throw new Error(`OAuth token error (${res.status}): ${await res.text()}`);
+    if (!res.ok) {
+      throw new Error(`OAuth token error (${res.status}): ${await res.text()}`);
+    }
+
+    const tokens = parseTokenResponse(await res.json());
+    call.succeed();
+    return tokens;
+  } catch (error) {
+    call.fail(error);
+    throw error;
   }
-
-  return parseTokenResponse(await res.json());
 }

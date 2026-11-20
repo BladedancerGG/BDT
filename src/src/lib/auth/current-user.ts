@@ -4,13 +4,34 @@
 import { prisma } from "@/lib/db/prisma";
 import { getSessionUserId } from "./session";
 import { refreshTokens } from "@/lib/bungie/oauth";
+import { rememberTokenOwner } from "@/lib/bungie/call-log";
 import type { User } from "@/generated/prisma/client";
+
+/**
+ * Intervalle minimal entre deux mises à jour de `lastSeenAt`.
+ *
+ * Chaque chargement de page et chaque appel d'API passent par ici : écrire à
+ * chaque fois ferait une écriture par requête pour une information qui ne se
+ * lit qu'à l'heure près.
+ */
+const LAST_SEEN_INTERVAL_MS = 60 * 60 * 1000;
+
+/** Note l'activité du compte, sans attendre ni jamais faire échouer la requête. */
+function touchLastSeen(user: User): void {
+  const now = Date.now();
+  if (user.lastSeenAt && now - user.lastSeenAt.getTime() < LAST_SEEN_INTERVAL_MS) return;
+  prisma.user
+    .update({ where: { id: user.id }, data: { lastSeenAt: new Date(now) } })
+    .catch((err) => console.error("[auth] lastSeenAt :", err));
+}
 
 /** Utilisateur en session, ou null. Ne renouvelle PAS le token. */
 export async function getCurrentUser(): Promise<User | null> {
   const userId = await getSessionUserId();
   if (!userId) return null;
-  return prisma.user.findUnique({ where: { id: userId } });
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (user) touchLastSeen(user);
+  return user;
 }
 
 /**
@@ -22,10 +43,13 @@ export async function getValidAccessToken(): Promise<string> {
   if (!user) throw new Error("Non authentifié");
 
   // Token encore valide
-  if (user.tokenExpiresAt > new Date()) return user.accessToken;
+  if (user.tokenExpiresAt > new Date()) {
+    rememberTokenOwner(user.accessToken, user.id, user.tokenExpiresAt);
+    return user.accessToken;
+  }
 
   // Sinon on rafraîchit
-  const tokens = await refreshTokens(user.refreshToken);
+  const tokens = await refreshTokens(user.refreshToken, user.id);
   await prisma.user.update({
     where: { id: user.id },
     data: {
@@ -34,5 +58,6 @@ export async function getValidAccessToken(): Promise<string> {
       tokenExpiresAt: tokens.expiresAt,
     },
   });
+  rememberTokenOwner(tokens.accessToken, user.id, tokens.expiresAt);
   return tokens.accessToken;
 }

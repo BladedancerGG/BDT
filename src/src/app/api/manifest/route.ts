@@ -8,7 +8,7 @@ import {
 // GET /api/manifest
 // Version du manifeste + URL, par langue, des tables dont l'app a besoin.
 // Ces URL pointent vers le relais
-// (/api/manifest/<version>/<schéma>/<langue>/<table>), plus vers bungie.net :
+// (/api/manifest/<version>/<schéma>/<langue>/<table>/info), plus vers bungie.net :
 // le serveur garde les tables en cache, allégées des champs que l'app ne lit
 // pas, et les sert compressées en Brotli. Une table absente du manifeste de
 // Bungie est omise, pour que le client lève comme avant sur une table manquante.
@@ -21,7 +21,7 @@ export async function GET() {
       for (const table of MANIFEST_TABLES) {
         if (tables[table]) {
           tableUrls[language][table] =
-            `/api/manifest/${encodeURIComponent(version)}/${MANIFEST_SCHEMA_VERSION}/${language}/${table}`;
+            `/api/manifest/${encodeURIComponent(version)}/${MANIFEST_SCHEMA_VERSION}/${language}/${table}/info`;
         }
       }
     }

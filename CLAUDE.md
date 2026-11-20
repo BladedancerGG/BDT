@@ -86,8 +86,9 @@ remplaçants), `lib/destiny/perk-upgrades.ts` (attributs améliorés et armes fa
 `lib/manifest/projection.ts` et `lib/manifest/json-entries.ts` (allègement du manifeste),
 `lib/manifest/progress.ts` (progression pondérée du chargement),
 `lib/destiny/stat-breakdown.ts` (décomposition des statistiques, bonus de palier),
-`lib/loadouts/share/snapshot.ts` (l'instantané d'un partage)
-et `lib/loadouts/share/import.ts` (l'import d'un partage),
+`lib/loadouts/share/snapshot.ts` (l'instantané d'un partage),
+`lib/loadouts/share/import.ts` (l'import d'un partage)
+et `lib/admin/filters.ts` / `lib/admin/sort.ts` (filtres et tri des statistiques d'administration),
 et contrôlent au passage les règles CSS qui se recouvrent.
 **Les lancer après toute modification de ces modules**, et y ajouter un cas quand un piège
 Destiny est écarté : c'est là que la logique se casse en silence. Voir
@@ -189,6 +190,15 @@ ne pas être rognées par le conteneur de défilement.
   refuse tout transfert vers un rangement qui en contient cinquante, avec « l'emplacement de
   destination est plein » alors qu'il ne l'est pas. Toute nouvelle famille d'emplacements
   affichée doit y entrer.
+- **Next (≥ 16.4.6) retire `Content-Encoding` et `Content-Length` de toute réponse de route.**
+  Un fichier précompressé servi par une route arrive donc illisible au navigateur (`JSON.parse`
+  échoue au premier caractère), et aucun réglage de Next ne l'empêche. Les tables du manifeste
+  sont pour cela servies par Caddy (`/manifest-files/…`, voir `TABLE_FILES_PREFIX` dans
+  `lib/manifest/server-cache.ts`). Un Caddyfile modifié avec `sed -i` n'est pas vu par le
+  conteneur (montage d'un fichier unique, attaché à l'ancien inode) : le recréer.
+- **Une URL servie en `immutable` ne peut plus jamais changer de contenu ni de forme.** Les
+  navigateurs la gardent un an sans redemander : changer ce qu'elle renvoie impose une URL
+  neuve (c'est pourquoi la description d'une table est sous `…/<table>/info`).
 - **`docker compose down -v` détruit le volume de la base.** En production il emporte aussi les
   certificats et le compte ACME de Caddy, soumis à des quotas Let's Encrypt. `make clean` fait
   exactement ça — ne pas le lancer sur un serveur.

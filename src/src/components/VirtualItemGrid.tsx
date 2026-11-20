@@ -201,6 +201,7 @@ export function VirtualItemGrid({
     capped?: ReadonlySet<number>;
 }) {
     const t = useTranslations("inventory");
+    const tCommon = useTranslations("common");
     // La recherche s'applique avant le regroupement : les compteurs des
     // sections comptent alors ce qui est réellement affiché.
     const found = useSearchFiltered(items);
@@ -607,8 +608,8 @@ export function VirtualItemGrid({
                                 icon={row.icon}
                                 collapsed={row.collapsed}
                                 onToggle={() => toggle(row.key)}
-                                expandLabel={t("expand")}
-                                collapseLabel={t("collapse")}
+                                expandLabel={tCommon("expand")}
+                                collapseLabel={tCommon("collapse")}
                                 style={style}
                                 virtual
                             />

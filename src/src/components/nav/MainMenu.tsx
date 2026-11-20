@@ -21,6 +21,7 @@ import {Cog6ToothIcon} from "@heroicons/react/24/solid"
 import {LoadoutsIcon, VaultIcon} from "@/components/icons";
 import DiscordIcon from "@/components/icons/other/DiscordIcon"
 import GithubIcon from "@/components/icons/other/GithubIcon";
+import {ADMIN_PAGES} from "@/components/admin/AdminNav";
 
 /**
  * Durée du glissement d'entrée et de sortie, en millisecondes.
@@ -43,9 +44,14 @@ const TRANSITION_MS = 350;
  * ouverture, via le store, et se referme derrière elle — deux surfaces
  * modales superposées se disputeraient le piégeage du focus.
  */
-export function MainMenu({displayName}: { displayName?: string }) {
+export function MainMenu({displayName, admin = false}: {
+    displayName?: string;
+    /** Affiche les liens d'administration — les pages vérifient le droit elles-mêmes */
+    admin?: boolean;
+}) {
     const t = useTranslations("menu");
     const tCommon = useTranslations("common");
+    const tAdmin = useTranslations("admin.nav");
 
     const open = useUi((s) => s.menuOpen);
     const setOpen = useUi((s) => s.setMenuOpen);
@@ -135,6 +141,22 @@ export function MainMenu({displayName}: { displayName?: string }) {
                                 {tCommon("settings")}
                             </button>
                         </div>
+
+                        {admin && (
+                            <div className="main-menu__section">
+                                {ADMIN_PAGES.map(({href, key, Icon}) => (
+                                    <Link
+                                        key={href}
+                                        href={href}
+                                        className="main-menu__item"
+                                        onClick={() => setOpen(false)}
+                                    >
+                                        <Icon/>
+                                        {tAdmin(key)}
+                                    </Link>
+                                ))}
+                            </div>
+                        )}
 
                         <div className="main-menu__section">
 

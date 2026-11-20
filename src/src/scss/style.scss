@@ -12,6 +12,10 @@
 @use "layout/header";
 
 // —— Composants ————————————————————————————————————————————
+@use "components/admin-layout";
+@use "components/admin-nav";
+@use "components/admin-section";
+@use "components/admin-stats";
 @use "components/amount-prompt";
 @use "components/actions-panel";
 @use "components/armor-archetype";
@@ -43,10 +47,13 @@
 @use "components/loadout-edit";
 @use "components/loadout-panel";
 @use "components/loadout-title";
+@use "components/log-viewer";
 @use "components/main-menu";
 @use "components/modal";
+@use "components/multi-select";
 @use "components/plug-icon";
 @use "components/plug-tooltip";
+@use "components/scroll-top";
 @use "components/search-bar";
 @use "components/settings";
 @use "components/share-dialog";
@@ -60,6 +67,7 @@
 @use "components/skeleton";
 @use "components/stat-bar";
 @use "components/stat-tooltip";
+@use "components/table-filters";
 @use "components/tooltip-header";
 @use "components/weapon-summary";
 @use "components/ui-catalog";

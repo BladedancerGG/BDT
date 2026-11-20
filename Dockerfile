@@ -37,6 +37,8 @@ ENV NEXT_TELEMETRY_DISABLED=1
 RUN mkdir -p /app/.next && chmod 777 /app/.next
 # Même raison pour le cache du manifeste (volume nommé, voir docker-compose.yml)
 RUN mkdir -p /var/cache/manifest && chmod 777 /var/cache/manifest
+# Et pour le journal serveur (page d'administration des logs)
+RUN mkdir -p /var/log/bdt && chmod 777 /var/log/bdt
 
 EXPOSE 3000
 CMD ["sh", "scripts/docker/dev-entrypoint.sh"]
@@ -79,6 +81,8 @@ COPY --from=builder --chown=node:node /app/public ./public
 # Cache disque du manifeste : un volume nommé hérite à sa création des droits
 # du dossier qu'il recouvre — sans ce chown, "node" ne pourrait pas y écrire.
 RUN mkdir -p /var/cache/manifest && chown node:node /var/cache/manifest
+# Même chose pour le journal serveur, lu par la page d'administration des logs
+RUN mkdir -p /var/log/bdt && chown node:node /var/log/bdt
 
 USER node
 EXPOSE 3000

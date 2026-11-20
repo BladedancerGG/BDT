@@ -17,6 +17,7 @@ import {Readable} from "node:stream";
 import {pipeline} from "node:stream/promises";
 import zlib from "node:zlib";
 import {bungieFetch} from "@/lib/bungie/client";
+import {trackBungieCall, type CallTracker} from "@/lib/bungie/call-log";
 import {locales} from "@/i18n/routing";
 import {JsonEntrySplitter} from "./json-entries";
 import {MANIFEST_PROJECTION, project} from "./projection";
@@ -58,8 +59,8 @@ const inFlight = new Map<string, Promise<string>>();
 
 /**
  * Taille du JSON **décompressé** d'une table et nombre de ses lignes. Le client
- * en tire le poids de chaque table dans sa barre de progression (en-têtes
- * `X-Manifest-Size` et `X-Manifest-Rows`, voir lib/manifest/progress.ts) :
+ * en tire le poids de chaque table dans sa barre de progression (réponse de la
+ * route de la table, voir lib/manifest/progress.ts) :
  * - il compte les octets reçus une fois décompressés, que `Content-Length` —
  *   la taille Brotli — ne permet pas de rapporter à un total ;
  * - l'écriture en IndexedDB coûte surtout par ligne : la table des icônes,
@@ -143,6 +144,24 @@ function tableFile(version: string, language: string, table: string): string {
     return path.join(CACHE_DIR, version, SCHEMA, language, `${table}.json.br`);
 }
 
+/**
+ * Préfixe sous lequel Caddy sert le cache tel quel (Caddyfile, Caddyfile.prod),
+ * volume monté en lecture seule.
+ *
+ * Les tables ne passent plus par Next : depuis 16.4.6, il retire le
+ * `Content-Encoding` de toute réponse de route (`FORBIDDEN_HEADERS`, dans
+ * next/dist/server/send-response.js), si bien qu'un fichier précompressé en
+ * Brotli arrivait au client comme du JSON illisible. Caddy, avec
+ * `file_server { precompressed br }`, sert `<table>.json.br` à qui demande
+ * `<table>.json` et pose l'en-tête lui-même.
+ */
+export const TABLE_FILES_PREFIX = "/manifest-files";
+
+/** URL publique d'une table, servie par Caddy : même arborescence que le cache, sans `.br`. */
+export function tableFileUrl(version: string, language: string, table: ManifestTable): string {
+    return `${TABLE_FILES_PREFIX}/${encodeURIComponent(version)}/${SCHEMA}/${language}/${table}.json`;
+}
+
 async function exists(file: string): Promise<boolean> {
     try {
         await stat(file);
@@ -186,9 +205,31 @@ export async function getTableFile(
 async function download(source: string, table: ManifestTable, file: string): Promise<string> {
     await mkdir(path.dirname(file), {recursive: true});
 
+    // Hors de bungieFetch (ce n'est pas l'API mais un fichier statique) :
+    // suivi à la main. L'appel est réputé terminé quand le fichier l'est,
+    // le corps arrivant en flux pendant toute la conversion.
+    const call = trackBungieCall({method: "GET", path: source});
+    try {
+        await fetchTable(source, table, file, call);
+        call.succeed();
+    } catch (err) {
+        call.fail(err);
+        throw err;
+    }
+    return file;
+}
+
+async function fetchTable(
+    source: string,
+    table: ManifestTable,
+    file: string,
+    call: CallTracker,
+): Promise<void> {
+    call.attempt();
     const res = await fetch(`${BUNGIE_ROOT}${source}`, {
         signal: AbortSignal.timeout(TABLE_TIMEOUT_MS),
     });
+    call.response(res.status);
     if (!res.ok || !res.body) {
         throw new Error(`Bungie ${res.status} on ${source}`);
     }
@@ -235,7 +276,6 @@ async function download(source: string, table: ManifestTable, file: string): Pro
         await rm(tmp, {force: true});
         throw err;
     }
-    return file;
 }
 
 /**
@@ -368,7 +408,7 @@ async function measureStats(file: string): Promise<TableStats> {
     const splitter = new JsonEntrySplitter();
     const decoder = new TextDecoder();
     const stats: TableStats = {bytes: 0, rows: 0};
-    for await (const chunk of openTable(file, false)) {
+    for await (const chunk of openTable(file)) {
         stats.bytes += (chunk as Buffer).length;
         stats.rows += splitter.push(decoder.decode(chunk as Buffer, {stream: true})).length;
     }
@@ -377,11 +417,9 @@ async function measureStats(file: string): Promise<TableStats> {
     return stats;
 }
 
-/** Flux du fichier Brotli, ou de son contenu décompressé pour un client qui
- * n'annonce pas `br` (Caddy le recompresse alors en gzip en production). */
-export function openTable(file: string, brotli: boolean): Readable {
+/** Contenu décompressé d'un fichier du cache, pour en mesurer les statistiques. */
+function openTable(file: string): Readable {
     const stream = createReadStream(file);
-    if (brotli) return stream;
     // `pipe` ne propage pas les erreurs de la source : sans ce relais, un
     // fichier purgé en cours de lecture laisserait la réponse pendante.
     const out = zlib.createBrotliDecompress();
