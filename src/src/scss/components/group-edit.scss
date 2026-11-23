@@ -23,6 +23,11 @@
     align-items: center;
     gap: 0.5rem;
     flex-shrink: 0;
+    height: 2rem;
+
+    > * {
+      height: 100%;
+    }
 
     svg {
       width: 1rem;
@@ -335,7 +340,7 @@
   &__input {
     position: relative;
     width: 2.5rem;
-    height: 1.75rem;
+    height: 100%;
     padding: 0;
     border: 1px solid var(--color-border-strong);
     background: none;
@@ -383,11 +388,16 @@
   }
 
   &__clear {
+    height: 2rem;
+    width: 2rem;
     padding: 0.25rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 
     svg {
-      width: 0.875rem;
-      height: 0.875rem;
+      width: 1.2rem;
+      height: 1.2rem;
     }
   }
 }

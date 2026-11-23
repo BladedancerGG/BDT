@@ -24,6 +24,7 @@ import { ActionStatusIcon } from "./ActionStatusIcon";
 import { DestinationIcon } from "./DestinationIcon";
 import {isStackId} from "@/lib/destiny/moves";
 import {isEnhancedPlug} from "@/lib/destiny/sockets";
+import {weaponPerkSocketIndexes} from "@/lib/destiny/perk-upgrades";
 import { EnhancedPerkIcon } from "../icons";
 
 /** Libellé de la destination demandée — c'est le sous-titre de la carte. */
@@ -53,7 +54,14 @@ export function useTargetLabel(
  * objets du compte, pas les milliers de plugs de leurs sockets. Le panneau en
  * affiche une poignée, la requête est sans conséquence.
  */
-function PlugDestination({ hash }: { hash: number }) {
+function PlugDestination({
+  hash,
+  square,
+}: {
+  hash: number;
+  /** Mod, cosmétique, aspect… : carré, comme dans l'infobulle */
+  square: boolean;
+}) {
   const def = useDefinition<InventoryItemDefinition>(
     "DestinyInventoryItemDefinition",
     hash,
@@ -64,7 +72,10 @@ function PlugDestination({ hash }: { hash: number }) {
   const enhanced = isEnhancedPlug(def);
 
   return (
-    <span className="destination-icon destination-icon--plug" title={name}>
+    <span
+      className={`destination-icon destination-icon--plug${square ? " destination-icon--square" : ""}`}
+      title={name}
+    >
       {icon && (
         <>
           {/* eslint-disable-next-line @next/next/no-img-element*/}
@@ -237,6 +248,16 @@ export function ActionCard({
   const plugHash =
     action.kind === "insert" ? action.steps[0]?.plugItemHash : undefined;
   const perk = usePlugName(plugHash);
+  // Même forme que dans l'infobulle, où seules les colonnes d'attributs d'arme
+  // sont rondes : mods, armatures, cosmétiques, mods d'artéfact et tout ce
+  // qu'une doctrine porte y sont carrés. La forme dépend donc du socket visé,
+  // pas du plug — un hash ne dit pas dans quelle rangée il s'affiche. Sans
+  // définition de l'objet, carré : c'est le cas le plus fréquent.
+  const plugSocket =
+    action.kind === "insert" ? action.steps[0]?.socketIndex : undefined;
+  const squarePlug =
+    plugSocket === undefined ||
+    !weaponPerkSocketIndexes(def).includes(plugSocket);
   // Les hooks ne se conditionnent pas : les libellés sont tous calculés, un seul
   // est retenu. Le déplacement fictif ne coûte qu'une lecture de messages.
   const moveLabel = useTargetLabel(
@@ -291,7 +312,7 @@ export function ActionCard({
             <LoadoutMark loadout={action} label={targetLabel} />
           </span>
         ) : action.kind === "insert" ? (
-          <PlugDestination hash={plugHash ?? 0} />
+          <PlugDestination hash={plugHash ?? 0} square={squarePlug} />
         ) : (
           <DestinationIcon
             target={action.target}
