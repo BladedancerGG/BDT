@@ -498,7 +498,7 @@ leaving nothing to colour.
   back to a plug with the same name **and** `plugCategoryIdentifier`, preferring
   the same `tierType`, since seven perks have regular and enhanced entries with
   different texts (`resolveClarityHash`). Names come from the manifest in the
-  app's language, never from Clarity's English. The index is built once per page,
+  game language, never from Clarity's English. The index is built once per page,
   on the first tooltip that needs it, with one bulk read of ~1,700 definitions.
 - **Relay** (`lib/clarity/server-cache.ts`): the server reads `versions.json`
   (kept 10 min, stale-while-revalidate like the manifest version), downloads
@@ -2162,6 +2162,22 @@ In "system" mode no `data-theme` attribute is set, and the CSS
 > constant exported from a `"use client"` module arrives `undefined` on the
 > server, which silently broke the cookie read.
 
+### Languages
+
+Two independent languages:
+
+- **Interface** (`messages/*.json`): carried by the **URL only** — `/` is
+  English (default locale, no prefix), `/fr` is French; `/en` redirects to `/`.
+  `localeDetection` is off in `i18n/routing.ts`: with it, the `NEXT_LOCALE`
+  cookie sent `/` to `/fr`, and English could no longer be reached by address.
+  The settings selector just navigates to the other prefix.
+- **Game** (manifest: item, perk and mod names and descriptions): the
+  `manifestLanguage` setting, `"auto"` by default (follow the interface) or one
+  of Bungie's 13 codes (`MANIFEST_LANGUAGES`, `lib/settings/constants.ts`).
+  `useManifest` resolves it and `ensureManifest` re-downloads when it changes.
+  The server preloads only the interface locales; other languages are prepared
+  on first request (`getTableFile`).
+
 ### Five icon sizes
 
 Five independent sizes, each carried by its own CSS variable on `<html>`. The
@@ -2272,7 +2288,7 @@ which names what is about to be overwritten.
 
 ```
 src/
-  app/[locale]/      Pages (i18n routing: "/" = FR, "/en" = EN)
+  app/[locale]/      Pages (i18n routing: "/" = EN, "/fr" = FR)
   app/api/           Server routes (auth, manifest, profile, item, loadouts,
                      loadout-groups, shares, health, admin)
   instrumentation.ts Server start: console capture for the admin logs page

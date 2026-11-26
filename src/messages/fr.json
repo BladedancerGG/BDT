@@ -22,8 +22,8 @@
   "landing": {
     "description": "Gérez votre inventaire et vos équipements facilement",
     "login": "Se connecter avec Bungie",
-    "p1" : "Gestionnaire d'objet intuitif",
-    "p2" : "Gestion avancée des équipements en jeu"
+    "p1": "Gestionnaire d'objet intuitif",
+    "p2": "Gestion avancée des équipements en jeu"
   },
   "header": {
     "refresh": "Rafraîchir",
@@ -105,8 +105,11 @@
       },
       "effects": "Effets de flou et transparence",
       "effectsHint": "Fonds translucides et flou des infobulles et du sélecteur d’attributs",
-      "language": "Langue",
-      "languageHint": "Changer la langue d’affichage rechargera complètement l’application",
+      "language": "Langue de l’interface",
+      "languageHint": "La langue utilisée de l’interface de l'application. ",
+      "manifestLanguage": "Langue du manifeste",
+      "manifestLanguageHint": "Langue des informations provenant de l'API bungie.net : noms et descriptions des objets, attributs et mods. Changer ce paramètre rechargera l'application.",
+      "manifestLanguageAuto": "Comme l’interface ({language})",
       "ornaments": "Afficher les ornements",
       "ornamentsHint": "Utilise l’ornement équipé au lieu de l’icône de base",
       "originalOnHover": "Afficher l'icône de base au survol",

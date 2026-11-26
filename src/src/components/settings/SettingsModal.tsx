@@ -34,7 +34,12 @@ import {
     pushGroups,
 } from "@/lib/loadouts/groups/sync-client";
 import {useLoadoutGroups} from "@/lib/loadouts/groups/store";
-import {INVENTORY_LAYOUTS} from "@/lib/settings/constants";
+import {
+    INVENTORY_LAYOUTS,
+    MANIFEST_LANGUAGES,
+    type ManifestLanguage,
+    type ManifestLanguagePreference,
+} from "@/lib/settings/constants";
 import {APP_VERSION, SUPPORT_EMAIL, BUNGIE_PROFILE_URL} from "@/lib/app-info";
 import {BackupRows} from "./BackupRows";
 import {RecoveryRow} from "./RecoveryRow";
@@ -55,10 +60,25 @@ const CATEGORIES: Record<Category, string> = {
     about: "settings.categories.about",
 };
 
-/** Noms des langues dans leur propre langue. */
-const LOCALE_LABELS: Record<Locale, string> = {
-    fr: "Français",
+/**
+ * Noms des langues dans leur propre langue : on doit reconnaître la sienne
+ * quelle que soit celle de l'interface. Ils ne passent donc pas par les
+ * messages, et ceux de l'interface sont pris ici.
+ */
+const LANGUAGE_LABELS: Record<ManifestLanguage, string> = {
     en: "English",
+    fr: "Français",
+    es: "Español",
+    "es-mx": "Español (México)",
+    de: "Deutsch",
+    it: "Italiano",
+    ja: "日本語",
+    "pt-br": "Português (Brasil)",
+    ru: "Русский",
+    pl: "Polski",
+    ko: "한국어",
+    "zh-chs": "简体中文",
+    "zh-cht": "繁體中文",
 };
 
 const DEV_BUNGIE_PROFILE_URL = "https://www.bungie.net/7/en/User/Profile/2/4611686018443729606";
@@ -261,6 +281,8 @@ function AppearancePanel() {
 
     const theme = useSettings((s) => s.theme);
     const setTheme = useSettings((s) => s.setTheme);
+    const manifestLanguage = useSettings((s) => s.manifestLanguage);
+    const setManifestLanguage = useSettings((s) => s.setManifestLanguage);
     const iconSize = useSettings((s) => s.iconSize);
     const setIconSize = useSettings((s) => s.setIconSize);
     const columnsIconSize = useSettings((s) => s.columnsIconSize);
@@ -299,10 +321,32 @@ function AppearancePanel() {
                     onChange={changeLocale}
                     options={routing.locales.map((value) => ({
                         value,
-                        label: LOCALE_LABELS[value],
+                        label: LANGUAGE_LABELS[value],
                     }))}
                 />
                 {pending && <span className="settings__pending" aria-hidden/>}
+            </SettingRow>
+
+            <SettingRow
+                label={t("manifestLanguage")}
+                hint={t("manifestLanguageHint")}
+                htmlFor="setting-manifest-language"
+            >
+                <Select<ManifestLanguagePreference>
+                    id="setting-manifest-language"
+                    value={manifestLanguage}
+                    onChange={setManifestLanguage}
+                    options={[
+                        {
+                            value: "auto",
+                            label: t("manifestLanguageAuto", {language: LANGUAGE_LABELS[locale]}),
+                        },
+                        ...MANIFEST_LANGUAGES.map((value) => ({
+                            value,
+                            label: LANGUAGE_LABELS[value],
+                        })),
+                    ]}
+                />
             </SettingRow>
 
             <SettingRow label={t("theme")} htmlFor="setting-theme">

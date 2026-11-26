@@ -22,8 +22,8 @@
   "landing": {
     "description": "Manage your inventory and loadouts with ease",
     "login": "Sign in with Bungie",
-    "p1" : "Intuitive item manager",
-    "p2" : "Powerful loadout management"
+    "p1": "Intuitive item manager",
+    "p2": "Powerful loadout management"
   },
   "header": {
     "refresh": "Refresh",
@@ -105,8 +105,11 @@
       },
       "effects": "Transparency and blur effects",
       "effectsHint": "Translucent backgrounds and blur on tooltips and the perk picker",
-      "language": "Language",
-      "languageHint": "Changing language will completely reload the application",
+      "language": "Interface language",
+      "languageHint": "The language used for the application's interface.",
+      "manifestLanguage": "Manifest language",
+      "manifestLanguageHint": "The language of the information coming from the bungie.net API : Names and descriptions of items, perks and mods. Changing this setting reloads the application.",
+      "manifestLanguageAuto": "Same as interface ({language})",
       "ornaments": "Show ornaments",
       "ornamentsHint": "Use the equipped ornament instead of the base icon",
       "originalOnHover": "Show base icon on hover",

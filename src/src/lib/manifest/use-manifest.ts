@@ -2,6 +2,7 @@
 
 import {useEffect, useState} from "react";
 import {useLocale} from "next-intl";
+import {useSettings} from "@/lib/settings/store";
 import {ensureManifest, type ManifestProgress} from "./manifest";
 
 export type ManifestStatus = "loading" | "ready" | "error";
@@ -13,11 +14,16 @@ interface State {
 }
 
 /**
- * Charge le manifeste pour la langue courante au montage.
- * Renvoie l'état et la progression du téléchargement.
+ * Charge le manifeste au montage, dans la langue choisie dans les réglages —
+ * celle de l'interface par défaut. Renvoie l'état et la progression du
+ * téléchargement.
  */
 export function useManifest() {
-    const locale = useLocale();
+    const uiLocale = useLocale();
+    const preference = useSettings((s) => s.manifestLanguage);
+    // `locale` désigne ici la langue du *manifeste* : les codes de l'interface
+    // (en, fr) sont aussi des codes Bungie, d'où le repli direct.
+    const locale = preference === "auto" ? uiLocale : preference;
     const [state, setState] = useState<State>({
         locale,
         status: "loading",

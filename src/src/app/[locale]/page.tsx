@@ -28,15 +28,15 @@ export default async function Home() {
                         height={300}
                         alt={APP_TITLE}
                     />
-                    <h2>{t("description")}</h2>
+                    {/*<h2>{t("description")}</h2>*/}
                     {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
                     <a href="/api/auth/login" className="btn btn--primary">
                         {t("login")}
                     </a>
-                    <div>
-                        <p>{t("p1")}</p>
-                        <p>{t("p2")}</p>
-                    </div>
+                    {/*<div>*/}
+                    {/*    <p>{t("p1")}</p>*/}
+                    {/*    <p>{t("p2")}</p>*/}
+                    {/*</div>*/}
                 </div>
             )}
         </main>

@@ -119,7 +119,7 @@ un certificat auto-signé : l'app est sur **https://localhost**, et tout `curl` 
 - Les commentaires expliquent *pourquoi*, pas *quoi* — souvent le piège écarté ou la mesure qui a
   tranché. C'est la norme du dépôt, la suivre.
 - Chaînes d'interface dans `messages/en.json` et `messages/fr.json`, **parité stricte des clés**
-  (à vérifier après toute modification). Locales : `fr` par défaut sans préfixe (`/`), `en` sur `/en`.
+  (à vérifier après toute modification). Locales : `en` par défaut sans préfixe (`/`), `fr` sur `/fr` — l’URL seule en décide (pas de détection). La langue du manifeste est un réglage distinct (`manifestLanguage`).
   Aucun texte ne s'y répète : les mots partagés par plusieurs écrans vivent dans `common`, et les
   noms de facettes d'objet (tri comme regroupement) dans `criteria`. Un groupe lu dynamiquement
   (`criteria.<id>`, `actions.status.<valeur>`) doit couvrir *toutes* les valeurs possibles :

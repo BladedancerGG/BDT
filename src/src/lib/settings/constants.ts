@@ -10,6 +10,28 @@ export type ThemePreference = "light" | "dark" | "system";
 /** Nom du cookie portant les préférences (lisible par le serveur). */
 export const PREFS_COOKIE = "bdt-prefs";
 
+/**
+ * Langues du manifeste, codes de Bungie (`jsonWorldComponentContentPaths`).
+ *
+ * Indépendantes des langues de l'interface : Bungie traduit le jeu dans bien
+ * plus de langues que l'app. Le serveur ne précharge que celles de l'interface,
+ * les autres sont préparées à la première demande (`getTableFile`).
+ */
+export const MANIFEST_LANGUAGES = [
+    "en", "fr", "es", "es-mx", "de", "it", "ja",
+    "pt-br", "ru", "pl", "ko", "zh-chs", "zh-cht",
+] as const;
+export type ManifestLanguage = (typeof MANIFEST_LANGUAGES)[number];
+
+/** `auto` : suivre la langue de l'interface — le défaut. */
+export type ManifestLanguagePreference = "auto" | ManifestLanguage;
+
+export function parseManifestLanguage(raw: unknown): ManifestLanguagePreference | undefined {
+    return raw === "auto" || MANIFEST_LANGUAGES.includes(raw as ManifestLanguage)
+        ? (raw as ManifestLanguagePreference)
+        : undefined;
+}
+
 /** Bornes de la taille des icônes d'objets, en pixels. */
 export const ICON_SIZE = {min: 40, max: 96, default: 75} as const;
 

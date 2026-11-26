@@ -16,10 +16,12 @@ import {
     DEFAULT_VIEW_MODE,
     parseInventoryLayout,
     parseItemCategory,
+    parseManifestLanguage,
     parseSearchMissMode,
     parseViewMode,
     type InventoryLayout,
     type ItemCategory,
+    type ManifestLanguagePreference,
     type SearchMissMode,
     type ThemePreference,
     type ViewMode,
@@ -42,10 +44,23 @@ import {
 } from "@/lib/destiny/grouping";
 
 export {ICON_SIZE, PLUG_SIZE, SEARCH_HISTORY_SIZE, clampIconSize, clampPlugSize};
-export type {InventoryLayout, ItemCategory, SearchMissMode, ThemePreference, ViewMode};
+export type {
+    InventoryLayout,
+    ItemCategory,
+    ManifestLanguagePreference,
+    SearchMissMode,
+    ThemePreference,
+    ViewMode,
+};
 
 export interface SettingsState {
     theme: ThemePreference;
+    /**
+     * Langue des définitions du jeu (noms, descriptions), ou `auto` pour
+     * suivre celle de l'interface. Celle de l'interface, elle, n'est pas un
+     * réglage : c'est l'URL qui la porte.
+     */
+    manifestLanguage: ManifestLanguagePreference;
     /** Taille des icônes d'inventaire et d'équipement en px, bornée à [40, 96] */
     iconSize: number;
     /**
@@ -153,6 +168,7 @@ export interface SettingsState {
     syncEnabled: boolean;
 
     setTheme: (theme: ThemePreference) => void;
+    setManifestLanguage: (language: ManifestLanguagePreference) => void;
     setIconSize: (size: number) => void;
     setColumnsIconSize: (size: number) => void;
     setColumnsIconSizeAuto: (auto: boolean) => void;
@@ -196,6 +212,7 @@ export interface SettingsState {
 export function persistedSettings(state: SettingsState) {
     return {
         theme: state.theme,
+        manifestLanguage: state.manifestLanguage,
         visualEffects: state.visualEffects,
         iconSize: state.iconSize,
         columnsIconSize: state.columnsIconSize,
@@ -249,6 +266,7 @@ export function mergeSettings(
         columnsIconSizeAuto,
         loadoutIconSizeAuto,
         communityInsights,
+        manifestLanguage,
         syncEnabled,
         ...rest
     } = (persisted ?? {}) as Partial<SettingsState> & {sorts?: unknown};
@@ -264,6 +282,10 @@ export function mergeSettings(
                 ? clampSearchHistorySize(searchHistorySize)
                 : current.searchHistorySize,
         searchMissMode: parseSearchMissMode(searchMissMode) ?? current.searchMissMode,
+        // Relue par son analyseur : une langue inconnue ferait échouer le
+        // chargement du manifeste, donc toute l'application.
+        manifestLanguage:
+            parseManifestLanguage(manifestLanguage) ?? current.manifestLanguage,
         viewMode: parseViewMode(viewMode) ?? current.viewMode,
         itemCategory: parseItemCategory(itemCategory) ?? current.itemCategory,
         inventoryLayout:
@@ -292,6 +314,7 @@ export const useSettings = create<SettingsState>()(
     persist(
         (set) => ({
             theme: "system",
+            manifestLanguage: "auto",
             visualEffects: true,
             iconSize: ICON_SIZE.default,
             columnsIconSize: ICON_SIZE.default,
@@ -315,6 +338,7 @@ export const useSettings = create<SettingsState>()(
             syncEnabled: true,
 
             setTheme: (theme) => set({theme}),
+            setManifestLanguage: (manifestLanguage) => set({manifestLanguage}),
             setVisualEffects: (visualEffects) => set({visualEffects}),
             setIconSize: (size) => set({iconSize: clampIconSize(size)}),
             setColumnsIconSize: (size) =>
