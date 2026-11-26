@@ -99,6 +99,11 @@ export interface SettingsState {
      */
     showOriginalOnHover: boolean;
     /**
+     * Bloc « Informations de la communauté » (Clarity) des infobulles de
+     * plugs. Coupé, le fichier des descriptions n'est même pas téléchargé.
+     */
+    communityInsights: boolean;
+    /**
      * Famille d'objets montrée par la vue d'inventaire — emplacements du
      * personnage comme contenu du coffre. Persistée comme le mode d'affichage :
      * on retrouve l'onglet quitté au rechargement.
@@ -158,6 +163,7 @@ export interface SettingsState {
     setVisualEffects: (enabled: boolean) => void;
     setShowOrnaments: (show: boolean) => void;
     setShowOriginalOnHover: (show: boolean) => void;
+    setCommunityInsights: (enabled: boolean) => void;
     setItemCategory: (category: ItemCategory) => void;
     setInventoryLayout: (layout: InventoryLayout) => void;
     setOwnClassArmor: (enabled: boolean) => void;
@@ -200,6 +206,7 @@ export function persistedSettings(state: SettingsState) {
         plugSize: state.plugSize,
         showOrnaments: state.showOrnaments,
         showOriginalOnHover: state.showOriginalOnHover,
+        communityInsights: state.communityInsights,
         itemCategory: state.itemCategory,
         inventoryLayout: state.inventoryLayout,
         ownClassArmor: state.ownClassArmor,
@@ -241,6 +248,7 @@ export function mergeSettings(
         ownClassArmor,
         columnsIconSizeAuto,
         loadoutIconSizeAuto,
+        communityInsights,
         syncEnabled,
         ...rest
     } = (persisted ?? {}) as Partial<SettingsState> & {sorts?: unknown};
@@ -262,6 +270,12 @@ export function mergeSettings(
             parseInventoryLayout(inventoryLayout) ?? current.inventoryLayout,
         ownClassArmor:
             typeof ownClassArmor === "boolean" ? ownClassArmor : current.ownClassArmor,
+        // Un cookie écrit avant ce réglage n'a pas la clé : le défaut (actif)
+        // s'applique, comme avant son arrivée.
+        communityInsights:
+            typeof communityInsights === "boolean"
+                ? communityInsights
+                : current.communityInsights,
         columnsIconSizeAuto:
             typeof columnsIconSizeAuto === "boolean"
                 ? columnsIconSizeAuto
@@ -288,6 +302,7 @@ export const useSettings = create<SettingsState>()(
             plugSize: PLUG_SIZE.default,
             showOrnaments: true,
             showOriginalOnHover: true,
+            communityInsights: true,
             itemCategory: DEFAULT_ITEM_CATEGORY,
             inventoryLayout: DEFAULT_INVENTORY_LAYOUT,
             ownClassArmor: false,
@@ -315,6 +330,7 @@ export const useSettings = create<SettingsState>()(
             setShowOrnaments: (showOrnaments) => set({showOrnaments}),
             setShowOriginalOnHover: (showOriginalOnHover) =>
                 set({showOriginalOnHover}),
+            setCommunityInsights: (communityInsights) => set({communityInsights}),
             setItemCategory: (itemCategory) => set({itemCategory}),
             setInventoryLayout: (inventoryLayout) => set({inventoryLayout}),
             setOwnClassArmor: (ownClassArmor) => set({ownClassArmor}),

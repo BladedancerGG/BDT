@@ -1,0 +1,158 @@
+// Bloc « Informations de la communauté » des infobulles de plugs : les
+// descriptions de Clarity (voir ClarityInsight.tsx).
+//
+// Toujours sur la surface sombre des infobulles, quel que soit le thème (voir
+// theme.scss) : les teintes ci-dessous n'ont donc qu'un fond à contraster.
+
+.clarity {
+  // Bleu PvE, rouge PvP : la convention de Clarity elle-même, et celle du jeu
+  // (le Creuset est rouge).
+  --clarity-pve: #6cb4f5;
+  --clarity-pvp: #f07070;
+
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+
+  // Intitulé suivi d'un filet jusqu'au bord : l'origine du texte doit se lire
+  // au premier coup d'œil, c'est une condition de Clarity.
+  &__heading {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0.125rem 0 0;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: var(--color-text-muted);
+
+    &::after {
+      content: "";
+      flex: 1;
+      height: 1px;
+      // Le filet ordinaire (--color-border) se perd sur la surface translucide
+      background-color: var(--color-border-strong);
+    }
+  }
+
+  &__body {
+    display: flex;
+    flex-direction: column;
+    font-size: 0.8rem;
+    line-height: 1.4;
+    color: var(--color-text-muted);
+  }
+
+  &__line {
+    margin: 0;
+  }
+
+  &__line--bold {
+    font-weight: 700;
+  }
+
+  &__line--yellow {
+    color: #f5d36b;
+  }
+
+  &__spacer {
+    height: 0.5em;
+  }
+
+  // Icône d'élément, de munitions, d'anti-champion ou de classe : à la taille
+  // du texte, posée sur sa ligne de base.
+  &__icon {
+    display: inline-block;
+    width: 1.1em;
+    height: 1.1em;
+    margin-right: 0.15em;
+    vertical-align: -0.2em;
+  }
+
+  &__text--bold {
+    font-weight: 700;
+    color: var(--color-text);
+  }
+
+  &__line--pve,
+  &__text--pve {
+    color: var(--clarity-pve);
+  }
+
+  &__line--pvp,
+  &__text--pvp {
+    color: var(--clarity-pvp);
+  }
+
+  &__text--yellow {
+    color: #f5d36b;
+  }
+
+  &__text--blue {
+    color: #7fb2ff;
+  }
+
+  &__text--green {
+    color: var(--color-success);
+  }
+
+  &__text--purple {
+    color: #c39af0;
+  }
+
+  // Flèche des valeurs d'attribut amélioré : l'or des perks améliorées
+  &__text--enhancedArrow {
+    color: var(--color-accent);
+  }
+
+  &__text--link {
+    color: var(--color-text);
+    text-decoration: underline;
+    text-underline-offset: 0.15em;
+  }
+
+  // Terme expliqué en note, sous le texte
+  &__text--term {
+    text-decoration: underline dotted;
+    text-underline-offset: 0.2em;
+  }
+
+  &__note-ref {
+    margin-left: 0.1em;
+    font-size: 0.7em;
+    color: var(--color-accent);
+  }
+
+  &__notes {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    margin: 0;
+    padding: 0.375rem 0 0;
+    border-top: 1px dashed var(--color-border);
+    list-style: none;
+    font-size: 0.75rem;
+    line-height: 1.35;
+    color: var(--color-text-muted);
+  }
+
+  &__note .clarity__note-ref {
+    margin: 0 0.3em 0 0;
+  }
+
+  &__note-term {
+    font-weight: 600;
+    color: var(--color-text);
+
+    &::after {
+      content: " — ";
+      font-weight: 400;
+      color: var(--color-text-muted);
+    }
+  }
+
+  // La première ligne de la note suit le terme ; les suivantes vont à la ligne
+  &__note .clarity__line:first-of-type {
+    display: inline;
+  }
+}

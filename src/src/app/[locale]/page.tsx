@@ -7,7 +7,7 @@ import Image from "next/image";
 
 export default async function Home() {
     const user = await getCurrentUser();
-    const t = await getTranslations("auth");
+    const t = await getTranslations("landing");
 
     return (
         <main className="app-main">
@@ -28,12 +28,15 @@ export default async function Home() {
                         height={300}
                         alt={APP_TITLE}
                     />
-                    <h2>Personal tools used to manage stuff using the bungie.net Destiny 2 API</h2>
-                    <p>I'll put more things here in the future</p>
+                    <h2>{t("description")}</h2>
                     {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
                     <a href="/api/auth/login" className="btn btn--primary">
                         {t("login")}
                     </a>
+                    <div>
+                        <p>{t("p1")}</p>
+                        <p>{t("p2")}</p>
+                    </div>
                 </div>
             )}
         </main>

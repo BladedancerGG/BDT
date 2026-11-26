@@ -171,16 +171,16 @@ export function MainMenu({displayName, admin = false}: {
 
                             </Link>
 
-                            {/*<Link*/}
-                            {/*href="https://github.com/BladedancerGG/BDT"*/}
-                            {/*className="main-menu__item"*/}
-                            {/*target='_blank'*/}
-                            {/*rel="noreferrer noopener"*/}
-                            {/*>*/}
-                            {/*<GithubIcon />*/}
-                            {/*    {t("sourceCode")}*/}
+                            <Link
+                                href="https://github.com/BladedancerGG/BDT"
+                                className="main-menu__item"
+                                target='_blank'
+                                rel="noreferrer noopener"
+                            >
+                                <GithubIcon/>
+                                {t("sourceCode")}
 
-                            {/*</Link>*/}
+                            </Link>
                         </div>
 
                         {/* Ancré en bas : le compte connecté et sa sortie */}

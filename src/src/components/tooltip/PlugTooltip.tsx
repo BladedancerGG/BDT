@@ -16,6 +16,8 @@ import { fragmentSlots } from "@/lib/destiny/subclass";
 import { BUNGIE_ROOT } from "@/lib/destiny/display";
 import { DestinySymbol } from "@/components/DestinySymbol";
 import { useHoverless } from "@/lib/ui/use-media-query";
+import { useClarityDescription } from "@/lib/clarity/use-clarity";
+import { ClarityInsight } from "./ClarityInsight";
 
 /** Une ligne « +10 Stabilité » / « -5 Maniement ». */
 function StatLine({ statHash, value }: { statHash: number; value: number }) {
@@ -89,6 +91,12 @@ export function PlugTooltip({
   // La définition n'est passée que pour un catalyseur : sans ce filtre, chaque
   // infobulle de mod ouvrirait une lecture Dexie de plus pour rien.
   const plugPerks = usePlugPerks(isExoticCatalystPlug(def) ? def : undefined);
+  // Clarity indexe ses descriptions par hash de plug, et seulement ceux de la
+  // table des objets : une perk de sandbox homonyme n'a pas la même clé.
+  const clarity = useClarityDescription(
+    table === "DestinyInventoryItemDefinition" ? hash : undefined,
+    def,
+  );
 
   if (!def) return null;
 
@@ -105,7 +113,8 @@ export function PlugTooltip({
       {(description ||
         slots > 0 ||
         modifiers.length > 0 ||
-        plugPerks.length > 0) && (
+        plugPerks.length > 0 ||
+        clarity) && (
         <div className="plug-tooltip__body">
           {description && (
             <p className="plug-tooltip__description">{description}</p>
@@ -132,6 +141,9 @@ export function PlugTooltip({
               ))}
             </ul>
           )}
+          {/* Après les perks d'un catalyseur : Clarity n'a qu'une description
+              par catalyseur, qui les couvre toutes. */}
+          {clarity && <ClarityInsight blocks={clarity} />}
           {slots > 0 && (
             <p className="plug-tooltip__slots">
               {t("fragmentSlots", { count: slots })}

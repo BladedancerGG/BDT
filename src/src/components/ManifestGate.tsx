@@ -4,6 +4,7 @@ import type {ReactNode} from "react";
 import {useTranslations} from "next-intl";
 import {useManifest} from "@/lib/manifest/use-manifest";
 import {LoadingIcon} from "@/components/icons";
+import {usePrefetchClarity} from "@/lib/clarity/use-clarity";
 
 /**
  * Garantit le manifeste, puis rend ses enfants.
@@ -22,6 +23,9 @@ import {LoadingIcon} from "@/components/icons";
 export function ManifestGate({children}: {children: ReactNode}) {
     const t = useTranslations("manifest");
     const {status, progress} = useManifest();
+    // Les descriptions de Clarity se chargent pendant le manifeste : sans lui,
+    // la première infobulle survolée grandirait sous le curseur à leur arrivée.
+    usePrefetchClarity();
 
     if (status === "error") {
         return (

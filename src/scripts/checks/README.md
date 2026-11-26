@@ -30,6 +30,7 @@ casse en silence.
 | `progress.check.ts`    | `lib/manifest/progress.ts` (barre de progression pondérée du manifeste) |
 | `admin-filters.check.ts` | `lib/admin/filters.ts` (filtres des statistiques d'administration) |
 | `admin-sort.check.ts` | `lib/admin/sort.ts` (tri des statistiques d'administration) |
+| `clarity.check.ts` | `lib/clarity/format.ts` (allègement des descriptions de Clarity) |
 | `css-duplicates.py`    | la feuille de styles compilée (voir plus bas)  |
 
 ## Lancer

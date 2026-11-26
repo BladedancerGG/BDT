@@ -26,7 +26,16 @@ import {MANIFEST_SCHEMA_VERSION, MANIFEST_TABLES, type ManifestTable} from "./ta
 const BUNGIE_ROOT = "https://www.bungie.net";
 
 /** Racine du cache — un volume nommé en Docker (voir docker-compose*.yml). */
-const CACHE_DIR = process.env.MANIFEST_CACHE_DIR || "/var/cache/manifest";
+export const CACHE_DIR = process.env.MANIFEST_CACHE_DIR || "/var/cache/manifest";
+
+/**
+ * Sous-dossier du cache où vivent les descriptions de Clarity
+ * (lib/clarity/server-cache.ts). Il partage le volume — et donc la route Caddy —
+ * des tables, mais pas leur cycle de vie : la purge des anciennes versions du
+ * manifeste doit l'épargner. Aucune version de Bungie ne peut porter ce nom,
+ * elles commencent toutes par un chiffre (`VERSION_RE`).
+ */
+export const CLARITY_CACHE_ENTRY = "clarity";
 
 /**
  * Âge au-delà duquel la version lue chez Bungie est relue. Chaque chargement de
@@ -341,7 +350,7 @@ function onVersionSeen(meta: Meta) {
         try {
             await mkdir(CACHE_DIR, {recursive: true});
             for (const entry of await readdir(CACHE_DIR)) {
-                if (entry !== meta.version) {
+                if (entry !== meta.version && entry !== CLARITY_CACHE_ENTRY) {
                     await rm(path.join(CACHE_DIR, entry), {recursive: true, force: true});
                 }
             }

@@ -87,8 +87,9 @@ remplaçants), `lib/destiny/perk-upgrades.ts` (attributs améliorés et armes fa
 `lib/manifest/progress.ts` (progression pondérée du chargement),
 `lib/destiny/stat-breakdown.ts` (décomposition des statistiques, bonus de palier),
 `lib/loadouts/share/snapshot.ts` (l'instantané d'un partage),
-`lib/loadouts/share/import.ts` (l'import d'un partage)
-et `lib/admin/filters.ts` / `lib/admin/sort.ts` (filtres et tri des statistiques d'administration),
+`lib/loadouts/share/import.ts` (l'import d'un partage),
+`lib/admin/filters.ts` / `lib/admin/sort.ts` (filtres et tri des statistiques d'administration),
+et `lib/clarity/format.ts` (allègement des descriptions communautaires de Clarity),
 et contrôlent au passage les règles CSS qui se recouvrent.
 **Les lancer après toute modification de ces modules**, et y ajouter un cas quand un piège
 Destiny est écarté : c'est là que la logique se casse en silence. Voir

@@ -11,7 +11,7 @@
 @mixin dark-palette {
   // Palette inspirée des menus du jeu (fonds sombres, accent doré)
   --color-bg: #16181d;
-  --color-panel: rgb(28 31 38 / var(--surface-alpha, 0.85));
+  --color-panel: rgb(28 31 38 / var(--surface-alpha, 0.95));
   --color-panel-alt: #22262e;
   --color-panel-alt-semi-transparent: #22262eaa;
   --color-border: #33373f;
@@ -131,7 +131,7 @@
 .item-tooltip,
 .plug-tooltip,
 .socket-picker {
-  --color-panel: rgb(28 31 38 / var(--surface-alpha, 0.85));
+  --color-panel: rgb(28 31 38 / var(--surface-alpha, 0.95));
   // Les fonds secondaires (pistes de statistiques, bandeau de niveau d'arme)
   // restent opaques : à travers deux calques translucides, la barre ne se
   // détacherait plus de sa piste.

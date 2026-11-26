@@ -124,6 +124,14 @@
     color: var(--color-text-muted);
   }
 
+  // Plusieurs liens dans une même ligne (crédits de Clarity)
+  &__links {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.375rem;
+  }
+
   // Exemples de syntaxe de recherche, à recopier tels quels
   &__examples {
     display: flex;

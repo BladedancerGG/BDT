@@ -19,8 +19,11 @@
     "expand": "Expand",
     "collapse": "Collapse"
   },
-  "auth": {
-    "login": "Sign in with Bungie"
+  "landing": {
+    "description": "Manage your inventory and loadouts with ease",
+    "login": "Sign in with Bungie",
+    "p1" : "Intuitive item manager",
+    "p2" : "Powerful loadout management"
   },
   "header": {
     "refresh": "Refresh",
@@ -33,7 +36,7 @@
     "soon": "soon",
     "signedInAs": "Signed in as",
     "discord": "Join the Discord server",
-    "sourceCode": "Source code on GitHub"
+    "sourceCode": "View the application's source code"
   },
   "criteria": {
     "none": "None",
@@ -100,7 +103,7 @@
         "dark": "Dark",
         "system": "System"
       },
-      "effects": "Transparency effects",
+      "effects": "Transparency and blur effects",
       "effectsHint": "Translucent backgrounds and blur on tooltips and the perk picker",
       "language": "Language",
       "languageHint": "Changing language will completely reload the application",
@@ -108,6 +111,8 @@
       "ornamentsHint": "Use the equipped ornament instead of the base icon",
       "originalOnHover": "Show base icon on hover",
       "originalOnHoverHint": "Hovering an ornamented armor reveals its base icon",
+      "communityInsights": "Community insights",
+      "communityInsightsHint": "Details from the Clarity database in perk and mod tooltips",
       "iconSize": "Icon size",
       "iconSizeHint": "Equipped items and inventory of the displayed character",
       "columnsIconSize": "Column icon size",
@@ -171,7 +176,11 @@
       "support": "Contact",
       "bungieApi": "Bungie API",
       "madeBy": "Made by ",
-      "discord": "Discord server"
+      "discord": "Discord server",
+      "clarity": "Community insights: Clarity",
+      "clarityHint": "The extra details in perk and mod tooltips come from Clarity, a community database. Spotted a mistake? Report it on their Discord server.",
+      "clarityWebsite": "Website",
+      "clarityDiscord": "Discord"
     }
   },
   "actions": {
@@ -286,6 +295,7 @@
   },
   "item": {
     "loading": "Loading…",
+    "communityInsights": "Clarity details",
     "loadingDetail": "Loading perks and mods…",
     "energy": "energy",
     "artifactPerks": "Perks",

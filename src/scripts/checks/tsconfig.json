@@ -37,6 +37,7 @@
     "projection.check.ts",
     "progress.check.ts",
     "admin-filters.check.ts",
-    "admin-sort.check.ts"
+    "admin-sort.check.ts",
+    "clarity.check.ts"
   ]
 }

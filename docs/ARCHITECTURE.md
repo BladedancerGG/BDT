@@ -474,6 +474,57 @@ A cascade is needed (`usePlugDescription`):
 Coverage after the cascade: fragments 99/99, aspects 75/75, artifact perks
 230/231, weapon barrels and mods 177/178.
 
+## Community insights (Clarity)
+
+Plug tooltips add a "Community insights" block taken from
+[Clarity](https://www.d2clarity.com): measured values, PvE / PvP splits, hidden
+mechanics. Source: `descriptions/clarity.json` on the `live` branch of
+`Database-Clarity/Live-Clarity-Database`. Of the seven variants in that folder,
+this is the only one that keeps PvE / PvP values **tagged**
+(`classNames: ["pve"]`); the DIM one flattens them into text ("[PVP: 4000%]"),
+leaving nothing to colour.
+
+- **English only**: Clarity publishes no other language, so the block stays in
+  English on `/` too. Only its heading is translated.
+- **Keys** are `DestinyInventoryItemDefinition` plug hashes. All 1,719 were
+  found in the manifest (measured), enhanced traits and catalysts included.
+  An exotic catalyst has **one** entry covering all its perks, hence one block
+  after the perk list rather than one per perk.
+- **Variants**: Clarity describes one plug per perk, while the game reuses
+  many perks under other hashes. Measured on the manifest, ~335 plugs had no
+  entry for that reason alone: 118 enhanced intrinsics, 85 enhanced origin
+  traits, 20 enhanced weapon mods, and enhanced magazines and barrels ("High-Caliber
+  Rounds" is only listed in its regular form). A missing hash therefore falls
+  back to a plug with the same name **and** `plugCategoryIdentifier`, preferring
+  the same `tierType`, since seven perks have regular and enhanced entries with
+  different texts (`resolveClarityHash`). Names come from the manifest in the
+  app's language, never from Clarity's English. The index is built once per page,
+  on the first tooltip that needs it, with one bulk read of ~1,700 definitions.
+- **Relay** (`lib/clarity/server-cache.ts`): the server reads `versions.json`
+  (kept 10 min, stale-while-revalidate like the manifest version), downloads
+  the file once per version, slims it (`lib/clarity/format.ts`: drops editor
+  metadata, stats and other languages; https-only links) and writes it Brotli
+  compressed to `<manifest cache>/clarity/<version>/<format>/descriptions.json.br`.
+  Caddy serves it through the existing `/manifest-files/…` route, `immutable`:
+  2 MB raw → 1.1 MB JSON → **108 KB** transferred. The manifest purge spares
+  that folder (`CLARITY_CACHE_ENTRY`). If GitHub is unreachable, the latest
+  copy on disk is served.
+- `GET /api/clarity` returns the file's URL (`no-cache`). The client loads the
+  whole file once through TanStack Query (`lib/clarity/use-clarity.ts`),
+  prefetched by `ManifestGate`. Without that prefetch the first tooltip grew
+  under the cursor when the data arrived.
+- **Rendering** (`ClarityInsight.tsx`): an empty-text segment is an icon. That
+  covers elements and anti-champion types (the manifest definitions, matched on
+  `enumValue`), ammo and classes (local SVGs). Style classes come from a closed
+  list. Term explanations (`title`) are shown as **numbered notes** below the
+  text: a plug tooltip closes when the cursor leaves its icon, so no term inside
+  it could be hovered.
+- **Terms of use** (d2clarity.com/partnerships): the source must be credited
+  and clearly shown as external, the content must not be altered, local copies
+  must track `versions.json`, and users need a way to report errors (Clarity's
+  Discord). The credit row lives in Settings › About. **Past 150 _potential_
+  users, a partnership is required** (free for hobby projects).
+
 ## Stat modifiers
 
 `investmentStats` mixes player-facing stats with internal values (Defense, Power,

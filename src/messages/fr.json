@@ -19,8 +19,11 @@
     "expand": "Déplier",
     "collapse": "Replier"
   },
-  "auth": {
-    "login": "Se connecter avec Bungie"
+  "landing": {
+    "description": "Gérez votre inventaire et vos équipements facilement",
+    "login": "Se connecter avec Bungie",
+    "p1" : "Gestionnaire d'objet intuitif",
+    "p2" : "Gestion avancée des équipements en jeu"
   },
   "header": {
     "refresh": "Rafraîchir",
@@ -32,7 +35,7 @@
     "open": "Ouvrir le menu",
     "soon": "à venir",
     "signedInAs": "Connecté en tant que",
-    "sourceCode": "Code source sur GitHub",
+    "sourceCode": "Voir le code source de l'application",
     "discord": "Rejoindre le serveur Discord"
   },
   "criteria": {
@@ -100,7 +103,7 @@
         "dark": "Sombre",
         "system": "Système"
       },
-      "effects": "Effets de transparence",
+      "effects": "Effets de flou et transparence",
       "effectsHint": "Fonds translucides et flou des infobulles et du sélecteur d’attributs",
       "language": "Langue",
       "languageHint": "Changer la langue d’affichage rechargera complètement l’application",
@@ -108,6 +111,8 @@
       "ornamentsHint": "Utilise l’ornement équipé au lieu de l’icône de base",
       "originalOnHover": "Afficher l'icône de base au survol",
       "originalOnHoverHint": "Survoler une armure ornementée révèle son icône de base",
+      "communityInsights": "Informations de la communauté",
+      "communityInsightsHint": "Précisions de la base Clarity (en anglais) dans les infobulles d’attributs et de mods",
       "iconSize": "Taille des icônes",
       "iconSizeHint": "Objets équipés et inventaire du personnage affiché",
       "columnsIconSize": "Taille des icônes en colonnes",
@@ -171,7 +176,11 @@
       "support": "Contact",
       "bungieApi": "API Bungie",
       "madeBy": "Créé par ",
-      "discord": "Serveur Discord"
+      "discord": "Serveur Discord",
+      "clarity": "Informations de la communauté : Clarity",
+      "clarityHint": "Les précisions des infobulles d’attributs et de mods viennent de la base communautaire Clarity, en anglais. Une erreur ? Signalez-la sur leur serveur Discord.",
+      "clarityWebsite": "Site",
+      "clarityDiscord": "Discord"
     }
   },
   "actions": {
@@ -286,6 +295,7 @@
   },
   "item": {
     "loading": "Chargement…",
+    "communityInsights": "Détails de Clarity",
     "loadingDetail": "Chargement des attributs et mods…",
     "energy": "énergie",
     "artifactPerks": "Attributs",

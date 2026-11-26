@@ -281,6 +281,8 @@ function AppearancePanel() {
     const setShowOrnaments = useSettings((s) => s.setShowOrnaments);
     const showOriginalOnHover = useSettings((s) => s.showOriginalOnHover);
     const setShowOriginalOnHover = useSettings((s) => s.setShowOriginalOnHover);
+    const communityInsights = useSettings((s) => s.communityInsights);
+    const setCommunityInsights = useSettings((s) => s.setCommunityInsights);
 
     const changeLocale = (next: Locale) => {
         // Conserve le chemin courant en changeant seulement la langue
@@ -359,6 +361,19 @@ function AppearancePanel() {
                     />
                 </SettingRow>
             )}
+
+            <SettingRow
+                label={t("communityInsights")}
+                hint={t("communityInsightsHint")}
+                htmlFor="setting-community-insights"
+            >
+                <Toggle
+                    id="setting-community-insights"
+                    checked={communityInsights}
+                    onChange={setCommunityInsights}
+                    label={t("communityInsights")}
+                />
+            </SettingRow>
 
             <SettingRow
                 label={t("iconSize")}
@@ -612,8 +627,15 @@ function AboutPanel() {
 
     return (
         <div className="settings__group">
-            <SettingRow label={t("version")}>
-                <span className="settings__value">{APP_VERSION}</span>
+            <SettingRow label={t("madeBy") + "Bladedancer#9791"}>
+                <a
+                    className="btn btn--small"
+                    href="https://www.bungie.net/7/en/User/Profile/2/4611686018443729606"
+                    target="_blank"
+                    rel="noreferrer noopener"
+                >
+                    {tAccount("profile")}
+                </a>
             </SettingRow>
 
             <SettingRow label={t("discord")}>
@@ -627,32 +649,46 @@ function AboutPanel() {
                 </a>
             </SettingRow>
 
-            {/*<SettingRow label={tMenu("sourceCode")}>*/}
-            {/*    <a*/}
-            {/*        className="btn btn--small"*/}
-            {/*        href="https://github.com/BladedancerGG/BDT"*/}
-            {/*        target="_blank"*/}
-            {/*        rel="noreferrer noopener"*/}
-            {/*    >*/}
-            {/*        {tCommon("open")}*/}
-            {/*    </a>*/}
-            {/*</SettingRow>*/}
-
-            <SettingRow label={t("support")}>
-                <a className="btn btn--small" href={`mailto:${SUPPORT_EMAIL}`}>
-                    {SUPPORT_EMAIL}
-                </a>
-            </SettingRow>
-
-            <SettingRow label={t("madeBy") + "Bladedancer#9791"}>
+            <SettingRow label={tMenu("sourceCode")}>
                 <a
                     className="btn btn--small"
-                    href="https://www.bungie.net/7/en/User/Profile/2/4611686018443729606"
+                    href="https://github.com/BladedancerGG/BDT"
                     target="_blank"
                     rel="noreferrer noopener"
                 >
-                    {tAccount("profile")}
+                    {tCommon("open")}
                 </a>
+            </SettingRow>
+
+            {/*<SettingRow label={t("support")}>*/}
+            {/*    <a className="btn btn--small" href={`mailto:${SUPPORT_EMAIL}`}>*/}
+            {/*        {SUPPORT_EMAIL}*/}
+            {/*    </a>*/}
+            {/*</SettingRow>*/}
+
+            {/* Crédit exigé par Clarity pour reprendre ses descriptions : son
+                nom, un lien vers son site et un vers son Discord, où les
+                utilisateurs signalent eux-mêmes les erreurs — les rediriger
+                au cas par cas ne suffit pas, selon leurs conditions. */}
+            <SettingRow label={t("clarity")} hint={t("clarityHint")}>
+                <div className="settings__links">
+                    <a
+                        className="btn btn--small"
+                        href="https://d2clarity.com"
+                        target="_blank"
+                        rel="noreferrer noopener"
+                    >
+                        {t("clarityWebsite")}
+                    </a>
+                    <a
+                        className="btn btn--small"
+                        href="https://d2clarity.com/discord"
+                        target="_blank"
+                        rel="noreferrer noopener"
+                    >
+                        {t("clarityDiscord")}
+                    </a>
+                </div>
             </SettingRow>
         </div>
     );
