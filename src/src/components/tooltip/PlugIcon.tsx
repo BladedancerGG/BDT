@@ -116,8 +116,8 @@ export function PlugIcon({
     const {refs, floatingStyles, context} = useFloating({
         open,
         onOpenChange: setOpen,
-        placement: "top",
-        middleware: [offset(6), flip(), shift({padding: 8})],
+        placement: "top-start",
+        middleware: [offset(6), flip({fallbackPlacements: ["top", "top-end", "right-start", "right", "right-end", "left-start", "left", "left-end"]}), shift({padding: 8})],
         // —— Suivi image par image, et non par observateurs ————
         //
         // L'ancre est une icône posée DANS l'infobulle d'un objet, laquelle
@@ -292,9 +292,9 @@ export function PlugIcon({
                             // d'autre à faire.
                             onClick: hoverless
                                 ? (event) => {
-                                      event.stopPropagation();
-                                      setOpen(false);
-                                  }
+                                    event.stopPropagation();
+                                    setOpen(false);
+                                }
                                 : undefined,
                         })}
                         className="floating-layer floating-layer--nested"
